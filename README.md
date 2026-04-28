@@ -18,10 +18,12 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Records claimed paths so agents can avoid overlapping work.
 - Stores journal entries and lightweight messages.
 - Supports agent heartbeats and watcher status.
-- Provides `doctor`, `validate`, `status`, `plan`, and `summarize` commands.
+- Provides `doctor`, `validate`, `status`, `plan`, and enhanced `summarize` commands.
 - Supports `doctor --fix` and `doctor --json` through the command layer.
 - Performs Git preflight checks before task claims.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
+- Supports optional `finish` safety gates for verification and docs review.
+- Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
 - Validates portable config with `npm run validate:agents-config` and the `validate`/`doctor` command layer.
 - Uses a cross-platform Node watcher by default for `watch-start`.
 - Bootstraps the coordinator into another repo with `npm run bootstrap`.
@@ -112,9 +114,12 @@ npm run agents:doctor:fix
 npm run agents:plan
 npm run agents:status
 npm run agents:summarize
+npm run agents -- summarize --for-chat
+npm run agents -- summarize --json
 npm run agents:validate
 npm run agents:start -- agent-1 task-id --paths src/path "Starting work."
 npm run agents:finish -- agent-1 task-id "Finished and verified."
+npm run agents -- finish agent-1 task-id --require-verification --require-doc-review "Finished and verified."
 npm run agents:handoff-ready -- agent-1 task-id "Ready for handoff."
 npm run agents:lock:status
 npm run agents:lock:clear
@@ -134,13 +139,14 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `.nvmrc` and `.node-version`: Node 24 runtime hints.
 - `package-lock.json`: npm lockfile used by CI for reproducible `npm ci` installs and cache keys.
 - `bin/ai-agents.mjs`: public CLI entrypoint.
-- `scripts/agent-command-layer.mjs`: command-layer features such as `doctor --fix`, `doctor --json`, `summarize`, lifecycle helpers, Git preflight, and Node watcher start.
+- `scripts/agent-command-layer.mjs`: command-layer features such as `doctor --fix`, `doctor --json`, enhanced `summarize`, lifecycle helpers, Git preflight, finish gates, lock routing, and Node watcher start.
 - `scripts/agent-coordination-core.mjs`: shared coordinator implementation.
 - `scripts/agent-coordination.mjs`: `agents` workspace wrapper.
 - `scripts/agent-coordination-two.mjs`: `agents2` workspace wrapper.
 - `scripts/bootstrap.mjs`: installer for copying `ai_agents` into another repo.
 - `scripts/validate-config.mjs`: config validator with text and JSON output.
 - `scripts/lock-runtime.mjs`: runtime lock inspection and safe stale-lock cleanup.
+- `scripts/planner-sizing.mjs`: reusable planner lane sizing helper and regression-test target.
 - `scripts/agent-watch-loop.mjs`: cross-platform Node watch-loop helper.
 - `scripts/agent-watch-loop.ps1`: legacy Windows watch-loop helper for `agents`.
 - `scripts/agent-watch-loop-two.ps1`: legacy Windows watch-loop helper for `agents2`.
