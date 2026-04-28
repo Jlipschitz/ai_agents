@@ -124,6 +124,10 @@ export function validateAgentConfig(config, options = {}) {
     validateString(config.projectName, 'projectName', errors);
   }
 
+  if ('configVersion' in config) {
+    validateInteger(config.configVersion, 'configVersion', errors);
+  }
+
   if ('agentIds' in config) {
     validateStringArray(config.agentIds, 'agentIds', errors, { allowEmpty: false });
   }

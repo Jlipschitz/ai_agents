@@ -5,6 +5,7 @@ import { validateAgentConfig } from '../scripts/validate-config.mjs';
 
 function validConfig() {
   return {
+    configVersion: 1,
     projectName: 'Example App',
     agentIds: ['agent-1', 'agent-2'],
     docs: {
@@ -92,6 +93,7 @@ test('validateAgentConfig accepts the expected config shape', () => {
 test('validateAgentConfig reports actionable errors', () => {
   const config = validConfig();
   config.agentIds = ['agent-1', 'agent-1'];
+  config.configVersion = 0;
   config.planning.agentSizing.minAgents = 3;
   config.planning.agentSizing.maxAgents = 2;
   config.domainRules[0].keywords = [];
@@ -103,6 +105,7 @@ test('validateAgentConfig reports actionable errors', () => {
 
   assert.equal(result.valid, false);
   assert.ok(result.errors.some((entry) => entry.includes('agentIds[1]')));
+  assert.ok(result.errors.some((entry) => entry.includes('configVersion')));
   assert.ok(result.errors.some((entry) => entry.includes('minAgents cannot be greater than maxAgents')));
   assert.ok(result.errors.some((entry) => entry.includes('domainRules[0].keywords')));
   assert.ok(result.errors.some((entry) => entry.includes('artifacts.keepDays')));

@@ -234,6 +234,36 @@ Flags:
 - `--root <path>`: repo root used for existence warnings.
 - `--json`: emit machine-readable validation output.
 
+### `migrate-config`
+
+Adds current optional config defaults such as `configVersion`, `artifacts`, and `checks`. The command is dry-run by default and snapshots the previous config before applying changes.
+
+```bash
+npm run agents -- migrate-config
+npm run agents -- migrate-config --json
+npm run agents -- migrate-config --apply
+```
+
+### `policy-packs`
+
+Lists, inspects, or applies reusable config policy packs.
+
+```bash
+npm run agents -- policy-packs list
+npm run agents -- policy-packs inspect strict-ui
+npm run agents -- policy-packs apply strict-ui
+npm run agents -- policy-packs apply strict-ui,release-heavy --apply --json
+```
+
+Built-in packs:
+
+- `docs-light`
+- `strict-ui`
+- `backend-safe`
+- `release-heavy`
+
+Applying packs is a dry run unless `--apply` is passed. Applied changes snapshot the previous config first.
+
 ## Planning and Task Commands
 
 ### `plan`
@@ -478,7 +508,11 @@ npm run agents -- artifacts list
 npm run agents -- artifacts list --task task-id --check unit --json
 npm run agents -- artifacts inspect artifacts/checks/example.log
 npm run agents -- artifacts inspect artifacts/checks/example.log --json
+npm run agents -- artifacts prune
+npm run agents -- artifacts prune --apply --json
 ```
+
+`artifacts prune` is dry-run by default. It keeps artifacts referenced by active work, honors configured protected patterns, applies separate retention for failed checks, and can prune oldest eligible files when artifact storage exceeds `artifacts.maxMb`.
 
 ## Notes and Messaging
 

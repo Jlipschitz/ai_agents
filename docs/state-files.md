@@ -273,7 +273,7 @@ npm run agents -- artifacts list
 npm run agents -- artifacts inspect artifacts/checks/example.log
 ```
 
-Future artifact support can add retention policies, pruning, and richer artifact root enforcement.
+`artifacts prune` supports dry-run/apply cleanup from configured artifact roots while preserving artifacts referenced by active work. Future artifact support can add richer reporting and deeper artifact root enforcement.
 
 ## Archive State
 

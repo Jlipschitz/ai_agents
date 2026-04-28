@@ -14,11 +14,11 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add config migration and policy packs.
-2. Add broader command snapshot tests and fixture repos.
-3. Deepen artifact retention and pruning.
-4. Add configurable capacity and conflict-prediction gates.
-5. Add per-command help and consistent global flags.
+1. Add broader command snapshot tests and fixture repos.
+2. Add configurable capacity and conflict-prediction gates.
+3. Add per-command help and consistent global flags.
+4. Add stale branch cleanup and multi-branch awareness.
+5. Add CODEOWNERS ownership reviews and test-impact selection.
 
 ---
 
@@ -64,7 +64,7 @@ Next recommended work:
 - [ ] Workspace snapshots
 - [x] Lock diagnostics
 - [ ] Multi-repo dashboard
-- [ ] Config migration
+- [x] Config migration
 - [ ] Dry run for every mutation
 
 ## Phase 4: Verification, Risk, and GitHub Integration
@@ -87,7 +87,7 @@ Next recommended work:
 - [~] Portable npm package — package shape and bin exist; publishing remains open.
 - [ ] TUI dashboard
 - [~] JSON API mode — available for key commands, not yet universal.
-- [ ] Policy packs
+- [x] Policy packs
 
 ## Phase 5: Safety, Auditing, and Recovery
 
@@ -120,7 +120,7 @@ Next recommended work:
 - [ ] Agent reputation/history
 - [ ] Cost/time accounting
 - [ ] Review queue
-- [ ] Artifact retention policy
+- [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; deeper storage policy and reporting remain open.
 - [ ] Human-readable changelog
 - [ ] Task templates
 - [ ] External calendar/reminder hooks

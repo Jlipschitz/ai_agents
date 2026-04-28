@@ -350,6 +350,40 @@ Current behavior:
 - `doctor --json` includes `configSuggestions` with actionable improvement recommendations.
 - Built-in short aliases route `s`, `d`, `p`, and `sum` to `status`, `doctor`, `plan`, and `summarize`.
 
+### Config migration and policy packs
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- migrate-config
+npm run agents -- migrate-config --apply
+npm run agents -- policy-packs list
+npm run agents -- policy-packs apply strict-ui --apply
+```
+
+Current behavior:
+
+- `migrate-config` is dry-run by default and adds current optional defaults such as `configVersion`, `artifacts`, and `checks`.
+- Applied config migrations snapshot the previous config under `runtime/snapshots/`.
+- `policy-packs` lists and inspects reusable packs.
+- `policy-packs apply` is dry-run by default and can apply `docs-light`, `strict-ui`, `backend-safe`, or `release-heavy`.
+
+### Artifact retention
+
+Status: partially implemented in the command layer.
+
+```bash
+npm run agents -- artifacts prune
+npm run agents -- artifacts prune --apply --json
+```
+
+Current behavior:
+
+- Dry-run by default.
+- Honors `artifacts.roots`, `keepDays`, `keepFailedDays`, `maxMb`, and `protectPatterns`.
+- Keeps artifacts referenced by active work.
+- Deletes only with `--apply`.
+
 ### Planner lane sizing helper
 
 Status: implemented as a reusable helper and regression-test target.
@@ -395,6 +429,7 @@ Current coverage:
 - `finish` safety gates block before mutating board state.
 - Planner lane sizing covers simple, complex, capped, and fallback cases.
 - Verification artifacts, artifact listing/inspection, dependency graph output, ownership-map overlap detection, PR summaries, and release bundles have regression coverage.
+- Config migration, policy pack dry-run/apply behavior, artifact retention dry-runs, and artifact pruning apply behavior have regression coverage.
 
 Main files:
 

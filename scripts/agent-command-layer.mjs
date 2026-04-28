@@ -24,6 +24,8 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'ownership-map',
   'pr-summary',
   'release-bundle',
+  'migrate-config',
+  'policy-packs',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -41,6 +43,44 @@ const DEFAULT_RECENT_CONTEXT_LINES = 8;
 const DEFAULT_RUNTIME_STALE_MS = 300000;
 const DEFAULT_HEARTBEAT_TTL_MS = 90000;
 const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/explain-config.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/planner-sizing.mjs && node --check ./scripts/validate-config.mjs';
+const CURRENT_CONFIG_VERSION = 1;
+const DEFAULT_ARTIFACT_POLICY = { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] };
+const POLICY_PACKS = {
+  'docs-light': {
+    description: 'Lightweight docs-focused coordination defaults.',
+    config: {
+      docs: { roots: ['docs'], appNotes: 'docs/ai-agent-app-notes.md' },
+      paths: { sharedRisk: ['README.md', 'docs'], visualImpact: [], visualSuite: [] },
+      verification: { visualRequiredChecks: [], visualSuiteUpdateChecks: [] },
+    },
+  },
+  'strict-ui': {
+    description: 'Stricter frontend and visual-verification defaults.',
+    config: {
+      git: { allowMainBranchClaims: false, allowDetachedHead: false, allowedBranchPatterns: ['feature/*', 'fix/*', 'agent/*'] },
+      paths: { sharedRisk: ['components', 'src', 'app', 'package.json'], visualImpact: ['app', 'src', 'components', 'features', 'assets'], visualSuite: ['tests/visual', 'playwright-report', 'test-results'] },
+      verification: { visualRequiredChecks: ['visual:test'], visualSuiteUpdateChecks: ['visual:update'] },
+      checks: { 'visual:test': { command: 'npm run visual:test', timeoutMs: 120000, artifactRoots: ['artifacts', 'playwright-report', 'test-results'], requiredForPaths: ['app', 'src', 'components', 'features'], requireArtifacts: true } },
+    },
+  },
+  'backend-safe': {
+    description: 'Backend/data safety defaults for API, database, and auth work.',
+    config: {
+      git: { allowMainBranchClaims: false, allowDetachedHead: false, allowedBranchPatterns: ['feature/*', 'fix/*', 'agent/*'] },
+      paths: { sharedRisk: ['api', 'server', 'lib', 'db', 'database', 'migrations', 'types', 'package.json'] },
+      checks: { test: { command: 'npm test', timeoutMs: 120000, artifactRoots: ['artifacts'], requiredForPaths: ['api', 'server', 'lib', 'db', 'database', 'migrations'], requireArtifacts: false } },
+      domainRules: [{ name: 'backend', keywords: ['api', 'server', 'backend', 'database', 'db', 'schema', 'migration', 'auth'], scopes: { product: ['app', 'src'], data: ['api', 'server', 'lib', 'db', 'database', 'migrations', 'types'], verify: ['tests'], docs: ['README.md', 'docs'] } }],
+    },
+  },
+  'release-heavy': {
+    description: 'Release-focused defaults with stricter branches and artifact retention.',
+    config: {
+      git: { allowMainBranchClaims: false, allowDetachedHead: false, allowedBranchPatterns: ['release/*', 'hotfix/*', 'fix/*', 'agent/*', 'feature/*'] },
+      artifacts: { roots: ['artifacts', 'playwright-report', 'test-results'], keepDays: 30, keepFailedDays: 90, maxMb: 1000, protectPatterns: ['**/baseline/**', '**/reference/**'] },
+      checks: { build: { command: 'npm run build', timeoutMs: 180000, artifactRoots: ['artifacts'], requiredForPaths: ['app', 'src', 'components', 'lib', 'server'], requireArtifacts: false } },
+    },
+  },
+};
 
 function normalizePath(inputPath) {
   if (!inputPath) return '';
@@ -181,12 +221,15 @@ function getCoordinationPaths() {
 
 function createStarterConfig(configPath) {
   writeJson(configPath, {
+    configVersion: 1,
     projectName: path.basename(ROOT),
     agentIds: DEFAULT_AGENT_IDS,
     docs: { roots: ['docs'], appNotes: 'docs/ai-agent-app-notes.md', visualWorkflow: '', apiPrefixes: ['docs/api'] },
     git: DEFAULT_GIT_POLICY,
     paths: { sharedRisk: ['scripts', 'package.json', 'agent-coordination.config.json'], visualSuite: [], visualSuiteDefault: [], visualImpact: [], visualImpactFiles: [] },
     verification: { visualRequiredChecks: [], visualSuiteUpdateChecks: [] },
+    artifacts: { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] },
+    checks: {},
     notes: { categories: ['error', 'inconsistency', 'change', 'gotcha', 'decision', 'verification', 'setup'], sectionHeading: 'Agent-Maintained Notes' },
     pathClassification: { productPrefixes: ['app', 'src', 'components', 'features', 'packages'], dataPrefixes: ['api', 'db', 'database', 'hooks', 'lib', 'migrations', 'server', 'store', 'types'], verifyPrefixes: ['tests', 'test', '__tests__', 'spec'], docsPrefixes: ['docs', 'scripts'], docsFiles: ['README.md', 'agent-coordination.config.json', 'package.json'] },
     planning: { defaultDomains: ['app'], productFallbackPaths: ['app', 'src', 'components', 'features'], dataFallbackPaths: ['api', 'lib', 'server', 'types'], verifyFallbackPaths: ['tests'], docsFallbackPaths: ['README.md', 'docs'], agentSizing: { minAgents: 1, maxAgents: 4, mediumComplexityScore: 10, largeComplexityScore: 16, productKeywords: ['app', 'ui', 'screen', 'page', 'view', 'component', 'layout', 'modal', 'button', 'nav', 'mobile', 'desktop', 'polish', 'feature'], dataKeywords: ['api', 'backend', 'server', 'database', 'db', 'schema', 'migration', 'auth', 'state', 'store', 'query', 'cache', 'sync', 'integration'], verifyKeywords: ['test', 'tests', 'verify', 'verification', 'snapshot', 'playwright', 'coverage', 'qa'], docsKeywords: ['doc', 'docs', 'documentation', 'readme', 'notes', 'guide', 'roadmap', 'changelog'] } },
@@ -1062,6 +1105,46 @@ function stringArray(value) {
   return Array.isArray(value) ? value.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim()) : [];
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function mergeUniqueArray(left, right) {
+  return [...new Set([...stringArray(left), ...stringArray(right)])];
+}
+
+function mergeConfigValue(current, patch, options = {}) {
+  if (Array.isArray(patch)) return mergeUniqueArray(Array.isArray(current) ? current : [], patch);
+  if (isPlainObject(patch)) {
+    const target = isPlainObject(current) ? { ...current } : {};
+    for (const [key, value] of Object.entries(patch)) {
+      target[key] = mergeConfigValue(target[key], value, options);
+    }
+    return target;
+  }
+  return options.overrideScalars || current === undefined ? patch : current;
+}
+
+function mergeConfigPatch(config, patch, options = {}) {
+  return mergeConfigValue(config, patch, options);
+}
+
+function diffConfig(before, after, prefix = '') {
+  const changes = [];
+  const keys = new Set([...Object.keys(isPlainObject(before) ? before : {}), ...Object.keys(isPlainObject(after) ? after : {})]);
+  for (const key of [...keys].sort()) {
+    const beforeValue = before?.[key];
+    const afterValue = after?.[key];
+    const pathLabel = prefix ? `${prefix}.${key}` : key;
+    if (isPlainObject(beforeValue) && isPlainObject(afterValue)) {
+      changes.push(...diffConfig(beforeValue, afterValue, pathLabel));
+    } else if (JSON.stringify(beforeValue) !== JSON.stringify(afterValue)) {
+      changes.push({ path: pathLabel, before: beforeValue ?? null, after: afterValue ?? null });
+    }
+  }
+  return changes;
+}
+
 function addConfigSuggestion(suggestions, severity, code, message, recommendation) {
   suggestions.push({ severity, code, message, recommendation });
 }
@@ -1131,6 +1214,134 @@ function buildConfigSuggestions(config, validation, packageJson) {
   return suggestions;
 }
 
+function buildMigratedConfig(config) {
+  let migrated = JSON.parse(JSON.stringify(config));
+  migrated = mergeConfigPatch(migrated, {
+    configVersion: CURRENT_CONFIG_VERSION,
+    artifacts: DEFAULT_ARTIFACT_POLICY,
+    checks: {},
+  });
+  if (!Number.isInteger(migrated.configVersion) || migrated.configVersion < CURRENT_CONFIG_VERSION) migrated.configVersion = CURRENT_CONFIG_VERSION;
+  if (!isPlainObject(migrated.git)) migrated.git = DEFAULT_GIT_POLICY;
+  if (!isPlainObject(migrated.artifacts)) migrated.artifacts = { ...DEFAULT_ARTIFACT_POLICY };
+  return migrated;
+}
+
+function snapshotConfig(configPath) {
+  if (!fs.existsSync(configPath)) return null;
+  const { snapshotsRoot } = getCoordinationPaths();
+  fs.mkdirSync(snapshotsRoot, { recursive: true });
+  const snapshotPath = path.join(snapshotsRoot, `config-${fileTimestamp()}.json`);
+  fs.copyFileSync(configPath, snapshotPath);
+  return snapshotPath;
+}
+
+function runMigrateConfig(argv) {
+  const json = hasFlag(argv, '--json');
+  const apply = hasFlag(argv, '--apply');
+  const { configPath, config } = loadConfig();
+  if (!fs.existsSync(configPath)) {
+    const result = { ok: false, applied: false, error: `Config not found: ${configPath}` };
+    if (json) console.log(JSON.stringify(result, null, 2));
+    else console.error(result.error);
+    return 1;
+  }
+  const migrated = buildMigratedConfig(config);
+  const changes = diffConfig(config, migrated);
+  const validation = validateAgentConfig(migrated, { root: ROOT });
+  const result = { ok: validation.valid, applied: false, configPath, targetVersion: CURRENT_CONFIG_VERSION, changes, validation, snapshotPath: null };
+  if (apply && validation.valid && changes.length) {
+    result.snapshotPath = snapshotConfig(configPath);
+    writeJson(configPath, migrated);
+    result.applied = true;
+  }
+  if (json) console.log(JSON.stringify(result, null, 2));
+  else {
+    console.log(apply ? 'Config migration applied.' : 'Config migration dry run.');
+    console.log(changes.length ? changes.map((change) => `- ${change.path}: ${JSON.stringify(change.before)} -> ${JSON.stringify(change.after)}`).join('\n') : '- no changes needed');
+    if (!validation.valid) console.log(`Validation errors:\n${validation.errors.map((entry) => `- ${entry}`).join('\n')}`);
+    if (result.snapshotPath) console.log(`Snapshot: ${normalizePath(result.snapshotPath) || result.snapshotPath}`);
+  }
+  return validation.valid ? 0 : 1;
+}
+
+function getPolicyPackNames(argv) {
+  const names = getPositionals(argv).slice(1).flatMap((entry) => entry.split(',')).map((entry) => entry.trim()).filter(Boolean);
+  return names;
+}
+
+function buildPolicyPackResult(packNames) {
+  const { configPath, config } = loadConfig();
+  const unknown = packNames.filter((name) => !POLICY_PACKS[name]);
+  let nextConfig = JSON.parse(JSON.stringify(config));
+  for (const name of packNames.filter((entry) => POLICY_PACKS[entry])) {
+    nextConfig = mergeConfigPatch(nextConfig, POLICY_PACKS[name].config, { overrideScalars: true });
+  }
+  const changes = unknown.length ? [] : diffConfig(config, nextConfig);
+  const validation = validateAgentConfig(nextConfig, { root: ROOT });
+  return { ok: unknown.length === 0 && validation.valid, configPath, packs: packNames, unknown, changes, validation, nextConfig };
+}
+
+function runPolicyPacks(argv) {
+  const json = hasFlag(argv, '--json');
+  const apply = hasFlag(argv, '--apply');
+  const subcommand = getPositionals(argv).at(0) || 'list';
+
+  if (subcommand === 'list') {
+    const result = { packs: Object.entries(POLICY_PACKS).map(([name, pack]) => ({ name, description: pack.description })) };
+    if (json) console.log(JSON.stringify(result, null, 2));
+    else console.log(result.packs.map((pack) => `- ${pack.name}: ${pack.description}`).join('\n'));
+    return 0;
+  }
+
+  if (subcommand === 'inspect') {
+    const name = getPositionals(argv).at(1);
+    const pack = POLICY_PACKS[name];
+    if (!pack) {
+      const result = { ok: false, error: `Unknown policy pack: ${name || ''}`, available: Object.keys(POLICY_PACKS) };
+      if (json) console.log(JSON.stringify(result, null, 2));
+      else console.error(result.error);
+      return 1;
+    }
+    const result = { ok: true, name, ...pack };
+    if (json) console.log(JSON.stringify(result, null, 2));
+    else {
+      console.log(`# Policy Pack: ${name}\n\n${pack.description}\n`);
+      console.log(JSON.stringify(pack.config, null, 2));
+    }
+    return 0;
+  }
+
+  if (subcommand === 'apply') {
+    const packNames = getPolicyPackNames(argv);
+    if (!packNames.length) {
+      console.error('Usage: policy-packs apply <pack[,pack...]> [--apply] [--json]');
+      return 1;
+    }
+    const result = buildPolicyPackResult(packNames);
+    result.applied = false;
+    result.snapshotPath = null;
+    if (apply && result.ok && result.changes.length) {
+      result.snapshotPath = snapshotConfig(result.configPath);
+      writeJson(result.configPath, result.nextConfig);
+      result.applied = true;
+    }
+    delete result.nextConfig;
+    if (json) console.log(JSON.stringify(result, null, 2));
+    else {
+      console.log(apply ? 'Policy pack apply completed.' : 'Policy pack dry run.');
+      if (result.unknown.length) console.log(`Unknown packs: ${result.unknown.join(', ')}`);
+      console.log(result.changes.length ? result.changes.map((change) => `- ${change.path}: ${JSON.stringify(change.before)} -> ${JSON.stringify(change.after)}`).join('\n') : '- no changes needed');
+      if (!result.validation.valid) console.log(`Validation errors:\n${result.validation.errors.map((entry) => `- ${entry}`).join('\n')}`);
+      if (result.snapshotPath) console.log(`Snapshot: ${normalizePath(result.snapshotPath) || result.snapshotPath}`);
+    }
+    return result.ok ? 0 : 1;
+  }
+
+  console.error('Usage: policy-packs list [--json] | policy-packs inspect <pack> [--json] | policy-packs apply <pack[,pack...]> [--apply] [--json]');
+  return 1;
+}
+
 function taskDisplayTitle(task) {
   return task?.title || task?.summary || task?.id || 'untitled task';
 }
@@ -1185,11 +1396,149 @@ function buildArtifactItems() {
   return [...taskArtifacts, ...readRunCheckArtifactIndex()];
 }
 
+function getArtifactPolicy(argv = []) {
+  const { config } = loadConfig();
+  const configured = isPlainObject(config.artifacts) ? config.artifacts : {};
+  const keepDays = getNumberFlag(argv, '--keep-days', configured.keepDays ?? DEFAULT_ARTIFACT_POLICY.keepDays);
+  const keepFailedDays = getNumberFlag(argv, '--keep-failed-days', configured.keepFailedDays ?? DEFAULT_ARTIFACT_POLICY.keepFailedDays);
+  const maxMb = getNumberFlag(argv, '--max-mb', configured.maxMb ?? DEFAULT_ARTIFACT_POLICY.maxMb);
+  return {
+    roots: stringArray(configured.roots).length ? stringArray(configured.roots) : DEFAULT_ARTIFACT_POLICY.roots,
+    keepDays: Math.max(1, keepDays),
+    keepFailedDays: Math.max(1, keepFailedDays),
+    maxMb: Math.max(1, maxMb),
+    protectPatterns: stringArray(configured.protectPatterns),
+  };
+}
+
+function globPatternMatches(pattern, normalizedPath) {
+  const normalizedPattern = normalizePath(pattern);
+  if (!normalizedPattern) return false;
+  if (!/[?*[\]]/.test(normalizedPattern)) return normalizedPath === normalizedPattern || normalizedPath.startsWith(`${normalizedPattern}/`);
+  const globstarToken = '\0GLOBSTAR\0';
+  const escaped = normalizedPattern
+    .replace(/\*\*/g, globstarToken)
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replaceAll(globstarToken, '.*')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\?/g, '[^/]');
+  return new RegExp(`^${escaped}$`).test(normalizedPath);
+}
+
+function listFilesRecursive(rootPath) {
+  if (!fs.existsSync(rootPath)) return [];
+  const files = [];
+  for (const entry of fs.readdirSync(rootPath, { withFileTypes: true })) {
+    const entryPath = path.join(rootPath, entry.name);
+    if (entry.isDirectory()) files.push(...listFilesRecursive(entryPath));
+    else if (entry.isFile()) files.push(entryPath);
+  }
+  return files;
+}
+
+function buildTaskStatusMap() {
+  const board = readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] });
+  return new Map((Array.isArray(board.tasks) ? board.tasks : []).map((task) => [task.id, task.status || 'unknown']));
+}
+
+function buildArtifactReferenceMap(items) {
+  const references = new Map();
+  for (const item of items) {
+    if (!item.path) continue;
+    const normalized = normalizePath(item.path);
+    const current = references.get(normalized) ?? [];
+    current.push(item);
+    references.set(normalized, current);
+  }
+  return references;
+}
+
+function classifyArtifactFile(filePath, references, taskStatuses, policy, nowMs = Date.now()) {
+  const normalizedPath = normalizePath(filePath);
+  const stats = fs.statSync(filePath);
+  const refs = references.get(normalizedPath) ?? [];
+  const protectedByPattern = policy.protectPatterns.some((pattern) => globPatternMatches(pattern, normalizedPath));
+  const protectedByActiveTask = refs.some((ref) => ref.taskId && ACTIVE_STATUSES.has(taskStatuses.get(ref.taskId)));
+  const ageDays = Math.max(0, (nowMs - stats.mtimeMs) / 86400000);
+  const failed = refs.some((ref) => String(ref.outcome || '').toLowerCase() === 'fail');
+  const keepDays = failed ? policy.keepFailedDays : policy.keepDays;
+  const eligibleByAge = ageDays >= keepDays;
+  return {
+    path: normalizedPath,
+    absolutePath: filePath,
+    sizeBytes: stats.size,
+    modifiedAt: stats.mtime.toISOString(),
+    ageDays,
+    references: refs,
+    protected: protectedByPattern || protectedByActiveTask,
+    protectedReasons: [protectedByPattern ? 'protected-pattern' : null, protectedByActiveTask ? 'active-task-reference' : null].filter(Boolean),
+    eligibleByAge,
+    reasons: eligibleByAge ? [`older-than-${keepDays}-days`] : [],
+  };
+}
+
+function buildArtifactPrunePlan(argv = []) {
+  const policy = getArtifactPolicy(argv);
+  const items = buildArtifactItems();
+  const references = buildArtifactReferenceMap(items);
+  const taskStatuses = buildTaskStatusMap();
+  const roots = policy.roots.map((root) => {
+    const absolutePath = resolveRepoPath(root, root);
+    const normalizedPath = normalizePath(absolutePath);
+    return { root, absolutePath, normalizedPath, exists: fs.existsSync(absolutePath), skipped: normalizedPath.startsWith('..') };
+  });
+  const files = roots
+    .filter((root) => root.exists && !root.skipped)
+    .flatMap((root) => listFilesRecursive(root.absolutePath))
+    .map((filePath) => classifyArtifactFile(filePath, references, taskStatuses, policy));
+  const totalBytes = files.reduce((sum, file) => sum + file.sizeBytes, 0);
+  const maxBytes = policy.maxMb * 1024 * 1024;
+  const candidates = new Map();
+  for (const file of files) {
+    if (!file.protected && file.eligibleByAge) candidates.set(file.path, { ...file });
+  }
+  let projectedBytes = totalBytes - [...candidates.values()].reduce((sum, file) => sum + file.sizeBytes, 0);
+  if (projectedBytes > maxBytes) {
+    const overflowCandidates = files
+      .filter((file) => !file.protected && !candidates.has(file.path))
+      .sort((left, right) => new Date(left.modifiedAt).getTime() - new Date(right.modifiedAt).getTime());
+    for (const file of overflowCandidates) {
+      if (projectedBytes <= maxBytes) break;
+      candidates.set(file.path, { ...file, reasons: [...file.reasons, 'storage-limit'] });
+      projectedBytes -= file.sizeBytes;
+    }
+  }
+  return { policy, roots, totalBytes, maxBytes, files: files.length, candidates: [...candidates.values()] };
+}
+
+function runArtifactsPrune(argv) {
+  const json = hasFlag(argv, '--json');
+  const apply = hasFlag(argv, '--apply');
+  const plan = buildArtifactPrunePlan(argv);
+  const removed = [];
+  if (apply) {
+    for (const candidate of plan.candidates) {
+      fs.rmSync(candidate.absolutePath, { force: true });
+      removed.push({ path: candidate.path, sizeBytes: candidate.sizeBytes, reasons: candidate.reasons });
+    }
+  }
+  const result = { ok: true, applied: apply, ...plan, removed };
+  if (json) console.log(JSON.stringify(result, null, 2));
+  else {
+    console.log(apply ? 'Artifact prune applied.' : 'Artifact prune dry run.');
+    console.log(`Total: ${plan.totalBytes} bytes; limit: ${plan.maxBytes} bytes`);
+    console.log(plan.candidates.length ? plan.candidates.map((candidate) => `- ${candidate.path} (${candidate.sizeBytes} bytes; ${candidate.reasons.join(', ')})`).join('\n') : '- nothing to prune');
+  }
+  return 0;
+}
+
 function runArtifactsCommand(argv) {
   const json = hasFlag(argv, '--json');
-  const positionals = getPositionals(argv, new Set(['--task', '--check']));
+  const positionals = getPositionals(argv, new Set(['--task', '--check', '--keep-days', '--keep-failed-days', '--max-mb']));
   const subcommand = positionals[0] || 'list';
   const items = buildArtifactItems();
+
+  if (subcommand === 'prune') return runArtifactsPrune(argv);
 
   if (subcommand === 'list') {
     const taskFilter = getFlagValue(argv, '--task', '');
@@ -1232,7 +1581,7 @@ function runArtifactsCommand(argv) {
     return 0;
   }
 
-  console.error('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json]');
+  console.error('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json] | artifacts prune [--apply] [--json]');
   return 1;
 }
 
@@ -1633,5 +1982,7 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'ownership-map') status = runOwnershipMap(commandArgs);
   else if (commandName === 'pr-summary') status = runPrSummary(commandArgs);
   else if (commandName === 'release-bundle') status = runReleaseBundle(commandArgs);
+  else if (commandName === 'migrate-config') status = runMigrateConfig(commandArgs);
+  else if (commandName === 'policy-packs') status = runPolicyPacks(commandArgs);
   process.exit(status);
 }

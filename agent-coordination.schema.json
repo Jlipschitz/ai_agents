@@ -5,6 +5,7 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
+    "configVersion": { "type": "integer", "minimum": 1 },
     "projectName": { "type": "string", "minLength": 1 },
     "agentIds": {
       "type": "array",

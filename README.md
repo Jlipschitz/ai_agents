@@ -125,6 +125,8 @@ npm run agents:doctor:json
 npm run agents:doctor:fix
 npm run agents:explain-config
 npm run agents -- explain-config --json
+npm run agents -- migrate-config
+npm run agents -- policy-packs list
 npm run agents:plan
 npm run agents:status
 npm run agents:summarize
@@ -156,6 +158,7 @@ npm run agents:board:repair
 npm run agents:state:rollback -- --list
 npm run agents:run-check -- test
 npm run agents -- artifacts list
+npm run agents -- artifacts prune
 ```
 
 The `agents2` scripts mirror the same commands but use the `coordination-two` workspace by default.

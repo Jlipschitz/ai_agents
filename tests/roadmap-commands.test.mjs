@@ -225,3 +225,86 @@ test('pr-summary and release-bundle generate release handoff output', () => {
   assert.equal(fs.existsSync(path.join(outputRoot, 'pr-summary.md')), true);
   assert.equal(fs.existsSync(path.join(outputRoot, 'release-check.json')), true);
 });
+
+test('migrate-config dry-runs and applies versioned defaults', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const before = fs.readFileSync(configPath, 'utf8');
+
+  const dryRun = run(root, coordinationRoot, ['migrate-config', '--json']);
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  const dryRunPayload = JSON.parse(dryRun.stdout);
+  assert.equal(dryRunPayload.applied, false);
+  assert.ok(dryRunPayload.changes.some((entry) => entry.path === 'configVersion'));
+  assert.equal(fs.readFileSync(configPath, 'utf8'), before);
+
+  const applied = run(root, coordinationRoot, ['migrate-config', '--apply', '--json']);
+  assert.equal(applied.status, 0, applied.stderr);
+  const nextConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  assert.equal(nextConfig.configVersion, 1);
+  assert.deepEqual(nextConfig.artifacts.roots, ['artifacts']);
+  assert.equal(typeof JSON.parse(applied.stdout).snapshotPath, 'string');
+});
+
+test('policy-packs list, inspect, dry-run, and apply reusable config patches', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+
+  const list = run(root, coordinationRoot, ['policy-packs', 'list', '--json']);
+  assert.equal(list.status, 0, list.stderr);
+  assert.ok(JSON.parse(list.stdout).packs.some((entry) => entry.name === 'strict-ui'));
+
+  const inspect = run(root, coordinationRoot, ['policy-packs', 'inspect', 'strict-ui', '--json']);
+  assert.equal(inspect.status, 0, inspect.stderr);
+  assert.equal(JSON.parse(inspect.stdout).name, 'strict-ui');
+
+  const dryRun = run(root, coordinationRoot, ['policy-packs', 'apply', 'strict-ui', '--json']);
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  assert.ok(JSON.parse(dryRun.stdout).changes.some((entry) => entry.path === 'git.allowMainBranchClaims'));
+  assert.equal(JSON.parse(fs.readFileSync(configPath, 'utf8')).git.allowMainBranchClaims, true);
+
+  const applied = run(root, coordinationRoot, ['policy-packs', 'apply', 'strict-ui', '--apply', '--json']);
+  assert.equal(applied.status, 0, applied.stderr);
+  const nextConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  assert.equal(nextConfig.git.allowMainBranchClaims, false);
+  assert.equal(nextConfig.checks['visual:test'].requireArtifacts, true);
+});
+
+test('artifacts prune dry-runs and applies retention safely', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  const artifactRoot = path.join(root, 'artifacts');
+  const oldPath = path.join(artifactRoot, 'old.log');
+  const activePath = path.join(artifactRoot, 'active.log');
+  fs.mkdirSync(artifactRoot, { recursive: true });
+  fs.writeFileSync(oldPath, 'old');
+  fs.writeFileSync(activePath, 'active');
+  const oldDate = new Date('2020-01-01T00:00:00.000Z');
+  fs.utimesSync(oldPath, oldDate, oldDate);
+  fs.utimesSync(activePath, oldDate, oldDate);
+  writeBoard(root, {
+    projectName: 'Prune Test',
+    agents: [{ id: 'agent-1', status: 'active', taskId: 'task-active' }],
+    tasks: [
+      {
+        id: 'task-active',
+        status: 'active',
+        ownerId: 'agent-1',
+        verificationLog: [{ check: 'unit', outcome: 'pass', artifacts: [{ path: 'artifacts/active.log' }] }],
+      },
+    ],
+    resources: [],
+    incidents: [],
+  });
+
+  const dryRun = run(root, coordinationRoot, ['artifacts', 'prune', '--json']);
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  const dryRunPayload = JSON.parse(dryRun.stdout);
+  assert.ok(dryRunPayload.candidates.some((entry) => entry.path === 'artifacts/old.log'));
+  assert.equal(dryRunPayload.candidates.some((entry) => entry.path === 'artifacts/active.log'), false);
+  assert.equal(fs.existsSync(oldPath), true);
+
+  const applied = run(root, coordinationRoot, ['artifacts', 'prune', '--apply', '--json']);
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.equal(fs.existsSync(oldPath), false);
+  assert.equal(fs.existsSync(activePath), true);
+});
