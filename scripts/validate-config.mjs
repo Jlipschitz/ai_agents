@@ -40,6 +40,12 @@ function validateString(value, pathLabel, errors, { allowEmpty = false } = {}) {
   }
 }
 
+function validateBoolean(value, pathLabel, errors) {
+  if (typeof value !== 'boolean') {
+    addIssue(errors, pathLabel, 'must be a boolean');
+  }
+}
+
 function validateObject(value, pathLabel, errors) {
   if (!isPlainObject(value)) {
     addIssue(errors, pathLabel, 'must be an object');
@@ -134,6 +140,12 @@ export function validateAgentConfig(config, options = {}) {
     if ('appNotes' in config.docs) validateString(config.docs.appNotes, 'docs.appNotes', errors, { allowEmpty: true });
     if ('visualWorkflow' in config.docs) validateString(config.docs.visualWorkflow, 'docs.visualWorkflow', errors, { allowEmpty: true });
     if ('apiPrefixes' in config.docs) validateStringArray(config.docs.apiPrefixes, 'docs.apiPrefixes', errors);
+  }
+
+  if ('git' in config && validateObject(config.git, 'git', errors)) {
+    if ('allowMainBranchClaims' in config.git) validateBoolean(config.git.allowMainBranchClaims, 'git.allowMainBranchClaims', errors);
+    if ('allowDetachedHead' in config.git) validateBoolean(config.git.allowDetachedHead, 'git.allowDetachedHead', errors);
+    if ('allowedBranchPatterns' in config.git) validateStringArray(config.git.allowedBranchPatterns, 'git.allowedBranchPatterns', errors);
   }
 
   if ('paths' in config) {
