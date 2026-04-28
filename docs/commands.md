@@ -94,6 +94,8 @@ Useful modes:
 - `--json`: prints machine-readable doctor output including config validation and Git state.
 - `--fix`: creates safe missing starter files/folders, updates `.gitignore`, adds missing package scripts, and creates starter app notes.
 
+The JSON output includes `configSuggestions`, a list of non-blocking config improvement recommendations such as missing visual checks, missing docs roots, branch policy gaps, or missing domain rules for detected repo types.
+
 ### `heartbeat-status`
 
 Shows known agent heartbeat files and freshness.
@@ -159,6 +161,36 @@ npm run agents -- release-check task-id --require-doc-review
 
 The check requires done status, passing latest verification for every task verification item, no latest failing verification, satisfied dependencies, and docs review when relevant docs are attached or `--require-doc-review` is passed.
 
+### `pr-summary`
+
+Generates PR-ready Markdown or JSON from completed tasks, verification logs, release-check findings, and open follow-up work.
+
+```bash
+npm run agents -- pr-summary
+npm run agents -- pr-summary task-id
+npm run agents -- pr-summary task-id --json
+npm run agents -- pr-summary task-id --title "Short PR title"
+```
+
+The Markdown output includes:
+
+- Changes
+- Verification
+- Risks
+- Follow-ups
+
+### `release-bundle`
+
+Creates a release handoff bundle containing PR summary, board summary, release-check JSON, and artifact index JSON.
+
+```bash
+npm run agents -- release-bundle task-id
+npm run agents -- release-bundle task-id --apply
+npm run agents -- release-bundle task-id --out-dir artifacts/releases/manual --apply --json
+```
+
+By default this is a dry run. With `--apply`, files are written under `artifacts/releases/<timestamp>/` unless `--out-dir` is provided.
+
 ## Setup Commands
 
 ### `init`
@@ -214,6 +246,26 @@ npm run agents -- plan "Improve mobile task modal"
 ```
 
 Planner lane sizing is covered by `scripts/planner-sizing.mjs`, which classifies likely product, data, verify, and docs lanes from the configured `planning.agentSizing` keywords. The helper is currently used as a regression-test target so planner sizing behavior can be stabilized before deeper core planner refactors.
+
+### `graph`
+
+Prints task dependencies as a Mermaid graph, or JSON with nodes and edges.
+
+```bash
+npm run agents -- graph
+npm run agents -- graph --json
+```
+
+### `ownership-map`
+
+Shows active task ownership by agent and flags overlapping claimed paths.
+
+```bash
+npm run agents -- ownership-map
+npm run agents -- ownership-map --json
+```
+
+The command exits non-zero when active path overlaps are detected.
 
 ### `claim`
 
@@ -298,7 +350,10 @@ Records manual verification evidence for a task.
 ```bash
 npm run agents -- verify agent-1 task-id unit pass "npm test passed"
 npm run agents -- verify agent-1 task-id lint fail "lint failed in src/foo.ts"
+npm run agents -- verify agent-1 task-id visual pass --details "visual:test passed" --artifact artifacts/visual/report.html
 ```
+
+Use `--artifact <path[,path...]>` to attach logs, screenshots, reports, traces, or other evidence from configured artifact roots. Artifact metadata is stored on the verification log entry and can be listed with `artifacts list`.
 
 ### `done`
 
@@ -413,6 +468,17 @@ npm run agents -- run-check smoke --json -- node -e "console.log('ok')"
 ```
 
 Artifacts are written under `artifacts/checks/` by default, with an `index.ndjson` entry for each run. Use `--artifact-dir <path>` to write elsewhere.
+
+### `artifacts`
+
+Lists or inspects known artifacts from verification logs and `run-check` indexes.
+
+```bash
+npm run agents -- artifacts list
+npm run agents -- artifacts list --task task-id --check unit --json
+npm run agents -- artifacts inspect artifacts/checks/example.log
+npm run agents -- artifacts inspect artifacts/checks/example.log --json
+```
 
 ## Notes and Messaging
 

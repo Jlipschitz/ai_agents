@@ -24,6 +24,22 @@ function validConfig() {
       visualRequiredChecks: [],
       visualSuiteUpdateChecks: [],
     },
+    artifacts: {
+      roots: ['artifacts'],
+      keepDays: 14,
+      keepFailedDays: 45,
+      maxMb: 500,
+      protectPatterns: ['**/baseline/**'],
+    },
+    checks: {
+      unit: {
+        command: 'npm test',
+        timeoutMs: 120000,
+        artifactRoots: ['artifacts'],
+        requiredForPaths: ['src'],
+        requireArtifacts: false,
+      },
+    },
     notes: {
       categories: ['change', 'setup'],
       sectionHeading: 'Agent-Maintained Notes',
@@ -79,6 +95,9 @@ test('validateAgentConfig reports actionable errors', () => {
   config.planning.agentSizing.minAgents = 3;
   config.planning.agentSizing.maxAgents = 2;
   config.domainRules[0].keywords = [];
+  config.artifacts.keepDays = 0;
+  config.checks.unit.timeoutMs = 500;
+  config.checks.unit.requireArtifacts = 'yes';
 
   const result = validateAgentConfig(config, { root: process.cwd() });
 
@@ -86,4 +105,7 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('agentIds[1]')));
   assert.ok(result.errors.some((entry) => entry.includes('minAgents cannot be greater than maxAgents')));
   assert.ok(result.errors.some((entry) => entry.includes('domainRules[0].keywords')));
+  assert.ok(result.errors.some((entry) => entry.includes('artifacts.keepDays')));
+  assert.ok(result.errors.some((entry) => entry.includes('checks.unit.timeoutMs')));
+  assert.ok(result.errors.some((entry) => entry.includes('checks.unit.requireArtifacts')));
 });

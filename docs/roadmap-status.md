@@ -14,11 +14,11 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add config doctor suggestions.
-2. Add richer release bundles and PR handoff output.
-3. Add evidence attachment references from verification logs.
-4. Add config migration and policy packs.
-5. Add broader command snapshot tests and fixture repos.
+1. Add config migration and policy packs.
+2. Add broader command snapshot tests and fixture repos.
+3. Deepen artifact retention and pruning.
+4. Add configurable capacity and conflict-prediction gates.
+5. Add per-command help and consistent global flags.
 
 ---
 
@@ -52,10 +52,10 @@ Next recommended work:
 
 - [~] Plugin-style checks - `run-check` can run package scripts or explicit commands; configurable check plugins remain open.
 - [~] Visual check runner and artifact capture - generic command artifact capture exists; visual-specific handling remains open.
-- [~] Artifact index and manual attachments - `run-check` writes `artifacts/checks/index.ndjson`; manual attachment commands remain open.
-- [ ] Path ownership map
-- [ ] Dependency graph output
-- [ ] PR handoff generator
+- [~] Artifact index and manual attachments - `run-check` writes `artifacts/checks/index.ndjson`; `verify --artifact` and `artifacts list/inspect` exist; retention/pruning remains open.
+- [x] Path ownership map
+- [x] Dependency graph output
+- [x] PR handoff generator
 - [ ] Stale branch cleanup
 - [~] Session replay — recent journal/message context is included in `summarize`; dedicated `timeline` remains open.
 - [ ] Per-repo onboarding checklist
@@ -69,7 +69,7 @@ Next recommended work:
 
 ## Phase 4: Verification, Risk, and GitHub Integration
 
-- [ ] Evidence attachments
+- [~] Evidence attachments - verification logs can attach artifact metadata; richer artifact root policies and pruning remain open.
 - [ ] Risk scoring
 - [ ] Critical path planning
 - [ ] Merge queue awareness
@@ -100,8 +100,8 @@ Next recommended work:
 - [~] Policy enforcement mode — partially covered by Git branch policy and finish gates.
 - [ ] CODEOWNERS integration
 - [ ] Approval ledger
-- [ ] Release artifact bundle
-- [ ] Command aliases
+- [x] Release artifact bundle
+- [~] Command aliases - built-in short aliases exist; repo-defined aliases remain open.
 - [ ] Natural-language query
 - [ ] Local web dashboard
 - [ ] Signed releases
@@ -157,7 +157,7 @@ Next recommended work:
 ## Phase 10: Config Developer Experience
 
 - [x] Add config explanation command
-- [ ] Add config doctor suggestions
+- [x] Add config doctor suggestions
 - [x] Add environment override report
 
 ## Phase 11: Command UX Improvements
@@ -165,7 +165,7 @@ Next recommended work:
 - [ ] Add per-command help
 - [ ] Add consistent global flags
 - [ ] Add better error formatting
-- [ ] Add short command aliases
+- [x] Add short command aliases
 - [ ] Add interactive mode
 
 ## Phase 12: Board Repair, Inspection, and Rollback

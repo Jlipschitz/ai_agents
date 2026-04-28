@@ -141,3 +141,87 @@ test('run-check captures command output artifacts', () => {
   assert.match(fs.readFileSync(payload.artifactPath, 'utf8'), /smoke ok/);
   assert.equal(fs.existsSync(path.join(artifactDir, 'index.ndjson')), true);
 });
+
+test('verify attaches artifact metadata and artifacts commands report it', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Artifact Test',
+    agents: [{ id: 'agent-1', status: 'active', taskId: 'task-one' }],
+    tasks: [{ id: 'task-one', status: 'active', ownerId: 'agent-1', verification: [], verificationLog: [], claimedPaths: ['src/a'] }],
+    resources: [],
+    incidents: [],
+  });
+  fs.mkdirSync(path.join(root, 'artifacts'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'artifacts', 'evidence.log'), 'evidence');
+
+  const verify = run(root, coordinationRoot, ['verify', 'agent-1', 'task-one', 'unit', 'pass', 'npm test passed', '--artifact', 'artifacts/evidence.log']);
+  assert.equal(verify.status, 0, verify.stderr);
+
+  const board = JSON.parse(fs.readFileSync(path.join(coordinationRoot, 'board.json'), 'utf8'));
+  assert.equal(board.tasks[0].verificationLog[0].artifacts[0].path, 'artifacts/evidence.log');
+
+  const list = run(root, coordinationRoot, ['artifacts', 'list', '--task', 'task-one', '--json']);
+  assert.equal(list.status, 0, list.stderr);
+  assert.equal(JSON.parse(list.stdout).items[0].path, 'artifacts/evidence.log');
+
+  const inspect = run(root, coordinationRoot, ['artifacts', 'inspect', 'artifacts/evidence.log', '--json']);
+  assert.equal(inspect.status, 0, inspect.stderr);
+  assert.equal(JSON.parse(inspect.stdout).references.length, 1);
+});
+
+test('graph and ownership-map expose dependencies and path overlaps', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Graph Test',
+    agents: [{ id: 'agent-1', status: 'active', taskId: 'task-api' }, { id: 'agent-2', status: 'active', taskId: 'task-ui' }],
+    tasks: [
+      { id: 'task-api', status: 'active', ownerId: 'agent-1', title: 'API', claimedPaths: ['src/api'] },
+      { id: 'task-ui', status: 'active', ownerId: 'agent-2', title: 'UI', claimedPaths: ['src/api/routes'], dependencies: ['task-api'] },
+    ],
+    resources: [],
+    incidents: [],
+  });
+
+  const graph = run(root, coordinationRoot, ['graph']);
+  assert.equal(graph.status, 0, graph.stderr);
+  assert.match(graph.stdout, /task_task_api --> task_task_ui/);
+
+  const ownership = run(root, coordinationRoot, ['ownership-map', '--json']);
+  assert.equal(ownership.status, 1);
+  const payload = JSON.parse(ownership.stdout);
+  assert.equal(payload.owners.length, 2);
+  assert.equal(payload.overlaps[0].leftTaskId, 'task-api');
+});
+
+test('pr-summary and release-bundle generate release handoff output', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Release Bundle Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [
+      {
+        id: 'task-ready',
+        status: 'done',
+        title: 'Ship ready task',
+        summary: 'Implemented ready task.',
+        claimedPaths: ['src/ready'],
+        verification: ['unit'],
+        verificationLog: [{ check: 'unit', outcome: 'pass', details: 'npm test', artifacts: [{ path: 'artifacts/unit.log', kind: 'log', sizeBytes: 12 }] }],
+        relevantDocs: ['README.md'],
+        docsReviewedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ],
+    resources: [],
+    incidents: [],
+  });
+
+  const summary = run(root, coordinationRoot, ['pr-summary', 'task-ready', '--json']);
+  assert.equal(summary.status, 0, summary.stderr);
+  assert.equal(JSON.parse(summary.stdout).tasks[0].id, 'task-ready');
+
+  const outputRoot = path.join(root, 'release-bundle');
+  const bundle = run(root, coordinationRoot, ['release-bundle', 'task-ready', '--out-dir', outputRoot, '--apply', '--json']);
+  assert.equal(bundle.status, 0, bundle.stderr);
+  assert.equal(fs.existsSync(path.join(outputRoot, 'pr-summary.md')), true);
+  assert.equal(fs.existsSync(path.join(outputRoot, 'release-check.json')), true);
+});

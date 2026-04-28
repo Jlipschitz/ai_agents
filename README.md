@@ -147,10 +147,15 @@ npm run agents:watch:stop
 npm run agents:watch:diagnose
 npm run agents:runtime:cleanup
 npm run agents:release:check -- task-id
+npm run agents -- pr-summary task-id
+npm run agents -- release-bundle task-id --apply
+npm run agents -- graph
+npm run agents -- ownership-map
 npm run agents:board:inspect
 npm run agents:board:repair
 npm run agents:state:rollback -- --list
 npm run agents:run-check -- test
+npm run agents -- artifacts list
 ```
 
 The `agents2` scripts mirror the same commands but use the `coordination-two` workspace by default.
@@ -173,7 +178,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `.nvmrc` and `.node-version`: Node 24 runtime hints.
 - `package-lock.json`: npm lockfile used by CI for reproducible `npm ci` installs and cache keys.
 - `bin/ai-agents.mjs`: public CLI entrypoint.
-- `scripts/agent-command-layer.mjs`: command-layer features such as `doctor --fix`, `doctor --json`, enhanced `summarize`, lifecycle helpers, Git preflight, finish gates, lock routing, and Node watcher start.
+- `scripts/agent-command-layer.mjs`: command-layer features such as `doctor --fix`, `doctor --json`, enhanced `summarize`, lifecycle helpers, Git preflight, finish gates, lock routing, Node watcher start, PR summaries, release bundles, dependency graphs, ownership maps, and artifact listing.
 - `scripts/agent-coordination-core.mjs`: shared coordinator implementation.
 - `scripts/agent-coordination.mjs`: `agents` workspace wrapper.
 - `scripts/agent-coordination-two.mjs`: `agents2` workspace wrapper.

@@ -292,11 +292,14 @@ Current behavior:
 
 ### Check runner and artifacts
 
-Status: implemented in the command layer.
+Status: expanded in the command layer and core verification command.
 
 ```bash
 npm run agents -- run-check test
 npm run agents -- run-check smoke -- node ./scripts/smoke.mjs
+npm run agents -- verify agent-1 task-id unit pass --artifact artifacts/unit.log
+npm run agents -- artifacts list --task task-id
+npm run agents -- artifacts inspect artifacts/unit.log --json
 ```
 
 Current behavior:
@@ -304,6 +307,48 @@ Current behavior:
 - Runs a package script by name, or an explicit command after `--`.
 - Captures stdout/stderr into `artifacts/checks/`.
 - Appends a machine-readable `index.ndjson` entry.
+- `verify --artifact <path[,path...]>` records artifact metadata on verification log entries.
+- `artifacts list` reads verification artifacts and `run-check` indexes.
+- `artifacts inspect` reports file metadata and known references.
+
+### PR handoff and release bundle
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- pr-summary
+npm run agents -- pr-summary task-id --json
+npm run agents -- release-bundle task-id --apply
+```
+
+Current behavior:
+
+- `pr-summary` produces PR-ready Markdown or JSON with changes, verification, risks, and follow-ups.
+- `release-bundle` is dry-run by default.
+- `release-bundle --apply` writes `pr-summary.md`, `board-summary.md`, `release-check.json`, and `artifacts.json`.
+
+### Ownership and dependency views
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- ownership-map
+npm run agents -- graph
+```
+
+Current behavior:
+
+- `ownership-map` reports active task ownership by agent and exits non-zero when claimed paths overlap.
+- `graph` emits a Mermaid dependency graph or JSON nodes/edges.
+
+### Config doctor suggestions and aliases
+
+Status: implemented in the command layer.
+
+Current behavior:
+
+- `doctor --json` includes `configSuggestions` with actionable improvement recommendations.
+- Built-in short aliases route `s`, `d`, `p`, and `sum` to `status`, `doctor`, `plan`, and `summarize`.
 
 ### Planner lane sizing helper
 
@@ -349,6 +394,7 @@ Current coverage:
 - Main CLI routes `lock-status` and `lock-clear` correctly.
 - `finish` safety gates block before mutating board state.
 - Planner lane sizing covers simple, complex, capped, and fallback cases.
+- Verification artifacts, artifact listing/inspection, dependency graph output, ownership-map overlap detection, PR summaries, and release bundles have regression coverage.
 
 Main files:
 
@@ -359,6 +405,7 @@ Main files:
 - `tests/git-policy.test.mjs`
 - `tests/lock-runtime.test.mjs`
 - `tests/planner-sizing.test.mjs`
+- `tests/roadmap-commands.test.mjs`
 
 Follow-up tests still needed:
 

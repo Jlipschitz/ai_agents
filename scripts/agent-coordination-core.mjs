@@ -151,6 +151,7 @@ const VISUAL_IMPACT_FILES = normalizeConfigPathArray(AGENT_CONFIG.paths?.visualI
 ]);
 const VISUAL_REQUIRED_CHECKS = normalizeConfigStringArray(AGENT_CONFIG.verification?.visualRequiredChecks, ['visual']);
 const VISUAL_SUITE_UPDATE_CHECKS = normalizeConfigStringArray(AGENT_CONFIG.verification?.visualSuiteUpdateChecks, VISUAL_REQUIRED_CHECKS);
+const ARTIFACT_ROOTS = normalizeConfigPathArray(AGENT_CONFIG.artifacts?.roots, ['artifacts']);
 const PATH_CLASSIFICATION = {
   productPrefixes: normalizeConfigPathArray(AGENT_CONFIG.pathClassification?.productPrefixes, ['app', 'components', 'features', 'assets', 'src', 'pages']),
   dataPrefixes: normalizeConfigPathArray(AGENT_CONFIG.pathClassification?.dataPrefixes, [
@@ -3126,10 +3127,61 @@ async function handoffCommand(positionals, options) {
   });
 }
 
+function parseArtifactPaths(value) {
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function isAllowedArtifactPath(normalizedPath) {
+  return ARTIFACT_ROOTS.some((root) => normalizedPath === root || normalizedPath.startsWith(`${root}/`));
+}
+
+function inferArtifactKind(filePath) {
+  const extension = path.extname(filePath).toLowerCase();
+  if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(extension)) return 'image';
+  if (['.html', '.htm'].includes(extension)) return 'report';
+  if (['.zip', '.trace'].includes(extension)) return 'trace';
+  if (['.log', '.txt'].includes(extension)) return 'log';
+  if (['.json', '.ndjson'].includes(extension)) return 'data';
+  return 'file';
+}
+
+function buildVerificationArtifactReferences(options) {
+  const artifactPaths = parseArtifactPaths(options.artifact);
+  const allowUntracked = options['allow-untracked-artifact'] === true;
+
+  return artifactPaths.map((artifactPath) => {
+    const absolutePath = path.isAbsolute(artifactPath) ? artifactPath : path.resolve(ROOT, artifactPath);
+    const normalizedPath = normalizePath(absolutePath);
+
+    if (!fileExists(absolutePath)) {
+      throw new Error(`Verification artifact does not exist: ${artifactPath}`);
+    }
+
+    if (!allowUntracked && !isAllowedArtifactPath(normalizedPath)) {
+      throw new Error(`Verification artifact must be under configured artifact roots (${ARTIFACT_ROOTS.join(', ')}): ${artifactPath}`);
+    }
+
+    const stats = fs.statSync(absolutePath);
+    return {
+      path: normalizedPath,
+      kind: inferArtifactKind(artifactPath),
+      sizeBytes: stats.size,
+      createdAt: stats.birthtime.toISOString(),
+    };
+  });
+}
+
 async function verifyCommand(positionals, options) {
   const [agentId, taskId, check, outcome] = positionals;
   const normalizedOutcome = (outcome ?? '').toLowerCase();
-  const details = typeof options.details === 'string' ? options.details.trim() : '';
+  const details = typeof options.details === 'string' ? options.details.trim() : positionals.slice(4).join(' ').trim();
 
   if (!agentId || !taskId || !check || !normalizedOutcome) {
     throw new Error('Usage: verify <agent> <task-id> <check> <pass|fail> [--details <text>]');
@@ -3138,6 +3190,8 @@ async function verifyCommand(positionals, options) {
   if (!['pass', 'fail'].includes(normalizedOutcome)) {
     throw new Error('Verification outcome must be either "pass" or "fail".');
   }
+
+  const artifacts = buildVerificationArtifactReferences(options);
 
   await withMutationLock(async () => {
     const board = getBoard();
@@ -3148,16 +3202,21 @@ async function verifyCommand(positionals, options) {
     if (!task.verification.includes(check)) {
       task.verification.push(check);
     }
-    task.verificationLog.push({
+    const entry = {
       at: task.updatedAt,
       agent: agentId,
       check,
       outcome: normalizedOutcome,
       details,
-    });
+    };
+    if (artifacts.length) {
+      entry.artifacts = artifacts;
+    }
+    task.verificationLog.push(entry);
 
-    note(task, agentId, 'verify', `${check}: ${normalizedOutcome}${details ? ` (${details})` : ''}`);
-    appendJournalLine(`- ${task.updatedAt} | ${agentId} verified \`${taskId}\` with ${check}: ${normalizedOutcome}${details ? ` | ${details}` : ''}`);
+    const artifactSuffix = artifacts.length ? ` artifacts: ${artifacts.map((artifact) => artifact.path).join(', ')}` : '';
+    note(task, agentId, 'verify', `${check}: ${normalizedOutcome}${details ? ` (${details})` : ''}${artifactSuffix}`);
+    appendJournalLine(`- ${task.updatedAt} | ${agentId} verified \`${taskId}\` with ${check}: ${normalizedOutcome}${details ? ` | ${details}` : ''}${artifactSuffix ? ` | ${artifactSuffix}` : ''}`);
     await saveBoard(board);
     console.log(`Recorded verification for ${taskId}.`);
   });

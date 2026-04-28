@@ -50,6 +50,31 @@
         "visualSuiteUpdateChecks": { "$ref": "#/$defs/stringArray" }
       }
     },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "roots": { "$ref": "#/$defs/stringArray" },
+        "keepDays": { "type": "integer", "minimum": 1 },
+        "keepFailedDays": { "type": "integer", "minimum": 1 },
+        "maxMb": { "type": "integer", "minimum": 1 },
+        "protectPatterns": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "command": { "type": "string" },
+          "timeoutMs": { "type": "integer", "minimum": 1000 },
+          "artifactRoots": { "$ref": "#/$defs/stringArray" },
+          "requiredForPaths": { "$ref": "#/$defs/stringArray" },
+          "requireArtifacts": { "type": "boolean" }
+        }
+      }
+    },
     "notes": {
       "type": "object",
       "additionalProperties": true,

@@ -264,8 +264,16 @@ Current captured data includes:
 - start and finish time
 - exit code
 - stdout/stderr log path
+- verification-log artifact references from `verify --artifact`
 
-Future artifact support can add screenshots, reports, traces, retention policies, and verification-log references.
+Artifact references are listed through:
+
+```bash
+npm run agents -- artifacts list
+npm run agents -- artifacts inspect artifacts/checks/example.log
+```
+
+Future artifact support can add retention policies, pruning, and richer artifact root enforcement.
 
 ## Archive State
 

@@ -135,7 +135,22 @@ test('doctor --json reports config validation and git fields', () => {
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.ok, true);
   assert.equal(payload.configValidation.valid, true);
+  assert.equal(Array.isArray(payload.configSuggestions), true);
   assert.equal(typeof payload.git.available, 'boolean');
+});
+
+test('doctor --json includes config improvement suggestions', () => {
+  const root = makeWorkspace();
+  const config = JSON.parse(fs.readFileSync(path.join(root, 'agent-coordination.config.json'), 'utf8'));
+  config.verification.visualRequiredChecks = [];
+  fs.writeFileSync(path.join(root, 'agent-coordination.config.json'), `${JSON.stringify(config, null, 2)}\n`);
+  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'layer-test', scripts: { 'visual:test': 'playwright test' } }, null, 2));
+
+  const result = run(root, ['doctor', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.ok(payload.configSuggestions.some((entry) => entry.code === 'visual-checks-missing'));
 });
 
 test('doctor --json --fix reports post-fix state', () => {
@@ -191,6 +206,26 @@ test('summarize --json includes counts and recent context', () => {
   assert.equal(payload.counts.planned, 1);
   assert.ok(Array.isArray(payload.nextActions));
   assert.ok(payload.recentJournal.includes('Journal tail'));
+});
+
+test('short command aliases route through the command layer and core', () => {
+  const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Alias Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-one', status: 'planned', ownerId: null, title: 'Task one', claimedPaths: [] }],
+  });
+
+  const summary = run(root, ['sum', '--json']);
+  const doctor = run(root, ['d', '--json']);
+  const status = run(root, ['s']);
+
+  assert.equal(summary.status, 0, summary.stderr);
+  assert.equal(JSON.parse(summary.stdout).counts.planned, 1);
+  assert.equal(doctor.status, 0, doctor.stderr);
+  assert.equal(JSON.parse(doctor.stdout).configValidation.valid, true);
+  assert.equal(status.status, 0, status.stderr);
+  assert.match(status.stdout, /task-one/);
 });
 
 test('start records the message as the task summary and progress note', () => {

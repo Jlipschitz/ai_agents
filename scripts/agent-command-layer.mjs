@@ -11,7 +11,26 @@ const VALID_TASK_STATUSES = new Set(['planned', 'active', 'blocked', 'waiting', 
 const ACTIVE_STATUSES = new Set(['active', 'blocked', 'review', 'waiting', 'handoff']);
 const TERMINAL_STATUSES = new Set(['done', 'released']);
 const VALID_LIFECYCLE_COMMANDS = new Set(['start', 'finish', 'handoff-ready']);
-const COMMAND_LAYER_COMMANDS = new Set(['watch-diagnose', 'cleanup-runtime', 'release-check', 'inspect-board', 'repair-board', 'rollback-state', 'run-check']);
+const COMMAND_LAYER_COMMANDS = new Set([
+  'watch-diagnose',
+  'cleanup-runtime',
+  'release-check',
+  'inspect-board',
+  'repair-board',
+  'rollback-state',
+  'run-check',
+  'artifacts',
+  'graph',
+  'ownership-map',
+  'pr-summary',
+  'release-bundle',
+]);
+const COMMAND_ALIASES = new Map([
+  ['s', 'status'],
+  ['d', 'doctor'],
+  ['p', 'plan'],
+  ['sum', 'summarize'],
+]);
 const DEFAULT_GIT_POLICY = {
   allowMainBranchClaims: true,
   allowDetachedHead: false,
@@ -103,6 +122,20 @@ function hasFlag(argv, flag) {
 function getFlagValue(argv, flag, fallback = '') {
   const index = argv.indexOf(flag);
   return index >= 0 ? String(argv[index + 1] ?? fallback) : fallback;
+}
+
+function getPositionals(argv, valuedFlags = new Set()) {
+  const positionals = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const entry = argv[index];
+    if (!entry.startsWith('--')) {
+      positionals.push(entry);
+      continue;
+    }
+    const flag = entry.includes('=') ? entry.slice(0, entry.indexOf('=')) : entry;
+    if (!entry.includes('=') && valuedFlags.has(flag)) index += 1;
+  }
+  return positionals;
 }
 
 function getNumberFlag(argv, flag, fallback) {
@@ -937,16 +970,20 @@ function buildReleaseCheckForTask(task, board, options = {}) {
   return { ok: findings.length === 0, taskId: task.id, status: task.status, findings, warnings };
 }
 
-function runReleaseCheck(argv) {
-  const json = hasFlag(argv, '--json');
+function buildReleaseCheckReport(argv) {
   const requireDocReview = hasFlag(argv, '--require-doc-review');
-  const taskId = argv.find((entry) => !entry.startsWith('--'));
+  const taskId = getPositionals(argv, new Set(['--out-dir', '--title'])).at(0);
   const { boardPath } = getCoordinationPaths();
   const board = readJsonSafe(boardPath, { tasks: [] });
   const tasks = Array.isArray(board.tasks) ? board.tasks : [];
   const candidates = taskId ? tasks.filter((task) => task.id === taskId) : tasks.filter((task) => task.status === 'done' || task.status === 'released');
   const checks = candidates.length ? candidates.map((task) => buildReleaseCheckForTask(task, board, { requireDocReview })) : [{ ok: false, taskId: taskId || null, findings: [taskId ? `Task ${taskId} was not found.` : 'No done or released tasks found.'], warnings: [] }];
-  const result = { ok: checks.every((check) => check.ok), boardPath, checks };
+  return { ok: checks.every((check) => check.ok), boardPath, checks };
+}
+
+function runReleaseCheck(argv) {
+  const json = hasFlag(argv, '--json');
+  const result = buildReleaseCheckReport(argv);
   if (json) console.log(JSON.stringify(result, null, 2));
   else {
     console.log('# Release Check');
@@ -1021,6 +1058,342 @@ function runCheckCommand(argv) {
   return exitCode;
 }
 
+function stringArray(value) {
+  return Array.isArray(value) ? value.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim()) : [];
+}
+
+function addConfigSuggestion(suggestions, severity, code, message, recommendation) {
+  suggestions.push({ severity, code, message, recommendation });
+}
+
+function detectRepoSignals(packageJson) {
+  const scripts = packageJson?.scripts && typeof packageJson.scripts === 'object' ? packageJson.scripts : {};
+  const deps = { ...(packageJson?.dependencies ?? {}), ...(packageJson?.devDependencies ?? {}) };
+  const scriptText = Object.entries(scripts).map(([name, command]) => `${name} ${command}`).join(' ').toLowerCase();
+  return {
+    hasTests: Object.keys(scripts).some((name) => /test|spec|unit/i.test(name)),
+    hasBuild: Object.keys(scripts).some((name) => /build/i.test(name)),
+    hasVisual: /visual|playwright|screenshot|snapshot/.test(scriptText) || 'playwright' in deps,
+    react: 'react' in deps || fs.existsSync(path.join(ROOT, 'src')) || fs.existsSync(path.join(ROOT, 'components')),
+    expo: 'expo' in deps || fs.existsSync(path.join(ROOT, 'app.json')) || fs.existsSync(path.join(ROOT, 'app.config.js')) || fs.existsSync(path.join(ROOT, 'app.config.ts')),
+    supabase: 'supabase' in deps || fs.existsSync(path.join(ROOT, 'supabase')) || fs.existsSync(path.join(ROOT, 'migrations')),
+  };
+}
+
+function buildConfigSuggestions(config, validation, packageJson) {
+  const suggestions = [];
+  const docsRoots = stringArray(config.docs?.roots);
+  const sharedRisk = stringArray(config.paths?.sharedRisk);
+  const visualImpact = stringArray(config.paths?.visualImpact);
+  const visualChecks = stringArray(config.verification?.visualRequiredChecks);
+  const branchPatterns = stringArray(config.git?.allowedBranchPatterns);
+  const domains = stringArray(Array.isArray(config.domainRules) ? config.domainRules.map((rule) => rule?.name) : []);
+  const signals = detectRepoSignals(packageJson);
+
+  if (!docsRoots.length) {
+    addConfigSuggestion(suggestions, 'warning', 'docs-roots-empty', 'No docs roots are configured.', 'Set docs.roots to the directories agents should read before claiming work.');
+  } else if (!docsRoots.some((entry) => fs.existsSync(path.resolve(ROOT, entry)))) {
+    addConfigSuggestion(suggestions, 'warning', 'docs-roots-missing', 'Configured docs roots do not exist yet.', 'Create the docs roots or update docs.roots to existing documentation paths.');
+  }
+
+  if (!sharedRisk.length) {
+    addConfigSuggestion(suggestions, 'warning', 'shared-risk-empty', 'No shared-risk paths are configured.', 'Set paths.sharedRisk to directories where overlapping edits need extra caution.');
+  }
+
+  if ((visualImpact.length || signals.hasVisual || signals.react || signals.expo) && !visualChecks.length) {
+    addConfigSuggestion(suggestions, 'warning', 'visual-checks-missing', 'Visual-impact paths or frontend signals exist but no required visual checks are configured.', 'Set verification.visualRequiredChecks to checks such as visual:test or screenshot tests.');
+  }
+
+  if (signals.hasTests && !stringArray(config.verification?.requiredChecks).length && !visualChecks.length) {
+    addConfigSuggestion(suggestions, 'info', 'verification-checks-light', 'Package test scripts exist, but config does not declare general required checks.', 'Add task verification expectations during planning or introduce a checks policy for common test scripts.');
+  }
+
+  if (config.git?.allowMainBranchClaims !== false) {
+    addConfigSuggestion(suggestions, 'info', 'main-branch-claims-allowed', 'Claims on main/master are currently allowed.', 'Set git.allowMainBranchClaims to false for stricter multi-agent branch hygiene.');
+  }
+
+  if (!branchPatterns.length) {
+    addConfigSuggestion(suggestions, 'info', 'branch-patterns-empty', 'No branch allowlist is configured.', 'Set git.allowedBranchPatterns when agents should only claim work on feature, fix, or agent branches.');
+  }
+
+  if (signals.supabase && !domains.some((entry) => /backend|data|database|supabase/i.test(entry))) {
+    addConfigSuggestion(suggestions, 'info', 'supabase-domain-missing', 'Supabase or migration files were detected without a matching backend/data domain rule.', 'Add a domainRules entry for database or Supabase work.');
+  }
+
+  if (signals.expo && !domains.some((entry) => /mobile|expo|app/i.test(entry))) {
+    addConfigSuggestion(suggestions, 'info', 'expo-domain-missing', 'Expo project signals were detected without a mobile/expo domain rule.', 'Add a domainRules entry for mobile or Expo work.');
+  }
+
+  for (const warning of validation.warnings ?? []) {
+    addConfigSuggestion(suggestions, 'info', 'validation-warning', warning, 'Review the config warning and either create the referenced path or update the config.');
+  }
+
+  return suggestions;
+}
+
+function taskDisplayTitle(task) {
+  return task?.title || task?.summary || task?.id || 'untitled task';
+}
+
+function latestVerificationEntries(task) {
+  const latest = new Map();
+  for (const entry of Array.isArray(task?.verificationLog) ? task.verificationLog : []) {
+    if (entry?.check) latest.set(entry.check, entry);
+  }
+  return [...latest.values()];
+}
+
+function collectTaskArtifacts(task) {
+  const artifacts = [];
+  for (const entry of Array.isArray(task?.verificationLog) ? task.verificationLog : []) {
+    for (const artifact of Array.isArray(entry?.artifacts) ? entry.artifacts : []) {
+      if (artifact?.path) artifacts.push({ taskId: task.id, check: entry.check, outcome: entry.outcome || entry.status || null, ...artifact });
+    }
+  }
+  return artifacts;
+}
+
+function readRunCheckArtifactIndex() {
+  const indexPath = path.join(getCoordinationPaths().artifactsRoot, 'index.ndjson');
+  if (!fs.existsSync(indexPath)) return [];
+  return fs.readFileSync(indexPath, 'utf8').split(/\r?\n/).filter(Boolean).flatMap((line) => {
+    try {
+      const entry = JSON.parse(line);
+      const artifactPath = entry.artifactPath || entry.path;
+      if (!artifactPath) return [];
+      const absolutePath = path.isAbsolute(artifactPath) ? artifactPath : path.resolve(ROOT, artifactPath);
+      return [{
+        source: 'run-check',
+        path: normalizePath(absolutePath) || artifactPath,
+        check: entry.name ?? null,
+        taskId: entry.taskId ?? null,
+        outcome: typeof entry.exitCode === 'number' ? (entry.exitCode === 0 ? 'pass' : 'fail') : null,
+        exitCode: entry.exitCode ?? null,
+        createdAt: entry.finishedAt || entry.startedAt || null,
+      }];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function buildArtifactItems() {
+  const board = readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] });
+  const taskArtifacts = (Array.isArray(board.tasks) ? board.tasks : []).flatMap((task) =>
+    collectTaskArtifacts(task).map((artifact) => ({ source: 'verification', ...artifact }))
+  );
+  return [...taskArtifacts, ...readRunCheckArtifactIndex()];
+}
+
+function runArtifactsCommand(argv) {
+  const json = hasFlag(argv, '--json');
+  const positionals = getPositionals(argv, new Set(['--task', '--check']));
+  const subcommand = positionals[0] || 'list';
+  const items = buildArtifactItems();
+
+  if (subcommand === 'list') {
+    const taskFilter = getFlagValue(argv, '--task', '');
+    const checkFilter = getFlagValue(argv, '--check', '');
+    const filtered = items.filter((item) => (!taskFilter || item.taskId === taskFilter) && (!checkFilter || item.check === checkFilter));
+    if (json) console.log(JSON.stringify({ items: filtered }, null, 2));
+    else console.log(filtered.length ? filtered.map((item) => `- ${item.path}${item.taskId ? ` (${item.taskId}` : ''}${item.check ? `${item.taskId ? ', ' : ' ('}${item.check}` : ''}${item.taskId || item.check ? ')' : ''}`).join('\n') : 'No artifacts found.');
+    return 0;
+  }
+
+  if (subcommand === 'inspect') {
+    const artifactPath = positionals[1];
+    if (!artifactPath) {
+      console.error('Usage: artifacts inspect <artifact-path> [--json]');
+      return 1;
+    }
+    const absolutePath = path.isAbsolute(artifactPath) ? artifactPath : path.resolve(ROOT, artifactPath);
+    if (!fs.existsSync(absolutePath)) {
+      const result = { ok: false, path: artifactPath, error: 'Artifact does not exist.' };
+      if (json) console.log(JSON.stringify(result, null, 2));
+      else console.error(result.error);
+      return 1;
+    }
+    const normalizedPath = normalizePath(absolutePath) || artifactPath;
+    const stats = fs.statSync(absolutePath);
+    const result = {
+      ok: true,
+      path: normalizedPath,
+      sizeBytes: stats.size,
+      modifiedAt: stats.mtime.toISOString(),
+      references: items.filter((item) => item.path === normalizedPath),
+    };
+    if (json) console.log(JSON.stringify(result, null, 2));
+    else {
+      console.log(`Artifact: ${result.path}`);
+      console.log(`Size: ${result.sizeBytes} bytes`);
+      console.log(`Modified: ${result.modifiedAt}`);
+      console.log(result.references.length ? `References: ${result.references.length}` : 'References: none');
+    }
+    return 0;
+  }
+
+  console.error('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json]');
+  return 1;
+}
+
+function pathsOverlap(left, right) {
+  const normalizedLeft = normalizePath(left);
+  const normalizedRight = normalizePath(right);
+  if (!normalizedLeft || !normalizedRight) return false;
+  return normalizedLeft === normalizedRight || normalizedLeft.startsWith(`${normalizedRight}/`) || normalizedRight.startsWith(`${normalizedLeft}/`);
+}
+
+function buildOwnershipMap() {
+  const board = readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] });
+  const tasks = Array.isArray(board.tasks) ? board.tasks : [];
+  const activeTasks = tasks.filter((task) => task?.ownerId && ACTIVE_STATUSES.has(task.status));
+  const owners = [];
+  const byOwner = new Map();
+  for (const task of activeTasks) {
+    const owner = byOwner.get(task.ownerId) ?? { agentId: task.ownerId, tasks: [], paths: [] };
+    owner.tasks.push({ id: task.id, status: task.status, title: taskDisplayTitle(task), claimedPaths: stringArray(task.claimedPaths) });
+    owner.paths.push(...stringArray(task.claimedPaths));
+    byOwner.set(task.ownerId, owner);
+  }
+  owners.push(...byOwner.values());
+  const overlaps = [];
+  for (let leftIndex = 0; leftIndex < activeTasks.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < activeTasks.length; rightIndex += 1) {
+      for (const leftPath of stringArray(activeTasks[leftIndex].claimedPaths)) {
+        const rightPath = stringArray(activeTasks[rightIndex].claimedPaths).find((candidate) => pathsOverlap(leftPath, candidate));
+        if (rightPath) overlaps.push({ leftTaskId: activeTasks[leftIndex].id, rightTaskId: activeTasks[rightIndex].id, leftPath, rightPath });
+      }
+    }
+  }
+  return { owners, overlaps };
+}
+
+function runOwnershipMap(argv) {
+  const map = buildOwnershipMap();
+  if (hasFlag(argv, '--json')) console.log(JSON.stringify(map, null, 2));
+  else {
+    console.log('# Ownership Map');
+    console.log(map.owners.length ? map.owners.map((owner) => `\n${owner.agentId}\n${owner.tasks.map((task) => `- ${task.id}: ${task.claimedPaths.join(', ') || 'no paths'}`).join('\n')}`).join('\n') : '\nNo active ownership.');
+    console.log('\nOverlaps:');
+    console.log(map.overlaps.length ? map.overlaps.map((entry) => `- ${entry.leftTaskId} ${entry.leftPath} overlaps ${entry.rightTaskId} ${entry.rightPath}`).join('\n') : '- none');
+  }
+  return map.overlaps.length ? 1 : 0;
+}
+
+function mermaidId(value) {
+  return `task_${String(value).replace(/[^a-zA-Z0-9_]/g, '_')}`;
+}
+
+function buildDependencyGraph() {
+  const board = readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] });
+  const tasks = Array.isArray(board.tasks) ? board.tasks : [];
+  return {
+    nodes: tasks.map((task) => ({ id: task.id, label: `${task.id}\\n${taskDisplayTitle(task)}\\n${task.status || 'unknown'}` })),
+    edges: tasks.flatMap((task) => stringArray(task.dependencies).map((dependencyId) => ({ from: dependencyId, to: task.id }))),
+  };
+}
+
+function renderDependencyGraph(graph) {
+  const lines = ['flowchart TD'];
+  for (const node of graph.nodes) lines.push(`  ${mermaidId(node.id)}["${String(node.label).replace(/"/g, '\\"')}"]`);
+  for (const edge of graph.edges) lines.push(`  ${mermaidId(edge.from)} --> ${mermaidId(edge.to)}`);
+  return lines.join('\n');
+}
+
+function runDependencyGraph(argv) {
+  const graph = buildDependencyGraph();
+  if (hasFlag(argv, '--json')) console.log(JSON.stringify(graph, null, 2));
+  else console.log(renderDependencyGraph(graph));
+  return 0;
+}
+
+function describeTaskForPr(task, board) {
+  const releaseCheck = buildReleaseCheckForTask(task, board, { requireDocReview: false });
+  return {
+    id: task.id,
+    title: taskDisplayTitle(task),
+    status: task.status || 'unknown',
+    summary: task.summary || '',
+    ownerId: task.ownerId ?? null,
+    lastOwnerId: task.lastOwnerId ?? null,
+    claimedPaths: stringArray(task.claimedPaths),
+    verification: latestVerificationEntries(task),
+    artifacts: collectTaskArtifacts(task),
+    releaseCheck,
+  };
+}
+
+function buildPrSummary(argv = []) {
+  const board = readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] });
+  const tasks = Array.isArray(board.tasks) ? board.tasks : [];
+  const requestedIds = getPositionals(argv, new Set(['--title', '--out-dir'])).filter((entry) => !['true', 'false'].includes(entry));
+  const requestedSet = new Set(requestedIds);
+  const selected = requestedSet.size
+    ? tasks.filter((task) => requestedSet.has(task.id))
+    : tasks.filter((task) => TERMINAL_STATUSES.has(task.status));
+  const fallbackSelected = selected.length ? selected : tasks.filter((task) => ACTIVE_STATUSES.has(task.status) || task.status === 'handoff' || task.status === 'review');
+  const describedTasks = fallbackSelected.map((task) => describeTaskForPr(task, board));
+  const activeFollowUps = tasks.filter((task) => !TERMINAL_STATUSES.has(task.status)).map((task) => ({ id: task.id, status: task.status || 'unknown', title: taskDisplayTitle(task), ownerId: task.ownerId ?? null }));
+  const risks = describedTasks.flatMap((task) => task.releaseCheck.findings.map((finding) => `${task.id}: ${finding}`));
+  return {
+    title: getFlagValue(argv, '--title', board.projectName || path.basename(ROOT)),
+    boardUpdatedAt: board.updatedAt || null,
+    tasks: describedTasks,
+    git: getGitSnapshot(loadConfig().config),
+    risks,
+    followUps: activeFollowUps,
+  };
+}
+
+function renderPrSummary(summary) {
+  const changes = summary.tasks.length
+    ? summary.tasks.map((task) => `- ${task.id}: ${task.summary || task.title} (${task.status})${task.claimedPaths.length ? `; paths: ${task.claimedPaths.join(', ')}` : ''}`).join('\n')
+    : '- No completed or active tasks found.';
+  const verification = summary.tasks.flatMap((task) => {
+    if (!task.verification.length) return [`- ${task.id}: no verification recorded`];
+    return task.verification.map((entry) => {
+      const artifacts = Array.isArray(entry.artifacts) && entry.artifacts.length ? `; artifacts: ${entry.artifacts.map((artifact) => artifact.path).join(', ')}` : '';
+      return `- ${task.id}: ${entry.check} ${entry.outcome || entry.status || 'unknown'}${entry.details ? ` - ${entry.details}` : ''}${artifacts}`;
+    });
+  }).join('\n');
+  const risks = summary.risks.length ? summary.risks.map((entry) => `- ${entry}`).join('\n') : '- None identified by release checks.';
+  const followUps = summary.followUps.length ? summary.followUps.map((task) => `- ${task.id}: ${task.title} (${task.status}${task.ownerId ? `, ${task.ownerId}` : ''})`).join('\n') : '- None.';
+  return [`# PR Summary: ${summary.title}`, '', '## Changes', '', changes, '', '## Verification', '', verification, '', '## Risks', '', risks, '', '## Follow-ups', '', followUps].join('\n');
+}
+
+function runPrSummary(argv) {
+  const summary = buildPrSummary(argv);
+  if (hasFlag(argv, '--json')) console.log(JSON.stringify(summary, null, 2));
+  else console.log(renderPrSummary(summary));
+  return 0;
+}
+
+function runReleaseBundle(argv) {
+  const json = hasFlag(argv, '--json');
+  const apply = hasFlag(argv, '--apply');
+  const outputRoot = resolveRepoPath(getFlagValue(argv, '--out-dir', ''), path.join('artifacts', 'releases', fileTimestamp()));
+  const prSummary = buildPrSummary(argv);
+  const releaseCheck = buildReleaseCheckReport(argv);
+  const artifactItems = buildArtifactItems();
+  const files = [
+    { name: 'pr-summary.md', path: path.join(outputRoot, 'pr-summary.md'), content: renderPrSummary(prSummary) },
+    { name: 'board-summary.md', path: path.join(outputRoot, 'board-summary.md'), content: buildBoardSummary() },
+    { name: 'release-check.json', path: path.join(outputRoot, 'release-check.json'), content: `${JSON.stringify(releaseCheck, null, 2)}\n` },
+    { name: 'artifacts.json', path: path.join(outputRoot, 'artifacts.json'), content: `${JSON.stringify({ items: artifactItems }, null, 2)}\n` },
+  ];
+  if (apply) {
+    fs.mkdirSync(outputRoot, { recursive: true });
+    for (const file of files) fs.writeFileSync(file.path, file.content);
+  }
+  const result = { ok: releaseCheck.ok, applied: apply, outputRoot, files: files.map((file) => ({ name: file.name, path: file.path })), releaseCheck };
+  if (json) console.log(JSON.stringify(result, null, 2));
+  else {
+    console.log(apply ? `Release bundle written to ${normalizePath(outputRoot) || outputRoot}.` : `Release bundle dry run for ${normalizePath(outputRoot) || outputRoot}.`);
+    console.log(files.map((file) => `- ${normalizePath(file.path) || file.path}`).join('\n'));
+  }
+  return releaseCheck.ok ? 0 : 1;
+}
+
 function buildSummaryData({ staleHours = DEFAULT_STALE_TASK_HOURS } = {}) {
   const paths = getCoordinationPaths();
   const board = readJsonSafe(paths.boardPath, { tasks: [] });
@@ -1053,9 +1426,11 @@ function doctorJson({ includeFixes = false } = {}) {
   const fixes = includeFixes ? doctorFix() : [];
   const { configPath, config } = loadConfig();
   const configValidation = validateAgentConfig(config, { root: ROOT });
+  const { packageJson } = loadPackageJson();
+  const configSuggestions = buildConfigSuggestions(config, configValidation, packageJson);
   const paths = getCoordinationPaths();
   const git = getGitSnapshot(config);
-  const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, git, files: { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) } };
+  const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, configSuggestions, git, files: { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) } };
   if (includeFixes) result.fixes = fixes;
   return result;
 }
@@ -1214,7 +1589,9 @@ function shouldHandle(commandName, argv) {
 
 export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   const argv = process.argv.slice(2);
-  const commandName = argv[0] || 'help';
+  const rawCommandName = argv[0] || 'help';
+  const commandName = COMMAND_ALIASES.get(rawCommandName) || rawCommandName;
+  if (commandName !== rawCommandName) process.argv[2] = commandName;
   const commandArgs = argv.slice(1);
   const normalizedCoordinatorPath = resolveRepoPath(coordinatorScriptPath, 'scripts/agent-coordination.mjs');
 
@@ -1251,5 +1628,10 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'repair-board') status = runRepairBoard(commandArgs);
   else if (commandName === 'rollback-state') status = runRollbackState(commandArgs);
   else if (commandName === 'run-check') status = runCheckCommand(commandArgs);
+  else if (commandName === 'artifacts') status = runArtifactsCommand(commandArgs);
+  else if (commandName === 'graph') status = runDependencyGraph(commandArgs);
+  else if (commandName === 'ownership-map') status = runOwnershipMap(commandArgs);
+  else if (commandName === 'pr-summary') status = runPrSummary(commandArgs);
+  else if (commandName === 'release-bundle') status = runReleaseBundle(commandArgs);
   process.exit(status);
 }

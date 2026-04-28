@@ -62,6 +62,10 @@ const commandsExpectedToSucceed = new Set([
   'cleanup-runtime',
   'cleanup-runtime --json',
   'repair-board',
+  'artifacts list',
+  'graph',
+  'ownership-map',
+  'pr-summary',
   'rollback-state --list',
   'rollback-state --list --json',
 ]);
@@ -87,6 +91,11 @@ for (const args of [
   ['inspect-board', '--json'],
   ['repair-board'],
   ['release-check', '--json'],
+  ['artifacts', 'list'],
+  ['graph'],
+  ['ownership-map'],
+  ['pr-summary'],
+  ['release-bundle', '--out-dir', 'bundle'],
   ['rollback-state', '--list'],
   ['rollback-state', '--list', '--json'],
 ]) {

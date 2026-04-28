@@ -156,6 +156,26 @@ export function validateAgentConfig(config, options = {}) {
     validateKnownStringArrays(config.verification, 'verification', ['visualRequiredChecks', 'visualSuiteUpdateChecks'], errors);
   }
 
+  if ('artifacts' in config && validateObject(config.artifacts, 'artifacts', errors)) {
+    if ('roots' in config.artifacts) validateStringArray(config.artifacts.roots, 'artifacts.roots', errors);
+    if ('protectPatterns' in config.artifacts) validateStringArray(config.artifacts.protectPatterns, 'artifacts.protectPatterns', errors);
+    for (const key of ['keepDays', 'keepFailedDays', 'maxMb']) {
+      if (key in config.artifacts) validateInteger(config.artifacts[key], `artifacts.${key}`, errors);
+    }
+  }
+
+  if ('checks' in config && validateObject(config.checks, 'checks', errors)) {
+    for (const [name, check] of Object.entries(config.checks)) {
+      const base = `checks.${name}`;
+      if (!validateObject(check, base, errors)) continue;
+      if ('command' in check) validateString(check.command, `${base}.command`, errors);
+      if ('timeoutMs' in check) validateInteger(check.timeoutMs, `${base}.timeoutMs`, errors, { min: 1000 });
+      if ('artifactRoots' in check) validateStringArray(check.artifactRoots, `${base}.artifactRoots`, errors);
+      if ('requiredForPaths' in check) validateStringArray(check.requiredForPaths, `${base}.requiredForPaths`, errors);
+      if ('requireArtifacts' in check) validateBoolean(check.requireArtifacts, `${base}.requireArtifacts`, errors);
+    }
+  }
+
   if ('notes' in config && validateObject(config.notes, 'notes', errors)) {
     if ('categories' in config.notes) validateStringArray(config.notes.categories, 'notes.categories', errors);
     if ('sectionHeading' in config.notes) validateString(config.notes.sectionHeading, 'notes.sectionHeading', errors, { allowEmpty: true });
