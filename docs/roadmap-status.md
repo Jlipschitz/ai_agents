@@ -106,7 +106,7 @@ Next recommended work:
 
 ## Phase 6: Advanced Coordination and Scaling
 
-- [ ] Workspace health score
+- [x] Workspace health score
 - [ ] Partial checkout / monorepo support
 - [x] Task priority and deadlines
 - [ ] Escalation routing

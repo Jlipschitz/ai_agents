@@ -807,6 +807,30 @@ Main files:
 - `scripts/lib/critical-path-commands.mjs`
 - `tests/critical-path-commands.test.mjs`
 
+### Workspace health score
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:health:score
+npm run agents -- health-score --json
+npm run agents -- health-score --fail-under 80
+```
+
+Current behavior:
+
+- Produces a 0-100 health score with `healthy`, `watch`, `degraded`, or `critical` levels.
+- Scores setup readiness, current work risk, verification gaps, critical-path warnings, and stale runtime state.
+- Reuses risk scoring and critical-path planning signals.
+- Emits section scores, top issues, and JSON output.
+- Supports `--fail-under <score>` for CI gates.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/health-score-commands.mjs`
+- `tests/health-score-commands.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1233,7 +1257,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 ### Advanced coordination and scaling
 
-- Workspace health score.
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
 - Escalation routing.

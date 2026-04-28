@@ -515,6 +515,18 @@ npm run agents -- critical-path --json
 
 The command is read-only. It scores remaining path cost from task effort plus risk level, reports the critical task chain, lists ready work sorted by downstream cost, and warns about missing dependencies or dependency cycles.
 
+### `health-score`
+
+Scores workspace health from setup readiness, current work risk, verification gaps, critical-path warnings, and stale runtime state.
+
+```bash
+npm run agents:health:score
+npm run agents -- health-score --json
+npm run agents -- health-score --fail-under 80
+```
+
+The command is read-only. It returns a 0-100 score, `healthy`/`watch`/`degraded`/`critical` level, section scores, top issues, and critical-path signals. `--fail-under <score>` makes the command exit non-zero when the score is below a CI threshold.
+
 ### `contracts`
 
 Manages contract files for shared API, schema, and cross-task interfaces under `coordination/contracts/`.

@@ -22,6 +22,7 @@ import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJ
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
 import { runGitHubStatus } from './lib/github-commands.mjs';
 import { hasHelpFlag, runCommandHelp } from './lib/help-command.mjs';
+import { runHealthScore } from './lib/health-score-commands.mjs';
 import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
 import { buildOnboardingChecklist } from './lib/onboarding-checklist.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
@@ -66,6 +67,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'test-impact',
   'risk-score',
   'critical-path',
+  'health-score',
   'contracts',
   'github-status',
   'templates',
@@ -198,11 +200,13 @@ function getBranchCommandContext() {
 function getImpactCommandContext() {
   const { config } = loadConfig();
   const { packageJson } = loadPackageJson();
+  const paths = getCoordinationPaths();
   return {
     root: ROOT,
     config,
     packageJson,
-    board: readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] }),
+    board: readJsonSafe(paths.boardPath, { tasks: [] }),
+    paths,
     activeStatuses: ACTIVE_STATUSES,
   };
 }
@@ -333,6 +337,7 @@ function expectedPackageScripts() {
       'agents:test-impact': 'ai-agents test-impact',
       'agents:risk:score': 'ai-agents risk-score',
       'agents:critical:path': 'ai-agents critical-path',
+      'agents:health:score': 'ai-agents health-score',
       'agents:contracts': 'ai-agents contracts',
       'agents:github:status': 'ai-agents github-status',
       'agents:templates': 'ai-agents templates',
@@ -392,6 +397,7 @@ function expectedPackageScripts() {
     'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
     'agents:risk:score': 'node ./scripts/agent-coordination.mjs risk-score',
     'agents:critical:path': 'node ./scripts/agent-coordination.mjs critical-path',
+    'agents:health:score': 'node ./scripts/agent-coordination.mjs health-score',
     'agents:contracts': 'node ./scripts/agent-coordination.mjs contracts',
     'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
     'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
@@ -442,6 +448,7 @@ function expectedPackageScripts() {
     'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
     'agents2:risk:score': 'node ./scripts/agent-coordination-two.mjs risk-score',
     'agents2:critical:path': 'node ./scripts/agent-coordination-two.mjs critical-path',
+    'agents2:health:score': 'node ./scripts/agent-coordination-two.mjs health-score',
     'agents2:contracts': 'node ./scripts/agent-coordination-two.mjs contracts',
     'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
     'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
@@ -1444,6 +1451,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());
   else if (commandName === 'risk-score') status = runRiskScore(commandArgs, getImpactCommandContext());
   else if (commandName === 'critical-path') status = runCriticalPath(commandArgs, getImpactCommandContext());
+  else if (commandName === 'health-score') status = runHealthScore(commandArgs, getImpactCommandContext());
   else if (commandName === 'contracts') status = runContracts(commandArgs, getTemplateCommandContext());
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
