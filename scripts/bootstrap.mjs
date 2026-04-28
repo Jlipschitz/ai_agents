@@ -92,6 +92,7 @@ const FILES_TO_COPY = [
   'docs/architecture.md',
   'docs/state-files.md',
   'docs/troubleshooting.md',
+  'docs/explain-config.md',
   'docs/implementation-status.md',
   'docs/roadmap-status.md',
 ];
