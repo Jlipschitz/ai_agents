@@ -2,6 +2,10 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 
+if (!process.env.AGENT_COORDINATION_ROOT && !process.env.AGENT_COORDINATION_DIR) {
+  process.env.AGENT_COORDINATION_DIR = 'coordination-two';
+}
+
 if (!process.env.AGENT_COORDINATION_CLI_ENTRYPOINT) {
   process.env.AGENT_COORDINATION_CLI_ENTRYPOINT = 'agents2';
 }

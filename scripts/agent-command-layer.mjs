@@ -39,7 +39,7 @@ function resolveCoordinationRoot() {
   const rootOverride = String(process.env.AGENT_COORDINATION_ROOT ?? '').trim();
   if (rootOverride) return path.isAbsolute(rootOverride) ? rootOverride : path.resolve(ROOT, rootOverride);
   const dirOverride = String(process.env.AGENT_COORDINATION_DIR ?? '').trim();
-  return path.join(ROOT, dirOverride || 'coordination-two');
+  return path.join(ROOT, dirOverride || 'coordination');
 }
 
 function resolveConfigPath() {
@@ -290,7 +290,7 @@ function doctorFix() {
     for (const [name, command] of Object.entries(expectedPackageScripts())) {
       if (packageJson.scripts[name] !== command) { packageJson.scripts[name] = command; changed.push(name); }
     }
-    if (changed.length) { fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`); fixes.push(`updated package.json scripts: ${changed.join(', ')}`); }
+    if (changed.length) { writePackageScripts(packageJsonPath, packageJson.scripts); fixes.push(`updated package.json scripts: ${changed.join(', ')}`); }
   }
   return fixes;
 }
@@ -302,6 +302,100 @@ function globToRegExp(pattern) {
 
 function branchMatchesPattern(branch, pattern) {
   return globToRegExp(pattern).test(branch);
+}
+
+function findTopLevelObjectProperty(text, propertyName) {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') {
+      if (depth !== 1) {
+        inString = true;
+        continue;
+      }
+      let end = index + 1;
+      let key = '';
+      let keyEscaped = false;
+      for (; end < text.length; end += 1) {
+        const keyChar = text[end];
+        if (keyEscaped) {
+          key += keyChar;
+          keyEscaped = false;
+        } else if (keyChar === '\\') {
+          keyEscaped = true;
+        } else if (keyChar === '"') {
+          break;
+        } else {
+          key += keyChar;
+        }
+      }
+      if (key !== propertyName) {
+        inString = true;
+        continue;
+      }
+      let colon = end + 1;
+      while (/\s/.test(text[colon] ?? '')) colon += 1;
+      if (text[colon] !== ':') {
+        inString = true;
+        continue;
+      }
+      let valueStart = colon + 1;
+      while (/\s/.test(text[valueStart] ?? '')) valueStart += 1;
+      if (text[valueStart] !== '{') return null;
+      let valueDepth = 0;
+      let valueInString = false;
+      let valueEscaped = false;
+      for (let valueEnd = valueStart; valueEnd < text.length; valueEnd += 1) {
+        const valueChar = text[valueEnd];
+        if (valueInString) {
+          if (valueEscaped) valueEscaped = false;
+          else if (valueChar === '\\') valueEscaped = true;
+          else if (valueChar === '"') valueInString = false;
+          continue;
+        }
+        if (valueChar === '"') valueInString = true;
+        else if (valueChar === '{') valueDepth += 1;
+        else if (valueChar === '}') {
+          valueDepth -= 1;
+          if (valueDepth === 0) return { start: index, end: valueEnd + 1 };
+        }
+      }
+      return null;
+    }
+    if (char === '{') depth += 1;
+    else if (char === '}') depth -= 1;
+  }
+  return null;
+}
+
+function formatScriptsProperty(scripts) {
+  return `"scripts": ${JSON.stringify(scripts, null, 2).replace(/\n/g, '\n  ')}`;
+}
+
+function writePackageScripts(packageJsonPath, scripts) {
+  const current = fs.readFileSync(packageJsonPath, 'utf8');
+  const property = formatScriptsProperty(scripts);
+  const range = findTopLevelObjectProperty(current, 'scripts');
+  if (range) {
+    fs.writeFileSync(packageJsonPath, `${current.slice(0, range.start)}${property}${current.slice(range.end)}`);
+    return;
+  }
+  const openBrace = current.indexOf('{');
+  if (openBrace < 0) {
+    fs.writeFileSync(packageJsonPath, `${JSON.stringify({ scripts }, null, 2)}\n`);
+    return;
+  }
+  const afterOpen = openBrace + 1;
+  const suffix = current.slice(afterOpen).replace(/^\s*/, '\n');
+  fs.writeFileSync(packageJsonPath, `${current.slice(0, afterOpen)}\n  ${property},${suffix}`);
 }
 
 function getGitPolicy(config) {
@@ -324,7 +418,24 @@ function applyGitPolicy(result, policy) {
 
 function getGitSnapshot(config = loadConfig().config) {
   const result = { available: false, branch: null, upstream: null, ahead: null, behind: null, dirty: [], untracked: [], mergeState: false, rebaseState: false, policy: getGitPolicy(config), warnings: [], errors: [] };
-  function git(args) { return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(); }
+  const gitCandidates = process.platform === 'win32' ? ['git.exe', 'git.cmd', 'git'] : ['git'];
+  let gitCommand = null;
+  function git(args) {
+    const candidates = gitCommand ? [gitCommand] : gitCandidates;
+    let lastError = null;
+    for (const candidate of candidates) {
+      try {
+        const output = execFileSync(candidate, args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+        gitCommand = candidate;
+        return output;
+      } catch (error) {
+        lastError = error;
+        if (error?.code === 'ENOENT') continue;
+        throw error;
+      }
+    }
+    throw lastError ?? new Error('Git executable was not found.');
+  }
   try { git(['rev-parse', '--is-inside-work-tree']); result.available = true; } catch { result.warnings.push('Not inside a Git worktree or Git is unavailable.'); return result; }
   try { result.branch = git(['branch', '--show-current']) || 'detached'; } catch {}
   try { result.upstream = git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']); } catch { result.warnings.push('No upstream branch configured.'); }
@@ -1031,17 +1142,46 @@ function assertFinishGates(taskId, argv) {
   return { ok: true };
 }
 
+function parseLifecycleRest(rest) {
+  const messageParts = [];
+  const flags = {};
+  const booleanFlags = new Set(['--require-verification', '--require-doc-review']);
+  const valuedFlags = new Set(['--paths']);
+  for (let index = 0; index < rest.length; index += 1) {
+    const entry = rest[index];
+    if (!entry.startsWith('--')) {
+      messageParts.push(entry);
+      continue;
+    }
+    if (valuedFlags.has(entry)) {
+      flags[entry.slice(2)] = rest[index + 1] ?? '';
+      index += 1;
+      continue;
+    }
+    if (booleanFlags.has(entry)) {
+      flags[entry.slice(2)] = true;
+      continue;
+    }
+    if (rest[index + 1] && !rest[index + 1].startsWith('--')) {
+      flags[entry.slice(2)] = rest[index + 1];
+      index += 1;
+    } else {
+      flags[entry.slice(2)] = true;
+    }
+  }
+  return { flags, message: messageParts.join(' ').trim() };
+}
+
 function runLifecycle(commandName, argv, coordinatorScriptPath) {
   const [agentId, taskId, ...rest] = argv;
   if (!agentId || !taskId) { console.error(`Usage: ${commandName} <agent-id> <task-id> [message] [--paths path[,path...]]`); return 1; }
-  const pathFlagIndex = rest.findIndex((entry) => entry === '--paths');
-  const ignoredValueIndexes = new Set(pathFlagIndex >= 0 ? [pathFlagIndex + 1] : []);
-  const message = rest.filter((entry, index) => !entry.startsWith('--') && !ignoredValueIndexes.has(index)).join(' ').trim();
+  const { flags, message } = parseLifecycleRest(rest);
   const run = (args) => spawnSync(process.execPath, [coordinatorScriptPath, ...args], { cwd: ROOT, stdio: 'inherit', env: process.env }).status ?? 1;
   if (commandName === 'start') {
-    const paths = pathFlagIndex >= 0 ? rest[pathFlagIndex + 1] : '';
+    const paths = flags.paths || '';
     const args = ['claim', agentId, taskId];
     if (paths) args.push('--paths', paths);
+    if (message) args.push('--summary', message);
     const status = run(args);
     if (status !== 0) return status;
     return message ? run(['progress', agentId, taskId, message]) : 0;
@@ -1076,7 +1216,7 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   const argv = process.argv.slice(2);
   const commandName = argv[0] || 'help';
   const commandArgs = argv.slice(1);
-  const normalizedCoordinatorPath = resolveRepoPath(coordinatorScriptPath, 'scripts/agent-coordination-two.mjs');
+  const normalizedCoordinatorPath = resolveRepoPath(coordinatorScriptPath, 'scripts/agent-coordination.mjs');
 
   if (commandName === 'claim') {
     const preflightStatus = runGitPreflightForClaim();

@@ -12,17 +12,17 @@ const COORDINATION_ROOT = COORDINATION_ROOT_OVERRIDE
   ? path.isAbsolute(COORDINATION_ROOT_OVERRIDE)
     ? COORDINATION_ROOT_OVERRIDE
     : path.resolve(ROOT, COORDINATION_ROOT_OVERRIDE)
-  : path.join(ROOT, COORDINATION_DIR_OVERRIDE || 'coordination-two');
+  : path.join(ROOT, COORDINATION_DIR_OVERRIDE || 'coordination');
 const COORDINATION_LABEL = path.relative(ROOT, COORDINATION_ROOT).replaceAll('\\', '/') || '.';
 const COORDINATION_README_PATH = COORDINATION_LABEL === '.' ? 'README.md' : `${COORDINATION_LABEL}/README.md`;
 const CLI_ENTRYPOINT = resolveCliEntrypoint();
 const COORDINATOR_SCRIPT_PATH = resolveRepoPath(
   process.env.AGENT_COORDINATION_SCRIPT,
-  'scripts/agent-coordination-two.mjs'
+  'scripts/agent-coordination.mjs'
 );
 const WATCH_LOOP_SCRIPT_PATH = resolveRepoPath(
   process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT,
-  'scripts/agent-watch-loop-two.ps1'
+  'scripts/agent-watch-loop.mjs'
 );
 const TASKS_ROOT = path.join(COORDINATION_ROOT, 'tasks');
 const RUNTIME_ROOT = path.join(COORDINATION_ROOT, 'runtime');
@@ -3350,7 +3350,7 @@ async function doneCommand(positionals) {
     const agent = getCommandAgent(board, agentId);
 
     if (task.ownerId !== agentId) {
-      throw new Error(`${agentId} cannot close "${taskId}" because it is currently owned by ${task.ownerId ?? 'nobody'}.`);
+      throw new Error(`${agentId} cannot mark "${taskId}" done because it is currently owned by ${task.ownerId ?? 'nobody'}.`);
     }
 
     const missingVisualChecks = getMissingVisualPassingChecks(board, task);
@@ -4038,6 +4038,25 @@ function validateBoard(board, options = {}) {
   return findings;
 }
 
+function gitignorePatternMatches(pattern, normalizedPath) {
+  const normalizedPattern = pattern.replaceAll('\\', '/').replace(/^\/+/g, '').replace(/\/+$/g, '');
+  if (!normalizedPattern) {
+    return false;
+  }
+  if (!/[?*[\]]/.test(normalizedPattern)) {
+    return normalizedPattern === normalizedPath || normalizedPath.startsWith(`${normalizedPattern}/`);
+  }
+  const globstarToken = '\0GLOBSTAR\0';
+  const escaped = normalizedPattern
+    .replace(/\*\*/g, globstarToken)
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replaceAll(globstarToken, '.*')
+    .replace(/\*/g, '[^/]*')
+    .replace(/\?/g, '[^/]');
+  const regex = new RegExp(`^${escaped}(?:/.*)?$`);
+  return regex.test(normalizedPath);
+}
+
 function isRepoLocalPathIgnored(relativePath) {
   const normalized = normalizePath(relativePath);
   if (!normalized || normalized === '.') {
@@ -4058,10 +4077,7 @@ function isRepoLocalPathIgnored(relativePath) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith('#') && !line.startsWith('!'))
-    .some((line) => {
-      const pattern = line.replaceAll('\\', '/').replace(/^\/+/g, '').replace(/\/+$/g, '');
-      return pattern === normalized || normalized.startsWith(`${pattern}/`);
-    });
+    .some((line) => gitignorePatternMatches(line, normalized));
 }
 
 function getPackageScripts() {

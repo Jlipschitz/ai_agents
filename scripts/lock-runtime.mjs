@@ -45,7 +45,7 @@ function resolveCoordinationRoot(args) {
   if (rootOverride) return path.isAbsolute(rootOverride) ? rootOverride : path.resolve(ROOT, rootOverride);
 
   const dirOverride = args.coordinationDir || String(process.env.AGENT_COORDINATION_DIR ?? '').trim();
-  return path.join(ROOT, dirOverride || 'coordination-two');
+  return path.join(ROOT, dirOverride || 'coordination');
 }
 
 function lockPath(args) {

@@ -36,6 +36,15 @@ test('lock status reports missing lock without failing', () => {
   assert.equal(payload.stale, false);
 });
 
+test('lock status defaults to the main coordination workspace', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  const result = run(root, ['status', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.coordinationRoot, coordinationRoot);
+});
+
 test('lock status detects stale lock by age', () => {
   const { root, coordinationRoot, lockPath } = makeWorkspace();
   fs.writeFileSync(lockPath, JSON.stringify({

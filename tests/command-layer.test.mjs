@@ -43,6 +43,18 @@ function run(root, args) {
   });
 }
 
+function runWithoutCoordinationEnv(cli, root, args) {
+  const env = { ...process.env };
+  delete env.AGENT_COORDINATION_ROOT;
+  delete env.AGENT_COORDINATION_DIR;
+  delete env.AGENT_COORDINATION_CONFIG;
+  return spawnSync(process.execPath, [cli, ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    env,
+  });
+}
+
 test('doctor --fix creates starter runtime files', () => {
   const root = makeWorkspace();
   const result = run(root, ['doctor', '--fix']);
@@ -56,6 +68,20 @@ test('doctor --fix creates starter runtime files', () => {
   assert.match(fs.readFileSync(path.join(root, '.gitignore'), 'utf8'), /\/coordination\//);
   assert.equal(packageJson.scripts['agents:doctor'], 'ai-agents doctor');
   assert.equal(packageJson.scripts['agents:doctor:json'], 'ai-agents doctor --json');
+});
+
+test('workspace wrappers use distinct default coordination roots', () => {
+  const root = makeWorkspace();
+  const agentsCli = path.join(repoRoot, 'scripts', 'agent-coordination.mjs');
+  const agentsTwoCli = path.join(repoRoot, 'scripts', 'agent-coordination-two.mjs');
+
+  const one = runWithoutCoordinationEnv(agentsCli, root, ['doctor', '--json']);
+  const two = runWithoutCoordinationEnv(agentsTwoCli, root, ['doctor', '--json']);
+
+  assert.equal(one.status, 0, one.stderr);
+  assert.equal(two.status, 0, two.stderr);
+  assert.equal(JSON.parse(one.stdout).coordinationRoot, path.join(root, 'coordination'));
+  assert.equal(JSON.parse(two.stdout).coordinationRoot, path.join(root, 'coordination-two'));
 });
 
 test('doctor --fix uses copied coordinator scripts when present', () => {
@@ -73,6 +99,32 @@ test('doctor --fix uses copied coordinator scripts when present', () => {
   assert.ok(packageJson.scripts.check.includes('node --check ./bin/ai-agents.mjs'));
   assert.equal(packageJson.scripts['agents:doctor'], 'node ./scripts/agent-coordination.mjs doctor');
   assert.equal(packageJson.scripts['agents2:doctor:json'], 'node ./scripts/agent-coordination-two.mjs doctor --json');
+});
+
+test('doctor --fix updates package scripts without reordering unrelated package fields', () => {
+  const root = makeWorkspace();
+  fs.writeFileSync(path.join(root, 'package.json'), [
+    '{',
+    '  "name": "layer-test",',
+    '  "description": "keep this field before scripts",',
+    '  "scripts": {',
+    '    "existing": "node existing.js"',
+    '  },',
+    '  "custom": {',
+    '    "nested": true',
+    '  }',
+    '}',
+    '',
+  ].join('\n'));
+
+  const result = run(root, ['doctor', '--fix']);
+  const content = fs.readFileSync(path.join(root, 'package.json'), 'utf8');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(content.indexOf('"description"') < content.indexOf('"scripts"'));
+  assert.ok(content.indexOf('"scripts"') < content.indexOf('"custom"'));
+  assert.match(content, /"existing": "node existing\.js"/);
+  assert.match(content, /"agents:doctor": "ai-agents doctor"/);
 });
 
 test('doctor --json reports config validation and git fields', () => {
@@ -139,6 +191,23 @@ test('summarize --json includes counts and recent context', () => {
   assert.equal(payload.counts.planned, 1);
   assert.ok(Array.isArray(payload.nextActions));
   assert.ok(payload.recentJournal.includes('Journal tail'));
+});
+
+test('start records the message as the task summary and progress note', () => {
+  const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Layer Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-one', status: 'planned', ownerId: null, title: 'Task one', claimedPaths: [] }],
+  });
+
+  const result = run(root, ['start', 'agent-1', 'task-one', '--paths', 'src/a', 'Starting summary']);
+  const board = JSON.parse(fs.readFileSync(path.join(coordinationRoot(root), 'board.json'), 'utf8'));
+  const task = board.tasks.find((entry) => entry.id === 'task-one');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(task.summary, 'Starting summary');
+  assert.ok(task.notes.some((entry) => entry.kind === 'progress' && entry.body === 'Starting summary'));
 });
 
 test('validate --json returns machine-readable config validation', () => {
