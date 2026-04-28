@@ -163,7 +163,7 @@ Next recommended work:
 - [~] Add consistent global flags — global parser supports the requested flags; verbose/quiet behavior can become richer.
 - [~] Add better error formatting - top-level failures and common inline command-layer errors now use consistent text/JSON formatting; older command-specific diagnostic paths can still be normalized during future refactors.
 - [x] Add short command aliases
-- [ ] Add interactive mode
+- [x] Add interactive mode
 
 ## Phase 12: Board Repair, Inspection, and Rollback
 
@@ -231,6 +231,7 @@ Next recommended work:
 - `scripts/lib/global-flags.mjs`
 - `scripts/lib/help-command.mjs`
 - `scripts/lib/impact-commands.mjs`
+- `scripts/lib/interactive-commands.mjs`
 - `scripts/lib/install-manifest.mjs`
 - `scripts/lib/onboarding-checklist.mjs`
 - `scripts/lib/policy-enforcement.mjs`
@@ -275,6 +276,7 @@ Next recommended work:
 - `tests/format-commands.test.mjs`
 - `tests/git-policy.test.mjs`
 - `tests/github-status.test.mjs`
+- `tests/interactive-commands.test.mjs`
 - `tests/incident-commands.test.mjs`
 - `tests/lock-runtime.test.mjs`
 - `tests/jsdoc-check.test.mjs`

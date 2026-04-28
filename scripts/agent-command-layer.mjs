@@ -28,6 +28,7 @@ import { runGitHubStatus } from './lib/github-commands.mjs';
 import { hasHelpFlag, runCommandHelp } from './lib/help-command.mjs';
 import { runHealthScore } from './lib/health-score-commands.mjs';
 import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
+import { runInteractive } from './lib/interactive-commands.mjs';
 import { buildOnboardingChecklist } from './lib/onboarding-checklist.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
@@ -73,6 +74,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'policy-packs',
   'policy-check',
   'format',
+  'interactive',
   'branches',
   'ownership-review',
   'test-impact',
@@ -330,6 +332,7 @@ function expectedPackageScripts() {
       'agents:init': 'ai-agents init',
       'agents:plan': 'ai-agents plan',
       'agents:status': 'ai-agents status',
+      'agents:interactive': 'ai-agents interactive',
       'agents:validate': 'ai-agents validate',
       'agents:doctor': 'ai-agents doctor',
       'agents:doctor:json': 'ai-agents doctor --json',
@@ -402,6 +405,7 @@ function expectedPackageScripts() {
     'agents:init': 'node ./scripts/agent-coordination.mjs init',
     'agents:plan': 'node ./scripts/agent-coordination.mjs plan',
     'agents:status': 'node ./scripts/agent-coordination.mjs status',
+    'agents:interactive': 'node ./scripts/agent-coordination.mjs interactive',
     'agents:validate': 'node ./scripts/agent-coordination.mjs validate',
     'agents:doctor': 'node ./scripts/agent-coordination.mjs doctor',
     'agents:doctor:json': 'node ./scripts/agent-coordination.mjs doctor --json',
@@ -463,6 +467,7 @@ function expectedPackageScripts() {
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
     'agents2:status': 'node ./scripts/agent-coordination-two.mjs status',
+    'agents2:interactive': 'node ./scripts/agent-coordination-two.mjs interactive',
     'agents2:validate': 'node ./scripts/agent-coordination-two.mjs validate',
     'agents2:doctor': 'node ./scripts/agent-coordination-two.mjs doctor',
     'agents2:doctor:json': 'node ./scripts/agent-coordination-two.mjs doctor --json',
@@ -1505,6 +1510,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'policy-packs') status = runPolicyPacks(commandArgs);
   else if (commandName === 'policy-check') status = runPolicyCheck(commandArgs, getImpactCommandContext());
   else if (commandName === 'format') status = runFormat(commandArgs, { root: ROOT });
+  else if (commandName === 'interactive') status = await runInteractive(commandArgs, { ...getImpactCommandContext(), cli });
   else if (commandName === 'branches') status = runBranchStatus(commandArgs, getBranchCommandContext());
   else if (commandName === 'ownership-review') status = runOwnershipReview(commandArgs, getImpactCommandContext());
   else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());

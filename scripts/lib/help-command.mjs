@@ -10,6 +10,7 @@ export const COMMANDS = {
   plan: ['plan <goal> [--apply] [--git-changes]', 'Split a goal into planned agent tasks.'],
   prompt: ['prompt <agent-id> [task-id] [--json]', 'Generate copy-ready context for an agent assignment.'],
   ask: ['ask "<question>" [--json]', 'Answer common coordination questions from the board.'],
+  interactive: ['interactive [--select <id|number>] [--json]', 'Show an interactive command launcher with safe next actions for the current board.'],
   claim: ['claim <agent> <task-id> --paths <path[,path...]> [--summary <text>] [--priority <level>] [--due-at <date>] [--severity <level>] [--force]', 'Claim work for an agent with Git, capacity, conflict checks, and optional priority metadata.'],
   prioritize: ['prioritize <task-id> [--priority <level>] [--due-at <date|none>] [--severity <level>] [--by <agent>] [--json] [--dry-run]', 'Update task priority, due date, or severity metadata.'],
   start: ['start <agent> <task-id> --paths <path[,path...]> [--priority <level>] [--due-at <date>] [--severity <level>] <summary>', 'Claim work and record the starting summary as progress.'],

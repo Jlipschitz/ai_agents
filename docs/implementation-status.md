@@ -1214,6 +1214,30 @@ Main files:
 - `scripts/agent-coordination.mjs`
 - `scripts/agent-coordination-two.mjs`
 
+### Interactive mode
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- interactive
+npm run agents -- interactive --select status
+npm run agents -- interactive --json
+```
+
+Current behavior:
+
+- Builds a contextual menu from the board, including status, summarize, doctor, health score, and task-state-specific actions.
+- Prompts for an action in TTY sessions.
+- Prints the menu and exits safely in non-TTY sessions.
+- Supports `--select <id|number>` for scriptable command selection without prompting.
+- Supports JSON output for automation.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/interactive-commands.mjs`
+- `tests/interactive-commands.test.mjs`
+
 ### Config migration and policy packs
 
 Status: implemented in the command layer.

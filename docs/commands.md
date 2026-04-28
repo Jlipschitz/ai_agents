@@ -464,6 +464,16 @@ npm run agents -- ask "what can agent-2 do next?" --json
 
 Supported question patterns include blocked/waiting/review/handoff work, stale active work, task status, path or task ownership, and next ready work for an agent. The command is deterministic and read-only; it does not call an external model.
 
+### `interactive`
+
+Shows a command launcher for common safe next actions. In a terminal it prompts for a selection; in non-interactive shells it prints the menu and exits.
+
+```bash
+npm run agents -- interactive
+npm run agents -- interactive --select status
+npm run agents -- interactive --json
+```
+
 ### `graph`
 
 Prints task dependencies as a Mermaid graph, or JSON with nodes and edges.
