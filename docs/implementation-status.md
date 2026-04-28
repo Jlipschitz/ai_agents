@@ -1574,6 +1574,28 @@ Main files:
 - `scripts/lib/version-command.mjs`
 - `tests/version-command.test.mjs`
 
+### Publish readiness check
+
+Status: implemented as a local advisory/strict package check.
+
+```bash
+npm run agents:publish:check
+npm run agents -- publish-check --json
+npm run agents -- publish-check --strict
+```
+
+Current behavior:
+
+- Checks npm-compatible package name, semver package version, `private`, license, `bin.ai-agents`, required docs, recommended docs, and baseline scripts.
+- Does not contact npm or mutate files.
+- Exits 0 by default even with findings; `--strict` exits non-zero when publish-blocking errors exist.
+- Supports `--json`.
+
+Main files:
+
+- `scripts/lib/publish-check-command.mjs`
+- `tests/publish-check-command.test.mjs`
+
 ### CI workflow
 
 Status: implemented.

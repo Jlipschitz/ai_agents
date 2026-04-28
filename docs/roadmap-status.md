@@ -242,6 +242,7 @@ Next recommended work:
 - `scripts/lib/policy-enforcement.mjs`
 - `scripts/lib/prompt-commands.mjs`
 - `scripts/lib/privacy-utils.mjs`
+- `scripts/lib/publish-check-command.mjs`
 - `scripts/lib/review-queue-commands.mjs`
 - `scripts/lib/release-signing-commands.mjs`
 - `scripts/lib/risk-score-commands.mjs`
@@ -297,6 +298,7 @@ Next recommended work:
 - `tests/path-group-commands.test.mjs`
 - `tests/policy-enforcement.test.mjs`
 - `tests/prompt-commands.test.mjs`
+- `tests/publish-check-command.test.mjs`
 - `tests/read-only-commands.test.mjs`
 - `tests/release-signing-commands.test.mjs`
 - `tests/review-queue-commands.test.mjs`

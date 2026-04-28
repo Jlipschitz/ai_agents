@@ -91,6 +91,18 @@ npm run agents -- version
 npm run agents -- version --json
 ```
 
+### `publish-check`
+
+Checks local package metadata and release files before an npm publish attempt.
+
+```bash
+npm run agents:publish:check
+npm run agents -- publish-check --json
+npm run agents -- publish-check --strict
+```
+
+The command does not contact npm. It reports blockers such as `private: true`, invalid name/version metadata, missing `bin.ai-agents`, or missing required docs. Without `--strict`, findings are reported but the command exits 0 so private/internal repos can use it as an advisory check.
+
 ### `status`
 
 Prints the current board state, active work, blockers, stale work, and task priority/due-date metadata.

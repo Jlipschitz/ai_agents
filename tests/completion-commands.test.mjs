@@ -54,6 +54,7 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('dashboard'));
   assert.ok(payload.commands.includes('timeline'));
   assert.ok(payload.commands.includes('version'));
+  assert.ok(payload.commands.includes('publish-check'));
 });
 
 test('completions bash includes commands and repo task context', () => {
@@ -91,6 +92,7 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /--repos/);
   assert.match(result.stdout, /timeline/);
   assert.match(result.stdout, /version/);
+  assert.match(result.stdout, /publish-check/);
 });
 
 test('completions powershell and zsh render shell-specific registrations', () => {

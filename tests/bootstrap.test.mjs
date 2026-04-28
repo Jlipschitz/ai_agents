@@ -47,6 +47,7 @@ test('bootstrap creates package scripts and gitignore entries', () => {
   assert.equal(packageJson.scripts['agents:review:queue'], 'node ./scripts/agent-coordination.mjs review-queue');
   assert.equal(packageJson.scripts['agents:dashboard'], 'node ./scripts/agent-coordination.mjs dashboard');
   assert.equal(packageJson.scripts['agents:timeline'], 'node ./scripts/agent-coordination.mjs timeline');
+  assert.equal(packageJson.scripts['agents:publish:check'], 'node ./scripts/agent-coordination.mjs publish-check');
   assert.equal(packageJson.scripts['agents:secrets:scan'], 'node ./scripts/agent-coordination.mjs secrets-scan');
   assert.equal(packageJson.scripts['agents:contracts'], 'node ./scripts/agent-coordination.mjs contracts');
   assert.equal(packageJson.scripts['agents:runbooks'], 'node ./scripts/agent-coordination.mjs runbooks');
