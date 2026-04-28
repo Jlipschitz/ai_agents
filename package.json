@@ -1,9 +1,14 @@
 {
-  "name": "ai_agents",
+  "name": "ai-agents",
   "version": "1.0.0",
   "private": true,
+  "description": "Portable coordination tooling for running multiple coding agents in one repository.",
   "type": "module",
+  "bin": {
+    "ai-agents": "./bin/ai-agents.mjs"
+  },
   "scripts": {
+    "ai-agents": "node ./bin/ai-agents.mjs",
     "agents": "node ./scripts/agent-coordination.mjs",
     "agents:init": "node ./scripts/agent-coordination.mjs init",
     "agents:plan": "node ./scripts/agent-coordination.mjs plan",
