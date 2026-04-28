@@ -56,8 +56,11 @@ export function classifyPlannerLanes(summary, config = {}, agentCount = DEFAULT_
   if (!activeLanes.length) activeLanes.push('product');
 
   let recommendedAgents = sizing.minAgents;
-  if (complexityScore >= sizing.largeComplexityScore) recommendedAgents = Math.max(recommendedAgents, Math.min(activeLanes.length, sizing.maxAgents));
-  else if (complexityScore >= sizing.mediumComplexityScore) recommendedAgents = Math.max(recommendedAgents, Math.min(Math.max(2, activeLanes.length), sizing.maxAgents));
+  if (complexityScore >= sizing.largeComplexityScore) {
+    recommendedAgents = Math.max(recommendedAgents, Math.min(activeLanes.length, sizing.maxAgents));
+  } else if (complexityScore >= sizing.mediumComplexityScore && activeLanes.length > 1) {
+    recommendedAgents = Math.max(recommendedAgents, Math.min(activeLanes.length, sizing.maxAgents));
+  }
   recommendedAgents = clamp(recommendedAgents, sizing.minAgents, sizing.maxAgents);
 
   const lanes = activeLanes.slice(0, recommendedAgents);
