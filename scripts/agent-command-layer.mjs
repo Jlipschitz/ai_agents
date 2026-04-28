@@ -15,6 +15,7 @@ import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runCompletionsCommand } from './lib/completion-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runContracts } from './lib/contract-commands.mjs';
+import { runCostTime } from './lib/cost-time-commands.mjs';
 import { runCriticalPath } from './lib/critical-path-commands.mjs';
 import { runEscalationRoutes } from './lib/escalation-routing-commands.mjs';
 import { createStarterBoard } from './lib/board-migration.mjs';
@@ -75,6 +76,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'critical-path',
   'health-score',
   'agent-history',
+  'cost-time',
   'contracts',
   'runbooks',
   'path-groups',
@@ -351,6 +353,7 @@ function expectedPackageScripts() {
       'agents:critical:path': 'ai-agents critical-path',
       'agents:health:score': 'ai-agents health-score',
       'agents:agent:history': 'ai-agents agent-history',
+      'agents:cost:time': 'ai-agents cost-time',
       'agents:contracts': 'ai-agents contracts',
       'agents:runbooks': 'ai-agents runbooks',
       'agents:path:groups': 'ai-agents path-groups',
@@ -417,6 +420,7 @@ function expectedPackageScripts() {
     'agents:critical:path': 'node ./scripts/agent-coordination.mjs critical-path',
     'agents:health:score': 'node ./scripts/agent-coordination.mjs health-score',
     'agents:agent:history': 'node ./scripts/agent-coordination.mjs agent-history',
+    'agents:cost:time': 'node ./scripts/agent-coordination.mjs cost-time',
     'agents:contracts': 'node ./scripts/agent-coordination.mjs contracts',
     'agents:runbooks': 'node ./scripts/agent-coordination.mjs runbooks',
     'agents:path:groups': 'node ./scripts/agent-coordination.mjs path-groups',
@@ -474,6 +478,7 @@ function expectedPackageScripts() {
     'agents2:critical:path': 'node ./scripts/agent-coordination-two.mjs critical-path',
     'agents2:health:score': 'node ./scripts/agent-coordination-two.mjs health-score',
     'agents2:agent:history': 'node ./scripts/agent-coordination-two.mjs agent-history',
+    'agents2:cost:time': 'node ./scripts/agent-coordination-two.mjs cost-time',
     'agents2:contracts': 'node ./scripts/agent-coordination-two.mjs contracts',
     'agents2:runbooks': 'node ./scripts/agent-coordination-two.mjs runbooks',
     'agents2:path:groups': 'node ./scripts/agent-coordination-two.mjs path-groups',
@@ -1483,6 +1488,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'critical-path') status = runCriticalPath(commandArgs, getImpactCommandContext());
   else if (commandName === 'health-score') status = runHealthScore(commandArgs, getImpactCommandContext());
   else if (commandName === 'agent-history') status = runAgentHistory(commandArgs, getImpactCommandContext());
+  else if (commandName === 'cost-time') status = runCostTime(commandArgs, getImpactCommandContext());
   else if (commandName === 'contracts') status = runContracts(commandArgs, getTemplateCommandContext());
   else if (commandName === 'runbooks') status = runRunbooks(commandArgs, getTemplateCommandContext());
   else if (commandName === 'path-groups') status = runPathGroups(commandArgs, getTemplateCommandContext());

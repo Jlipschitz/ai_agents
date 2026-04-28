@@ -4,7 +4,7 @@ import { COMMANDS } from './help-command.mjs';
 
 const SHELLS = ['powershell', 'bash', 'zsh'];
 const STATUSES = ['planned', 'active', 'blocked', 'waiting', 'review', 'handoff', 'done', 'released'];
-const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--apply', '--force', '--strict', '--keep-journal-lines', '--keep-message-lines', '--limit', '--stale-hours', '--fail-under', '--priority', '--due-at', '--due', '--severity', '--approval-scope', '--scope', '--status', '--task', '--agent', '--board', '--by', '--owner', '--producer', '--consumer', '--consumers', '--summary', '--reason', '--note', '--title', '--keywords', '--paths', '--steps', '--checks', '--docs'];
+const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--apply', '--force', '--strict', '--keep-journal-lines', '--keep-message-lines', '--limit', '--stale-hours', '--fail-under', '--from', '--to', '--rate', '--currency', '--priority', '--due-at', '--due', '--severity', '--approval-scope', '--scope', '--status', '--task', '--agent', '--board', '--by', '--owner', '--producer', '--consumer', '--consumers', '--summary', '--reason', '--note', '--title', '--keywords', '--paths', '--steps', '--checks', '--docs'];
 const AGENT_COMMANDS = new Set([
   'claim',
   'start',
@@ -53,6 +53,7 @@ const TASK_COMMANDS = new Set([
   'pr-summary',
   'release-bundle',
   'risk-score',
+  'cost-time',
   'app-note',
   'request-access',
 ]);
@@ -159,7 +160,7 @@ _ai_agents_complete() {
       if [[ CURRENT -eq 3 ]]; then _describe 'agent' agents; return; fi
       if [[ CURRENT -eq 4 ]]; then _describe 'task' tasks; return; fi
       ;;
-    prioritize|release-check|pr-summary|release-bundle|risk-score)
+    prioritize|release-check|pr-summary|release-bundle|risk-score|cost-time)
       _describe 'task' tasks ;;
   esac
   if [[ "$words[2]" == "verify" && CURRENT -eq 5 ]]; then _describe 'check' checks; return; fi
@@ -196,7 +197,7 @@ $scriptBlock = {
   elseif ($cmd -eq 'contracts' -and $words.Count -le 3) { $items = $contractSubcommands }
   elseif ($cmd -eq 'runbooks' -and $words.Count -le 3) { $items = $runbookSubcommands }
   elseif (@('claim','start','finish','handoff-ready','pick','progress','wait','resume','blocked','review','done','release','verify','review-docs','prompt','agent-history','inbox','heartbeat','heartbeat-start','heartbeat-stop','message','app-note','request-access','reserve-resource','renew-resource','release-resource') -contains $cmd -and $words.Count -le 3) { $items = $agents }
-  elseif (@('claim','start','finish','handoff-ready','progress','wait','resume','blocked','review','done','release','verify','review-docs','prioritize','prompt','release-check','pr-summary','release-bundle','risk-score','app-note','request-access') -contains $cmd -and $words.Count -le 4) { $items = $tasks }
+  elseif (@('claim','start','finish','handoff-ready','progress','wait','resume','blocked','review','done','release','verify','review-docs','prioritize','prompt','release-check','pr-summary','release-bundle','risk-score','cost-time','app-note','request-access') -contains $cmd -and $words.Count -le 4) { $items = $tasks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 5) { $items = $checks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 6) { $items = @('pass', 'fail') }
   $items | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {

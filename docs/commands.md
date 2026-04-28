@@ -539,6 +539,18 @@ npm run agents -- agent-history agent-1 agent-2 --stale-hours 12 --json
 
 The command is read-only. Scores are bounded from 0 to 100 and include positive signals for completed work, passing verification, docs review, handoffs, progress notes, and audit-trail participation, with penalties for failing verification and stale, blocked, or waiting owned work.
 
+### `cost-time`
+
+Reports estimated hours, observed activity spans, open task age, and optional cost from task effort metadata, explicit hour fields, notes, verification logs, docs review timestamps, and handoff timestamps.
+
+```bash
+npm run agents:cost:time
+npm run agents -- cost-time --rate 150 --currency USD --json
+npm run agents -- cost-time task-api --agent agent-1 --from 2026-01-01 --to 2026-01-31
+```
+
+The command is read-only. Effort values map to hours (`small` = 2, `medium` = 6, `large` = 16, `xl` = 32) unless a task has explicit `estimatedHours`, `estimateHours`, `timeEstimateHours`, or `hoursEstimate`. `actualHours`, `spentHours`, `timeSpentHours`, or `observedHours` override observed spans.
+
 ### `runbooks`
 
 Lists built-in runbooks, suggests matching runbooks for a task or path set, and creates custom runbooks under `coordination/runbooks/`.

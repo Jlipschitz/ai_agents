@@ -115,7 +115,7 @@ Next recommended work:
 - [x] Task split validator
 - [x] Work stealing
 - [x] Agent reputation/history
-- [ ] Cost/time accounting
+- [x] Cost/time accounting
 - [ ] Review queue
 - [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; deeper storage policy and reporting remain open.
 - [x] Human-readable changelog
@@ -221,6 +221,7 @@ Next recommended work:
 - `scripts/lib/claim-policy.mjs`
 - `scripts/lib/completion-commands.mjs`
 - `scripts/lib/contract-commands.mjs`
+- `scripts/lib/cost-time-commands.mjs`
 - `scripts/lib/critical-path-commands.mjs`
 - `scripts/lib/error-formatting.mjs`
 - `scripts/lib/github-commands.mjs`
@@ -258,6 +259,7 @@ Next recommended work:
 - `tests/config-validation.test.mjs`
 - `tests/concurrency-stress.test.mjs`
 - `tests/contract-commands.test.mjs`
+- `tests/cost-time-commands.test.mjs`
 - `tests/critical-path-commands.test.mjs`
 - `tests/core-mutation-safety.test.mjs`
 - `tests/error-formatting.test.mjs`

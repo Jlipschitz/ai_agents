@@ -974,6 +974,30 @@ Main files:
 - `scripts/lib/agent-history-commands.mjs`
 - `tests/agent-history-commands.test.mjs`
 
+### Cost/time accounting
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:cost:time
+npm run agents -- cost-time --rate 150 --currency USD --json
+npm run agents -- cost-time task-api --agent agent-1 --from 2026-01-01 --to 2026-01-31
+```
+
+Current behavior:
+
+- Reports task-level estimated hours, observed activity spans, open age, contributors, primary agent, and optional cost.
+- Rolls up per-agent estimated hours, observed hours, open age, active/completed counts, and task IDs.
+- Reads explicit hour fields when present and otherwise maps task effort values (`small`, `medium`, `large`, `xl`, etc.) to conservative hour estimates.
+- Infers observed spans from task timestamps, notes, verification log entries, docs review metadata, and handoffs.
+- Supports filtering by task IDs, `--task`, `--agent`, `--from`, `--to`, hourly `--rate`, `--currency`, and JSON output.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/cost-time-commands.mjs`
+- `tests/cost-time-commands.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1402,7 +1426,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
-- Cost/time accounting.
 - Dedicated review queue lifecycle.
 - External calendar or reminder hooks.
 - Config inheritance.
