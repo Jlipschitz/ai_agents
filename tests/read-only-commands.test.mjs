@@ -77,6 +77,8 @@ for (const args of [
   ['artifacts', 'prune'],
   ['graph'],
   ['ownership-map'],
+  ['branches'],
+  ['branches', '--json'],
   ['pr-summary'],
   ['release-bundle', '--out-dir', 'bundle'],
   ['migrate-config'],

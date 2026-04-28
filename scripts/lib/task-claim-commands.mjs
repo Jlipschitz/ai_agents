@@ -13,6 +13,7 @@ export function createTaskClaimCommands(context) {
     ensureVisualVerificationForTask,
     getBoard,
     getCommandAgent,
+    getGitBranchSnapshot,
     getGitChangedPaths,
     getTask,
     getVisualVerificationChecksForTask,
@@ -79,6 +80,7 @@ export function createTaskClaimCommands(context) {
       const board = getBoard();
       const agent = getCommandAgent(board, agentId);
       const domains = inferDomainsFromPaths(claimedPaths);
+      const branchSnapshot = getGitBranchSnapshot();
 
       if (agent.taskId && agent.taskId !== taskId) {
         throw new Error(`${agentId} is already assigned to "${agent.taskId}". Release or hand off that task first.`);
@@ -205,6 +207,10 @@ export function createTaskClaimCommands(context) {
 
       task.verification = ensureVisualVerificationForTask(board, task);
       task.relevantDocs = inferRelevantDocs(task.claimedPaths, task.summary, task.verification);
+      if (branchSnapshot.available) {
+        task.gitBranch = branchSnapshot.branch;
+        task.gitUpstream = branchSnapshot.upstream;
+      }
 
       agent.status = 'active';
       agent.taskId = taskId;

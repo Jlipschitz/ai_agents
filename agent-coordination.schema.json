@@ -29,7 +29,10 @@
       "properties": {
         "allowMainBranchClaims": { "type": "boolean" },
         "allowDetachedHead": { "type": "boolean" },
-        "allowedBranchPatterns": { "$ref": "#/$defs/stringArray" }
+        "allowedBranchPatterns": { "$ref": "#/$defs/stringArray" },
+        "defaultBaseBranch": { "type": "string" },
+        "staleBranchDays": { "type": "integer", "minimum": 0 },
+        "protectedBranchPatterns": { "$ref": "#/$defs/stringArray" }
       }
     },
     "capacity": {

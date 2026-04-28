@@ -318,6 +318,18 @@ npm run agents -- ownership-map --json
 
 The command exits non-zero when active path overlaps are detected.
 
+### `branches`
+
+Shows local Git branches, active task branch ownership, merged/gone/stale status, and dry-run cleanup candidates.
+
+```bash
+npm run agents:branches
+npm run agents -- branches --json
+npm run agents -- branches --stale-days 14 --base origin/main
+```
+
+`branches --apply` deletes only cleanup candidates: non-current, non-protected branches with no active task branch ownership that are stale and either merged into the selected base or tracking a gone upstream.
+
 ### `claim`
 
 Claims a task for an agent and records claimed paths. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, merge/rebase state, and configured branch policies. Merge/rebase-in-progress state and configured branch policy violations block the claim.
@@ -328,6 +340,7 @@ The claim command also applies coordination policies from config:
 - `capacity.maxBlockedTasksPerAgent`: blocks claims when an agent is carrying too much blocked work.
 - `capacity.preferredDomainsByAgent`: warns, or blocks when `enforcePreferredDomains` is true, if a claim does not match the agent's preferred domains.
 - `conflictPrediction.blockOnGitOverlap`: blocks claims when current local Git changes overlap another active agent's claimed paths.
+- Active claims record the current Git branch when Git is available, which feeds `branches` multi-branch reporting.
 
 ```bash
 npm run agents -- claim agent-1 task-id --paths src/tasks,docs/tasks.md

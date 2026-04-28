@@ -10,7 +10,10 @@
   "git": {
     "allowMainBranchClaims": true,
     "allowDetachedHead": false,
-    "allowedBranchPatterns": []
+    "allowedBranchPatterns": [],
+    "defaultBaseBranch": "main",
+    "staleBranchDays": 30,
+    "protectedBranchPatterns": ["main", "master", "develop", "dev", "trunk", "release/*"]
   },
   "capacity": {
     "maxActiveTasksPerAgent": 1,

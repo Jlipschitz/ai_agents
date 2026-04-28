@@ -258,6 +258,7 @@ const CLAIM_POLICIES = normalizeClaimPolicies(AGENT_CONFIG);
 const {
   classifyGitPaths,
   collectMergeRiskWarnings,
+  getGitBranchSnapshot,
   getGitChangedPaths,
   hasVisualCheck,
   hasVisualImpact,
@@ -497,6 +498,7 @@ const {
   getBoard,
   getCommandAgent,
   getCurrentCommandName: () => currentCommandName,
+  getGitBranchSnapshot,
   getGitChangedPaths,
   getReadOnlyBoard,
   getTask,
@@ -1035,6 +1037,7 @@ function formatTaskDoc(task) {
 - Last owner: ${task.lastOwnerId ? `\`${task.lastOwnerId}\`` : 'none'}
 - Suggested owner: ${task.suggestedOwnerId ? `\`${task.suggestedOwnerId}\`` : 'none'}
 - Issue key: ${task.issueKey ? `\`${task.issueKey}\`` : 'none'}
+- Git branch: ${task.gitBranch ? `\`${task.gitBranch}\`${task.gitUpstream ? ` tracking \`${task.gitUpstream}\`` : ''}` : 'not recorded'}
 - Waiting on: ${task.waitingOn.length ? task.waitingOn.map((entry) => `\`${entry}\``).join(', ') : 'none'}
 - Effort: ${task.effort}
 - Docs reviewed: ${task.docsReviewedAt ? `${task.docsReviewedAt}${task.docsReviewedBy ? ` by \`${task.docsReviewedBy}\`` : ''}` : 'not yet'}

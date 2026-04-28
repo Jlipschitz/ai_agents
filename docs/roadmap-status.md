@@ -15,8 +15,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 Next recommended work:
 
 1. Add broader command snapshot tests and fixture repos.
-2. Add stale branch cleanup and multi-branch awareness.
-3. Add CODEOWNERS ownership reviews and test-impact selection.
+2. Add CODEOWNERS ownership reviews and test-impact selection.
 
 ---
 
@@ -54,7 +53,7 @@ Next recommended work:
 - [x] Path ownership map
 - [x] Dependency graph output
 - [x] PR handoff generator
-- [ ] Stale branch cleanup
+- [~] Stale branch cleanup — `branches` reports dry-run cleanup candidates and can delete them with `--apply`; richer remote/PR checks remain open.
 - [~] Session replay — recent journal/message context is included in `summarize`; dedicated `timeline` remains open.
 - [ ] Per-repo onboarding checklist
 - [ ] Agent prompt generator
@@ -123,7 +122,7 @@ Next recommended work:
 - [ ] Task templates
 - [ ] External calendar/reminder hooks
 - [ ] Config inheritance
-- [ ] Multi-branch awareness
+- [~] Multi-branch awareness — claims record Git branch metadata and `branches` reports task ownership by branch; cross-worktree awareness remains open.
 - [ ] Offline mode
 - [ ] Data privacy modes
 

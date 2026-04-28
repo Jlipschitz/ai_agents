@@ -117,6 +117,9 @@ function explainConfig(config, configPath, root) {
       allowMainBranchClaims: git.allowMainBranchClaims ?? true,
       allowDetachedHead: git.allowDetachedHead ?? false,
       allowedBranchPatterns: Array.isArray(git.allowedBranchPatterns) ? git.allowedBranchPatterns : [],
+      defaultBaseBranch: git.defaultBaseBranch ?? 'main',
+      staleBranchDays: git.staleBranchDays ?? 30,
+      protectedBranchPatterns: Array.isArray(git.protectedBranchPatterns) ? git.protectedBranchPatterns : ['main', 'master', 'develop', 'dev', 'trunk', 'release/*'],
     },
     capacity: {
       maxActiveTasksPerAgent: capacity.maxActiveTasksPerAgent ?? 1,
@@ -213,7 +216,10 @@ function printText(report) {
   console.log('Git policy:');
   console.log(`- allowMainBranchClaims: ${report.git.allowMainBranchClaims}`);
   console.log(`- allowDetachedHead: ${report.git.allowDetachedHead}`);
+  console.log(`- defaultBaseBranch: ${report.git.defaultBaseBranch}`);
+  console.log(`- staleBranchDays: ${report.git.staleBranchDays}`);
   printList('- allowedBranchPatterns:', report.git.allowedBranchPatterns);
+  printList('- protectedBranchPatterns:', report.git.protectedBranchPatterns);
   console.log('');
   console.log('Capacity policy:');
   console.log(`- maxActiveTasksPerAgent: ${report.capacity.maxActiveTasksPerAgent}`);

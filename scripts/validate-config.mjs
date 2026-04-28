@@ -150,6 +150,9 @@ export function validateAgentConfig(config, options = {}) {
     if ('allowMainBranchClaims' in config.git) validateBoolean(config.git.allowMainBranchClaims, 'git.allowMainBranchClaims', errors);
     if ('allowDetachedHead' in config.git) validateBoolean(config.git.allowDetachedHead, 'git.allowDetachedHead', errors);
     if ('allowedBranchPatterns' in config.git) validateStringArray(config.git.allowedBranchPatterns, 'git.allowedBranchPatterns', errors);
+    if ('defaultBaseBranch' in config.git) validateString(config.git.defaultBaseBranch, 'git.defaultBaseBranch', errors);
+    if ('staleBranchDays' in config.git) validateInteger(config.git.staleBranchDays, 'git.staleBranchDays', errors, { min: 0 });
+    if ('protectedBranchPatterns' in config.git) validateStringArray(config.git.protectedBranchPatterns, 'git.protectedBranchPatterns', errors);
   }
 
   if ('capacity' in config && validateObject(config.capacity, 'capacity', errors)) {

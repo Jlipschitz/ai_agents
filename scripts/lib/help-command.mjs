@@ -44,6 +44,7 @@ const COMMANDS = {
   'rollback-state': ['rollback-state --list|--to <snapshot> [--apply] [--json]', 'List or restore board snapshots.'],
   'migrate-config': ['migrate-config [--apply] [--json]', 'Add current optional config defaults.'],
   'policy-packs': ['policy-packs <list|show|apply> [pack] [--apply] [--json]', 'Inspect or apply reusable policy packs.'],
+  branches: ['branches [--json] [--base <ref>] [--stale-days <days>] [--apply]', 'Report branch/task awareness and dry-run stale branch cleanup.'],
   'explain-config': ['explain-config [--json] [--config <path>] [--root <path>]', 'Explain active config and environment overrides.'],
   'request-access': ['request-access <agent> <task-id> <scope> <reason>', 'Request shared resource or elevated operation access.'],
   'grant-access': ['grant-access <request-id> [--by <agent>] [--note <text>]', 'Grant an access request.'],

@@ -132,6 +132,14 @@ export function createCorePathAnalysis(context) {
     return { available: true, paths: normalizePaths(paths, root) };
   }
 
+  function getGitBranchSnapshot() {
+    const inside = execGit(root, ['rev-parse', '--is-inside-work-tree']);
+    if (inside == null) return { available: false, branch: null, upstream: null };
+    const branch = execGit(root, ['branch', '--show-current']) || 'detached';
+    const upstream = execGit(root, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']);
+    return { available: true, branch, upstream };
+  }
+
   function isVisualSuitePath(filePath) {
     return visualSuitePaths.some((prefix) => pathStartsWith(filePath, prefix));
   }
@@ -369,6 +377,7 @@ export function createCorePathAnalysis(context) {
   return {
     classifyGitPaths,
     collectMergeRiskWarnings,
+    getGitBranchSnapshot,
     getGitChangedPaths,
     hasVisualCheck,
     hasVisualImpact,

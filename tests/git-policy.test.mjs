@@ -122,3 +122,45 @@ test('claim conflict prediction blocks local changes owned by another active tas
   assert.match(result.stderr, /conflict prediction/);
   assert.match(result.stderr, /src\/shared\.js/);
 });
+
+test('claim records current branch metadata on the task', () => {
+  const { root, coordinationRoot } = makeGitWorkspace({
+    allowMainBranchClaims: true,
+    allowDetachedHead: false,
+    allowedBranchPatterns: ['agent/*'],
+  });
+  git(root, ['checkout', '-b', 'agent/task-branch']);
+
+  const result = run(root, coordinationRoot, ['claim', 'agent-1', 'task-one', '--paths', 'src/other.js']);
+  const board = JSON.parse(fs.readFileSync(path.join(coordinationRoot, 'board.json'), 'utf8'));
+  const task = board.tasks.find((entry) => entry.id === 'task-one');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(task.gitBranch, 'agent/task-branch');
+});
+
+test('branches reports active task ownership and stale cleanup candidates', () => {
+  const { root, coordinationRoot } = makeGitWorkspace({
+    allowMainBranchClaims: true,
+    allowDetachedHead: false,
+    allowedBranchPatterns: [],
+  });
+  git(root, ['branch', 'feature/active']);
+  git(root, ['branch', 'feature/old']);
+  fs.writeFileSync(path.join(coordinationRoot, 'board.json'), JSON.stringify({
+    projectName: 'Git Policy Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [
+      { id: 'task-active', status: 'active', ownerId: 'agent-1', title: 'Active branch task', claimedPaths: ['src/other.js'], gitBranch: 'feature/active' },
+    ],
+  }, null, 2));
+
+  const result = run(root, coordinationRoot, ['branches', '--json', '--stale-days', '0', '--base', 'main']);
+  const payload = JSON.parse(result.stdout);
+  const activeBranch = payload.branches.find((entry) => entry.name === 'feature/active');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(activeBranch.activeTasks, ['task-active']);
+  assert.ok(payload.cleanupCandidates.some((entry) => entry.name === 'feature/old'));
+  assert.ok(!payload.cleanupCandidates.some((entry) => entry.name === 'feature/active'));
+});

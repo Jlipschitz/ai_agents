@@ -6,6 +6,7 @@ import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
+import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
@@ -35,6 +36,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'release-bundle',
   'migrate-config',
   'policy-packs',
+  'branches',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -47,6 +49,8 @@ const DEFAULT_RECENT_CONTEXT_LINES = 8;
 const CHECK_COMMAND = 'node ./scripts/check-syntax.mjs';
 const CURRENT_CONFIG_VERSION = 1;
 const DEFAULT_ARTIFACT_POLICY = { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] };
+const DEFAULT_CAPACITY_POLICY = { maxActiveTasksPerAgent: 1, maxBlockedTasksPerAgent: 1, preferredDomainsByAgent: {}, enforcePreferredDomains: false };
+const DEFAULT_CONFLICT_PREDICTION = { enabled: true, blockOnGitOverlap: true };
 const POLICY_PACKS = {
   'docs-light': {
     description: 'Lightweight docs-focused coordination defaults.',
@@ -140,6 +144,16 @@ function getBoardMaintenanceContext() {
   };
 }
 
+function getBranchCommandContext() {
+  const { config } = loadConfig();
+  return {
+    root: ROOT,
+    config,
+    board: readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] }),
+    activeStatuses: ACTIVE_STATUSES,
+  };
+}
+
 function createStarterConfig(configPath) {
   writeJson(configPath, {
     configVersion: 1,
@@ -147,8 +161,8 @@ function createStarterConfig(configPath) {
     agentIds: DEFAULT_AGENT_IDS,
     docs: { roots: ['docs'], appNotes: 'docs/ai-agent-app-notes.md', visualWorkflow: '', apiPrefixes: ['docs/api'] },
     git: DEFAULT_GIT_POLICY,
-    capacity: { maxActiveTasksPerAgent: 1, maxBlockedTasksPerAgent: 1, preferredDomainsByAgent: {}, enforcePreferredDomains: false },
-    conflictPrediction: { enabled: true, blockOnGitOverlap: true },
+    capacity: DEFAULT_CAPACITY_POLICY,
+    conflictPrediction: DEFAULT_CONFLICT_PREDICTION,
     paths: { sharedRisk: ['scripts', 'package.json', 'agent-coordination.config.json'], visualSuite: [], visualSuiteDefault: [], visualImpact: [], visualImpactFiles: [] },
     verification: { visualRequiredChecks: [], visualSuiteUpdateChecks: [] },
     artifacts: { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] },
@@ -201,6 +215,7 @@ function expectedPackageScripts() {
       'agents:board:repair': 'ai-agents repair-board',
       'agents:state:rollback': 'ai-agents rollback-state',
       'agents:run-check': 'ai-agents run-check',
+      'agents:branches': 'ai-agents branches',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -239,6 +254,7 @@ function expectedPackageScripts() {
     'agents:board:repair': 'node ./scripts/agent-coordination.mjs repair-board',
     'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
     'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
+    'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -268,6 +284,7 @@ function expectedPackageScripts() {
     'agents2:board:repair': 'node ./scripts/agent-coordination-two.mjs repair-board',
     'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
     'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
+    'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -572,6 +589,9 @@ function buildMigratedConfig(config) {
   let migrated = JSON.parse(JSON.stringify(config));
   migrated = mergeConfigPatch(migrated, {
     configVersion: CURRENT_CONFIG_VERSION,
+    git: DEFAULT_GIT_POLICY,
+    capacity: DEFAULT_CAPACITY_POLICY,
+    conflictPrediction: DEFAULT_CONFLICT_PREDICTION,
     artifacts: DEFAULT_ARTIFACT_POLICY,
     checks: {},
   });
@@ -1124,5 +1144,6 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'release-bundle') status = runReleaseBundle(commandArgs);
   else if (commandName === 'migrate-config') status = runMigrateConfig(commandArgs);
   else if (commandName === 'policy-packs') status = runPolicyPacks(commandArgs);
+  else if (commandName === 'branches') status = runBranchStatus(commandArgs, getBranchCommandContext());
   process.exit(status);
 }

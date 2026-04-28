@@ -53,6 +53,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:board:repair': 'node ./scripts/agent-coordination.mjs repair-board',
   'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
   'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
+  'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
   'agents2': 'node ./scripts/agent-coordination-two.mjs',
   'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
   'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -82,6 +83,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:board:repair': 'node ./scripts/agent-coordination-two.mjs repair-board',
   'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
   'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
+  'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
   'validate:agents-config': 'node ./scripts/validate-config.mjs',
 };
 

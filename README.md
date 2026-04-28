@@ -22,6 +22,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Supports `doctor --fix` and `doctor --json` through the command layer.
 - Explains active config and environment overrides with `explain-config`.
 - Performs Git preflight checks before task claims.
+- Applies claim capacity/conflict policies and reports branch cleanup candidates.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
 - Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
@@ -153,6 +154,7 @@ npm run agents -- pr-summary task-id
 npm run agents -- release-bundle task-id --apply
 npm run agents -- graph
 npm run agents -- ownership-map
+npm run agents:branches
 npm run agents:board:inspect
 npm run agents:board:repair
 npm run agents:state:rollback -- --list

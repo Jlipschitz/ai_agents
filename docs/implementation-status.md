@@ -368,6 +368,29 @@ Current behavior:
 - `ownership-map` reports active task ownership by agent and exits non-zero when claimed paths overlap.
 - `graph` emits a Mermaid dependency graph or JSON nodes/edges.
 
+### Branch awareness and stale branch cleanup
+
+Status: partially implemented in the command layer and claim path.
+
+```bash
+npm run agents:branches
+npm run agents -- branches --json
+npm run agents -- branches --stale-days 14 --base origin/main
+```
+
+Current behavior:
+
+- Claims record the current Git branch and upstream when Git is available.
+- `branches` reports local branches with merged, gone-upstream, protected, stale, and active-task markers.
+- Cleanup is dry-run by default.
+- `branches --apply` deletes only non-current, non-protected cleanup candidates that have no active task ownership and are stale plus merged or gone upstream.
+
+Main files:
+
+- `scripts/lib/branch-commands.mjs`
+- `scripts/lib/task-claim-commands.mjs`
+- `tests/git-policy.test.mjs`
+
 ### Config doctor suggestions and aliases
 
 Status: implemented in the command layer.

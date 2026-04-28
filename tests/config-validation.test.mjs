@@ -14,6 +14,14 @@ function validConfig() {
       visualWorkflow: '',
       apiPrefixes: ['docs/api'],
     },
+    git: {
+      allowMainBranchClaims: true,
+      allowDetachedHead: false,
+      allowedBranchPatterns: [],
+      defaultBaseBranch: 'main',
+      staleBranchDays: 30,
+      protectedBranchPatterns: ['main', 'release/*'],
+    },
     paths: {
       sharedRisk: ['scripts'],
       visualSuite: [],
@@ -107,6 +115,8 @@ test('validateAgentConfig reports actionable errors', () => {
   config.planning.agentSizing.minAgents = 3;
   config.planning.agentSizing.maxAgents = 2;
   config.domainRules[0].keywords = [];
+  config.git.staleBranchDays = -1;
+  config.git.protectedBranchPatterns = ['main', 'main'];
   config.artifacts.keepDays = 0;
   config.capacity.maxActiveTasksPerAgent = 0;
   config.capacity.preferredDomainsByAgent['agent-3'] = ['app'];
@@ -121,6 +131,8 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('configVersion')));
   assert.ok(result.errors.some((entry) => entry.includes('minAgents cannot be greater than maxAgents')));
   assert.ok(result.errors.some((entry) => entry.includes('domainRules[0].keywords')));
+  assert.ok(result.errors.some((entry) => entry.includes('git.staleBranchDays')));
+  assert.ok(result.errors.some((entry) => entry.includes('git.protectedBranchPatterns[1]')));
   assert.ok(result.errors.some((entry) => entry.includes('artifacts.keepDays')));
   assert.ok(result.errors.some((entry) => entry.includes('capacity.maxActiveTasksPerAgent')));
   assert.ok(result.warnings.some((entry) => entry.includes('capacity.preferredDomainsByAgent.agent-3')));

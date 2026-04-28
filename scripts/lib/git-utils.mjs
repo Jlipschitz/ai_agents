@@ -6,6 +6,9 @@ export const DEFAULT_GIT_POLICY = {
   allowMainBranchClaims: true,
   allowDetachedHead: false,
   allowedBranchPatterns: [],
+  defaultBaseBranch: 'main',
+  staleBranchDays: 30,
+  protectedBranchPatterns: ['main', 'master', 'develop', 'dev', 'trunk', 'release/*'],
 };
 
 export function execGit(args, { root = process.cwd() } = {}) {
@@ -42,6 +45,9 @@ export function getGitPolicy(config) {
     allowMainBranchClaims: config.git?.allowMainBranchClaims ?? DEFAULT_GIT_POLICY.allowMainBranchClaims,
     allowDetachedHead: config.git?.allowDetachedHead ?? DEFAULT_GIT_POLICY.allowDetachedHead,
     allowedBranchPatterns: Array.isArray(config.git?.allowedBranchPatterns) ? config.git.allowedBranchPatterns.filter(Boolean) : [],
+    defaultBaseBranch: config.git?.defaultBaseBranch ?? DEFAULT_GIT_POLICY.defaultBaseBranch,
+    staleBranchDays: config.git?.staleBranchDays ?? DEFAULT_GIT_POLICY.staleBranchDays,
+    protectedBranchPatterns: Array.isArray(config.git?.protectedBranchPatterns) ? config.git.protectedBranchPatterns.filter(Boolean) : DEFAULT_GIT_POLICY.protectedBranchPatterns,
   };
 }
 
