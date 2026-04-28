@@ -586,6 +586,18 @@ npm run agents -- rollback-state --to coordination/runtime/snapshots/board-examp
 
 Rollback applies only with `--apply`. Before replacing `board.json`, it snapshots the current board.
 
+### `archive-completed`
+
+Moves old done or released tasks out of the active board into a dated archive file.
+
+```bash
+npm run agents:archive:completed
+npm run agents -- archive-completed --older-than-days 30
+npm run agents -- archive-completed --older-than-days 30 --apply --json
+```
+
+The default mode is a dry run. Applied archives snapshot the current board first, write archived tasks under `coordination/archive/tasks-YYYY-MM.json`, remove archived task docs from `coordination/tasks/`, and leave active, blocked, waiting, review, handoff, and planned work on the board.
+
 ## Check Runner
 
 ### `run-check`

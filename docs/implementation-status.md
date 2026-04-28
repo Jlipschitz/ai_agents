@@ -508,6 +508,28 @@ Main files:
 - `scripts/lib/template-commands.mjs`
 - `tests/template-commands.test.mjs`
 
+### Archive completed work
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:archive:completed
+npm run agents -- archive-completed --older-than-days 30 --apply
+```
+
+Current behavior:
+
+- Dry-run by default.
+- Selects old `done` and `released` tasks using `updatedAt` or `createdAt`.
+- Snapshots the board before applied writes.
+- Appends archived tasks into `coordination/archive/tasks-YYYY-MM.json`.
+- Removes archived task docs from `coordination/tasks/`.
+
+Main files:
+
+- `scripts/lib/archive-commands.mjs`
+- `tests/archive-commands.test.mjs`
+
 ### Artifact retention
 
 Status: partially implemented in the command layer.

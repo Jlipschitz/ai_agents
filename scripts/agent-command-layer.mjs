@@ -5,6 +5,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
+import { runArchiveCompleted } from './lib/archive-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
@@ -44,6 +45,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'test-impact',
   'github-status',
   'templates',
+  'archive-completed',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -257,6 +259,7 @@ function expectedPackageScripts() {
       'agents:test-impact': 'ai-agents test-impact',
       'agents:github:status': 'ai-agents github-status',
       'agents:templates': 'ai-agents templates',
+      'agents:archive:completed': 'ai-agents archive-completed',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -300,6 +303,7 @@ function expectedPackageScripts() {
     'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
     'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
     'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
+    'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -334,6 +338,7 @@ function expectedPackageScripts() {
     'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
     'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
     'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
+    'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -1199,5 +1204,6 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
+  else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());
   process.exit(status);
 }

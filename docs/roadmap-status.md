@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add import/update flows and archive completed work.
+1. Add import/update flows and workspace snapshots.
 
 ---
 
@@ -42,7 +42,7 @@ Next recommended work:
 - [ ] Import/update command
 - [ ] Conflict-safe resource leases
 - [x] Transcript-friendly summaries
-- [ ] Archive completed work
+- [x] Archive completed work
 
 ## Phase 3: Planning, Prompting, and Release Support
 
