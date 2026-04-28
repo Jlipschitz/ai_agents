@@ -552,6 +552,19 @@ npm run agents -- path-groups --json
 
 When `--paths` is omitted, the command groups claimed paths from the current board. JSON output includes group IDs, package roots, categories, grouped paths, import edges, dependencies, and dependents.
 
+### `split-validate`
+
+Validates a task split for overlapping ownership, bad dependencies, missing verification, overly broad claimed paths, and tasks that span too many path groups or work categories.
+
+```bash
+npm run agents:split:validate
+npm run agents -- split-validate --json
+npm run agents -- split-validate --task task-id --strict
+npm run agents -- split-validate --board coordination/board.json --json
+```
+
+The command is read-only. By default it reports findings and exits 0; pass `--strict` to exit non-zero when error-level findings are present.
+
 ### `contracts`
 
 Manages contract files for shared API, schema, and cross-task interfaces under `coordination/contracts/`.

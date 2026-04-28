@@ -36,6 +36,7 @@ import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.m
 import { runCompactState } from './lib/state-compaction-commands.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
 import { taskMetadataLabels } from './lib/task-metadata.mjs';
+import { runTaskSplitValidation } from './lib/task-split-validator.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
 import { runUpdateCoordinator } from './lib/update-commands.mjs';
 import { runSnapshotWorkspace, writePreMutationWorkspaceSnapshot } from './lib/workspace-snapshot-commands.mjs';
@@ -73,6 +74,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'contracts',
   'runbooks',
   'path-groups',
+  'split-validate',
   'github-status',
   'templates',
   'archive-completed',
@@ -345,6 +347,7 @@ function expectedPackageScripts() {
       'agents:contracts': 'ai-agents contracts',
       'agents:runbooks': 'ai-agents runbooks',
       'agents:path:groups': 'ai-agents path-groups',
+      'agents:split:validate': 'ai-agents split-validate',
       'agents:github:status': 'ai-agents github-status',
       'agents:templates': 'ai-agents templates',
       'agents:archive:completed': 'ai-agents archive-completed',
@@ -407,6 +410,7 @@ function expectedPackageScripts() {
     'agents:contracts': 'node ./scripts/agent-coordination.mjs contracts',
     'agents:runbooks': 'node ./scripts/agent-coordination.mjs runbooks',
     'agents:path:groups': 'node ./scripts/agent-coordination.mjs path-groups',
+    'agents:split:validate': 'node ./scripts/agent-coordination.mjs split-validate',
     'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
     'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
     'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
@@ -460,6 +464,7 @@ function expectedPackageScripts() {
     'agents2:contracts': 'node ./scripts/agent-coordination-two.mjs contracts',
     'agents2:runbooks': 'node ./scripts/agent-coordination-two.mjs runbooks',
     'agents2:path:groups': 'node ./scripts/agent-coordination-two.mjs path-groups',
+    'agents2:split:validate': 'node ./scripts/agent-coordination-two.mjs split-validate',
     'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
     'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
     'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
@@ -1465,6 +1470,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'contracts') status = runContracts(commandArgs, getTemplateCommandContext());
   else if (commandName === 'runbooks') status = runRunbooks(commandArgs, getTemplateCommandContext());
   else if (commandName === 'path-groups') status = runPathGroups(commandArgs, getTemplateCommandContext());
+  else if (commandName === 'split-validate') status = runTaskSplitValidation(commandArgs, getTemplateCommandContext());
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
   else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());

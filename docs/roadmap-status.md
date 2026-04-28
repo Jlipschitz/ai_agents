@@ -112,7 +112,7 @@ Next recommended work:
 - [ ] Escalation routing
 - [x] Reusable runbooks
 - [x] Semantic path grouping
-- [ ] Task split validator
+- [x] Task split validator
 - [ ] Work stealing
 - [ ] Agent reputation/history
 - [ ] Cost/time accounting

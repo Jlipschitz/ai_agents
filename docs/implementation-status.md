@@ -879,6 +879,29 @@ Main files:
 - `scripts/lib/path-group-commands.mjs`
 - `tests/path-group-commands.test.mjs`
 
+### Task split validation
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:split:validate
+npm run agents -- split-validate --json
+npm run agents -- split-validate --task task-id --strict
+```
+
+Current behavior:
+
+- Validates planned and active-like tasks on the current board, or a supplied `--board <path>`.
+- Reports overlapping ownership, missing dependencies, self-dependencies, and dependency cycles.
+- Warns on missing claimed paths, missing verification, overly broad claimed paths, mixed shared-risk paths, and tasks spanning too many path groups or work categories.
+- Supports `--task <id>` filtering, JSON output, and `--strict` non-zero exit behavior.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/task-split-validator.mjs`
+- `tests/task-split-validator.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1308,7 +1331,6 @@ These roadmap items still need core, command-layer, or documentation work.
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
 - Escalation routing.
-- Task split validation.
 - Work stealing.
 - Agent reputation or history.
 - Cost/time accounting.
