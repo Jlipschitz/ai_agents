@@ -121,7 +121,7 @@ Next recommended work:
 - [x] Human-readable changelog
 - [x] Task templates
 - [ ] External calendar/reminder hooks
-- [ ] Config inheritance
+- [x] Config inheritance
 - [~] Multi-branch awareness — claims record Git branch metadata and `branches` reports task ownership by branch; cross-worktree awareness remains open.
 - [ ] Offline mode
 - [ ] Data privacy modes

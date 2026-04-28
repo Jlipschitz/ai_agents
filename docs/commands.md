@@ -304,6 +304,8 @@ Flags:
 - `--root <path>`: repo root used for existence warnings.
 - `--json`: emit machine-readable validation output.
 
+Config files may include `extends` as a string path or array of paths. Inherited paths are resolved relative to the config file that declares them, arrays merge uniquely, named object arrays merge by `name`, and local values override inherited values.
+
 ### `completions`
 
 Generates shell completion scripts for the current repo.

@@ -6,6 +6,12 @@
   "additionalProperties": true,
   "properties": {
     "configVersion": { "type": "integer", "minimum": 1 },
+    "extends": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        { "$ref": "#/$defs/stringArray" }
+      ]
+    },
     "projectName": { "type": "string", "minLength": 1 },
     "agentIds": {
       "type": "array",

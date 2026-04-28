@@ -244,7 +244,34 @@ Main files:
 - `tests/config-validation.test.mjs`
 - `tests/command-layer.test.mjs`
 
-Follow-up: migrate any remaining core-only validation paths to reuse the standalone validator directly.
+### Config inheritance
+
+Status: implemented in the shared config loader.
+
+```json
+{
+  "extends": ["./config/base.json"],
+  "projectName": "Local App",
+  "paths": { "sharedRisk": ["package.json"] }
+}
+```
+
+Current behavior:
+
+- `extends` accepts a string path or array of paths.
+- Inherited paths resolve relative to the config file that declares them.
+- Objects merge recursively; arrays merge uniquely; named object arrays merge by `name`.
+- Local config values override inherited values.
+- `validate`, `doctor`, `explain-config`, command-layer commands, and legacy core commands read the merged config.
+- Validation JSON includes `configSources`, and `explain-config` reports the source chain.
+
+Main files:
+
+- `scripts/validate-config.mjs`
+- `scripts/agent-command-layer.mjs`
+- `scripts/agent-coordination-core.mjs`
+- `scripts/explain-config.mjs`
+- `tests/config-validation.test.mjs`
 
 ### Better Git awareness before claims
 
@@ -1475,7 +1502,6 @@ These roadmap items still need core, command-layer, or documentation work.
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
 - External calendar or reminder hooks.
-- Config inheritance.
 - Offline mode.
 - Data privacy modes.
 

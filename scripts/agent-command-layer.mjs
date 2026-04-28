@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
-import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
+import { loadAgentConfigWithSources, validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
 import { runAskCommand } from './lib/ask-commands.mjs';
@@ -168,7 +168,8 @@ const { buildArtifactItems, collectTaskArtifacts, runArtifactsCommand } = create
 function loadConfig() {
   const configPath = resolveConfigPath();
   if (!fs.existsSync(configPath)) return { configPath, config: {} };
-  return { configPath, config: readJsonFile(configPath) };
+  const { config, sources } = loadAgentConfigWithSources(configPath, { root: ROOT });
+  return { configPath, config, configSources: sources };
 }
 
 function loadPackageJson() {
@@ -1202,9 +1203,9 @@ function runDoctorFix() {
 }
 
 function runConfigValidation({ json = false } = {}) {
-  const { configPath, config } = loadConfig();
+  const { configPath, config, configSources = [] } = loadConfig();
   const result = validateAgentConfig(config, { root: ROOT });
-  if (json) console.log(JSON.stringify(result, null, 2));
+  if (json) console.log(JSON.stringify({ ...result, configSources }, null, 2));
   else {
     for (const warning of result.warnings) console.warn(`warning: ${warning}`);
     if (result.valid) console.log(`Config OK: ${normalizePath(configPath) || configPath}`);

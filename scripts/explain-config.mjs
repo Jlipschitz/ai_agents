@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { readJsonFile, validateAgentConfig } from './validate-config.mjs';
+import { loadAgentConfigWithSources, validateAgentConfig } from './validate-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = process.cwd();
@@ -69,7 +69,7 @@ function getEnvOverrides() {
   );
 }
 
-function explainConfig(config, configPath, root) {
+function explainConfig(config, configPath, root, configSources = []) {
   const validation = validateAgentConfig(config, { root });
   const docs = config.docs || {};
   const git = config.git || {};
@@ -102,6 +102,7 @@ function explainConfig(config, configPath, root) {
     projectName: config.projectName || path.basename(root),
     root,
     configPath,
+    configSources,
     configExists: fs.existsSync(configPath),
     validation,
     environmentOverrides: getEnvOverrides(),
@@ -214,6 +215,7 @@ function printText(report) {
   console.log(`Project: ${report.projectName}`);
   console.log(`Root: ${report.root}`);
   console.log(`Config: ${report.configPath}`);
+  if (report.configSources.length > 1) console.log(`Config sources: ${report.configSources.join(' -> ')}`);
   console.log(`Config exists: ${report.configExists ? 'yes' : 'no'}`);
   console.log(`Valid: ${report.validation.valid ? 'yes' : 'no'}`);
   console.log('');
@@ -293,8 +295,8 @@ export function runCli(argv = process.argv.slice(2)) {
   }
 
   const configPath = resolveConfigPath(args);
-  const config = fs.existsSync(configPath) ? readJsonFile(configPath) : {};
-  const report = explainConfig(config, configPath, args.root);
+  const loaded = fs.existsSync(configPath) ? loadAgentConfigWithSources(configPath, { root: args.root }) : { config: {}, sources: [] };
+  const report = explainConfig(loaded.config, configPath, args.root, loaded.sources);
 
   if (args.json) console.log(JSON.stringify(report, null, 2));
   else printText(report);

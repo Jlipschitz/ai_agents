@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
-import { validateAgentConfig } from '../scripts/validate-config.mjs';
+import { loadAgentConfigWithSources, validateAgentConfig } from '../scripts/validate-config.mjs';
 
 function validConfig() {
   return {
@@ -159,4 +162,32 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('policyEnforcement.rules.finishRequiresApproval')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.timeoutMs')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.requireArtifacts')));
+});
+
+test('loadAgentConfigWithSources merges inherited config files', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-config-extends-'));
+  fs.mkdirSync(path.join(root, 'config'), { recursive: true });
+  const base = validConfig();
+  base.projectName = 'Base App';
+  base.agentIds = ['agent-1'];
+  base.paths.sharedRisk = ['scripts'];
+  base.domainRules = [{ name: 'base', keywords: ['base'], scopes: { product: ['src'], data: ['lib'], verify: ['tests'], docs: ['README.md'] } }];
+  fs.writeFileSync(path.join(root, 'config', 'base.json'), `${JSON.stringify(base, null, 2)}\n`);
+  fs.writeFileSync(path.join(root, 'agent-coordination.config.json'), `${JSON.stringify({
+    extends: 'config/base.json',
+    projectName: 'Child App',
+    agentIds: ['agent-2'],
+    paths: { sharedRisk: ['package.json'] },
+    domainRules: [{ name: 'child', keywords: ['child'], scopes: { product: ['app'], data: ['api'], verify: ['tests'], docs: ['docs'] } }],
+  }, null, 2)}\n`);
+
+  const { config, sources } = loadAgentConfigWithSources(path.join(root, 'agent-coordination.config.json'), { root });
+  const validation = validateAgentConfig(config, { root });
+
+  assert.equal(config.projectName, 'Child App');
+  assert.deepEqual(config.agentIds, ['agent-1', 'agent-2']);
+  assert.deepEqual(config.paths.sharedRisk, ['scripts', 'package.json']);
+  assert.deepEqual(config.domainRules.map((rule) => rule.name), ['base', 'child']);
+  assert.equal(sources.length, 2);
+  assert.equal(validation.valid, true);
 });

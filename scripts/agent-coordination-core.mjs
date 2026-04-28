@@ -24,6 +24,7 @@ import { createTaskCompletionCommands } from './lib/task-completion-commands.mjs
 import { createTaskLifecycleCommands } from './lib/task-lifecycle-commands.mjs';
 import { createTaskMetadataCommands } from './lib/task-metadata-commands.mjs';
 import { ensureTaskMetadataDefaults, formatTaskDueAt } from './lib/task-metadata.mjs';
+import { loadAgentConfig } from './validate-config.mjs';
 
 const ROOT = process.cwd();
 const COORDINATION_ROOT_OVERRIDE = String(process.env.AGENT_COORDINATION_ROOT ?? '').trim();
@@ -615,7 +616,7 @@ function loadAgentCoordinationConfig(configPath) {
   }
 
   try {
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return loadAgentConfig(configPath, { root: ROOT });
   } catch (error) {
     throw new Error(`Failed to read agent coordination config at ${configPath}: ${error.message}`);
   }

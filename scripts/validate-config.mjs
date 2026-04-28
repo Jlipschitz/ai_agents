@@ -21,6 +21,85 @@ export function readJsonFile(filePath) {
   }
 }
 
+function cloneConfigValue(value) {
+  if (Array.isArray(value)) return value.map((entry) => cloneConfigValue(entry));
+  if (isPlainObject(value)) return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, cloneConfigValue(entry)]));
+  return value;
+}
+
+function mergeArrayValues(current, patch) {
+  if (patch.every((entry) => isPlainObject(entry) && typeof entry.name === 'string')) {
+    const merged = current.map((entry) => cloneConfigValue(entry));
+    for (const patchEntry of patch) {
+      const existingIndex = merged.findIndex((entry) => isPlainObject(entry) && entry.name === patchEntry.name);
+      if (existingIndex >= 0) merged[existingIndex] = mergeConfigValue(merged[existingIndex], patchEntry);
+      else merged.push(cloneConfigValue(patchEntry));
+    }
+    return merged;
+  }
+
+  const merged = current.map((entry) => cloneConfigValue(entry));
+  const seen = new Set(merged.map((entry) => JSON.stringify(entry)));
+  for (const entry of patch) {
+    const key = JSON.stringify(entry);
+    if (!seen.has(key)) {
+      merged.push(cloneConfigValue(entry));
+      seen.add(key);
+    }
+  }
+  return merged;
+}
+
+function mergeConfigValue(current, patch) {
+  if (Array.isArray(patch)) return mergeArrayValues(Array.isArray(current) ? current : [], patch);
+  if (isPlainObject(patch)) {
+    const base = isPlainObject(current) ? cloneConfigValue(current) : {};
+    for (const [key, value] of Object.entries(patch)) {
+      if (key === 'extends') continue;
+      base[key] = mergeConfigValue(base[key], value);
+    }
+    return base;
+  }
+  return cloneConfigValue(patch);
+}
+
+function normalizeExtends(value) {
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
+  if (Array.isArray(value)) return value.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim());
+  return [];
+}
+
+function resolveExtendsPath(configPath, entry) {
+  return path.isAbsolute(entry) ? entry : path.resolve(path.dirname(configPath), entry);
+}
+
+export function loadAgentConfigWithSources(configPath, options = {}) {
+  const absolutePath = path.resolve(configPath);
+  const seen = options.seen ?? new Set();
+  if (seen.has(absolutePath)) throw new Error(`Config inheritance cycle detected at ${absolutePath}.`);
+  seen.add(absolutePath);
+  const localConfig = readJsonFile(absolutePath);
+  const sources = [];
+  let merged = {};
+
+  for (const entry of normalizeExtends(localConfig.extends)) {
+    const inheritedPath = resolveExtendsPath(absolutePath, entry);
+    if (!fs.existsSync(inheritedPath)) throw new Error(`${absolutePath}: extended config not found: ${entry}`);
+    const inherited = loadAgentConfigWithSources(inheritedPath, { ...options, seen });
+    merged = mergeConfigValue(merged, inherited.config);
+    sources.push(...inherited.sources);
+  }
+
+  merged = mergeConfigValue(merged, localConfig);
+  sources.push(absolutePath);
+  seen.delete(absolutePath);
+  return { config: merged, sources };
+}
+
+export function loadAgentConfig(configPath, options = {}) {
+  return loadAgentConfigWithSources(configPath, options).config;
+}
+
 function addIssue(issues, pathLabel, message) {
   issues.push(`${pathLabel}: ${message}`);
 }
@@ -126,6 +205,11 @@ export function validateAgentConfig(config, options = {}) {
 
   if ('configVersion' in config) {
     validateInteger(config.configVersion, 'configVersion', errors);
+  }
+
+  if ('extends' in config) {
+    if (typeof config.extends === 'string') validateString(config.extends, 'extends', errors);
+    else validateStringArray(config.extends, 'extends', errors);
   }
 
   if ('agentIds' in config) {
@@ -312,11 +396,11 @@ export function runCli(argv = process.argv.slice(2)) {
     return 0;
   }
 
-  const config = readJsonFile(args.config);
+  const { config, sources } = loadAgentConfigWithSources(args.config, { root: args.root });
   const result = validateAgentConfig(config, { root: args.root });
 
   if (args.json) {
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify({ ...result, configSources: sources }, null, 2));
   } else {
     for (const warning of result.warnings) {
       console.warn(`warning: ${warning}`);
@@ -324,6 +408,7 @@ export function runCli(argv = process.argv.slice(2)) {
 
     if (result.valid) {
       console.log(`Config OK: ${path.relative(process.cwd(), args.config) || args.config}`);
+      if (sources.length > 1) console.log(`Config sources: ${sources.map((source) => path.relative(process.cwd(), source) || source).join(' -> ')}`);
     } else {
       console.error(`Config invalid: ${path.relative(process.cwd(), args.config) || args.config}`);
       for (const error of result.errors) {
