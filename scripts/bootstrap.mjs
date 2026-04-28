@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
-const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/planner-sizing.mjs && node --check ./scripts/validate-config.mjs';
+const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/explain-config.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/planner-sizing.mjs && node --check ./scripts/validate-config.mjs';
 
 const DEFAULT_GITIGNORE_ENTRIES = [
   '',
@@ -31,6 +31,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:doctor': 'node ./scripts/agent-coordination.mjs doctor',
   'agents:doctor:json': 'node ./scripts/agent-coordination.mjs doctor --json',
   'agents:doctor:fix': 'node ./scripts/agent-coordination.mjs doctor --fix',
+  'agents:explain-config': 'node ./scripts/agent-coordination.mjs explain-config',
   'agents:summarize': 'node ./scripts/agent-coordination.mjs summarize',
   'agents:start': 'node ./scripts/agent-coordination.mjs start',
   'agents:finish': 'node ./scripts/agent-coordination.mjs finish',
@@ -52,6 +53,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:doctor': 'node ./scripts/agent-coordination-two.mjs doctor',
   'agents2:doctor:json': 'node ./scripts/agent-coordination-two.mjs doctor --json',
   'agents2:doctor:fix': 'node ./scripts/agent-coordination-two.mjs doctor --fix',
+  'agents2:explain-config': 'node ./scripts/agent-coordination-two.mjs explain-config',
   'agents2:summarize': 'node ./scripts/agent-coordination-two.mjs summarize',
   'agents2:start': 'node ./scripts/agent-coordination-two.mjs start',
   'agents2:finish': 'node ./scripts/agent-coordination-two.mjs finish',
@@ -78,6 +80,7 @@ const FILES_TO_COPY = [
   'scripts/agent-watch-loop.ps1',
   'scripts/agent-watch-loop-two.ps1',
   'scripts/bootstrap.mjs',
+  'scripts/explain-config.mjs',
   'scripts/lock-runtime.mjs',
   'scripts/planner-sizing.mjs',
   'scripts/validate-config.mjs',
@@ -86,7 +89,11 @@ const FILES_TO_COPY = [
   'docs/agent-coordination-portability.md',
   'docs/commands.md',
   'docs/workflows.md',
+  'docs/architecture.md',
+  'docs/state-files.md',
+  'docs/troubleshooting.md',
   'docs/implementation-status.md',
+  'docs/roadmap-status.md',
 ];
 
 function isCliEntrypoint() {
