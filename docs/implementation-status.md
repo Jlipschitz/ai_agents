@@ -288,14 +288,21 @@ The preflight reports:
 - Untracked files.
 - Merge/rebase state.
 - Configured Git claim policy.
+- Git dubious ownership failures, including the exact `safe.directory` command to run.
 
 Blocking rules currently include:
 
 - Merge in progress.
 - Rebase in progress.
+- Dubious ownership blocking Git operations until the repo is added to `safe.directory`.
 - Detached HEAD when `git.allowDetachedHead` is false.
 - `main`/`master` claims when `git.allowMainBranchClaims` is false.
 - Branch names that do not match `git.allowedBranchPatterns` when that allowlist is non-empty.
+
+Doctor behavior:
+
+- `doctor --json` includes `git.dubiousOwnership` and `git.safeDirectoryCommand`.
+- Text `doctor` reports Git snapshot warnings and findings, including dubious ownership remediation.
 
 Config example:
 

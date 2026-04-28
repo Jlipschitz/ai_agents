@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { fileExists, nowIso } from './file-utils.mjs';
-import { execGit } from './git-utils.mjs';
+import { execGit, getGitSnapshot } from './git-utils.mjs';
 import { buildOnboardingChecklist } from './onboarding-checklist.mjs';
 import { normalizePath } from './path-utils.mjs';
 
@@ -115,6 +115,7 @@ export function createDoctorCommand(context) {
     const passes = [];
     const check = { findings, warnings, passes };
     const onboardingChecklist = buildOnboardingChecklist({ root, config: rawConfig, packageJson });
+    const git = getGitSnapshot({ root, config: rawConfig });
 
     if (fileExists(agentConfigPath)) {
       passes.push(`Config loaded: ${normalizePath(path.relative(root, agentConfigPath))}`);
@@ -181,6 +182,12 @@ export function createDoctorCommand(context) {
     } else if (coordinationLabel !== '.') {
       findings.push(`Runtime workspace is not ignored by git: ${coordinationLabel}`);
     }
+
+    if (git.available && !git.errors.length) {
+      passes.push(`Git worktree available${git.branch ? ` on ${git.branch}` : ''}.`);
+    }
+    warnings.push(...git.warnings.map((warning) => `Git: ${warning}`));
+    findings.push(...git.errors.map((error) => `Git: ${error}`));
 
     if (!domainRules.length) {
       findings.push('No domain rules are configured.');

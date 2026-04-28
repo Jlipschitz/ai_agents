@@ -175,7 +175,7 @@ Next recommended work:
 ## Phase 13: Git Safety Additions
 
 - [x] Add branch safety policies
-- [~] Add Git dubious ownership troubleshooting — README includes the fix; dedicated doctor detection remains open.
+- [x] Add Git dubious ownership troubleshooting
 - [x] Add Git operation dry-run summaries
 
 ## Phase 14: Testing Improvements

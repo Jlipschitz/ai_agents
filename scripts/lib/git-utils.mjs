@@ -31,6 +31,19 @@ export function execGit(args, { root = process.cwd() } = {}) {
   return null;
 }
 
+export function isGitDubiousOwnershipError(error) {
+  const stderr = Buffer.isBuffer(error?.stderr) ? error.stderr.toString('utf8') : String(error?.stderr ?? '');
+  const stdout = Buffer.isBuffer(error?.stdout) ? error.stdout.toString('utf8') : String(error?.stdout ?? '');
+  const message = String(error?.message ?? '');
+  const combined = `${stderr}\n${stdout}\n${message}`;
+  return /detected dubious ownership/i.test(combined) || (/safe\.directory/i.test(combined) && /dubious ownership/i.test(combined));
+}
+
+export function buildGitSafeDirectoryCommand(root = process.cwd()) {
+  const safePath = path.resolve(root).replaceAll('"', '\\"');
+  return `git config --global --add safe.directory "${safePath}"`;
+}
+
 function globToRegExp(pattern) {
   const escaped = String(pattern).replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
   return new RegExp(`^${escaped}$`);
@@ -61,11 +74,12 @@ function applyGitPolicy(result, policy) {
   }
 }
 
-export function getGitSnapshot({ root = process.cwd(), config = {} } = {}) {
-  const result = { available: false, branch: null, upstream: null, ahead: null, behind: null, dirty: [], untracked: [], mergeState: false, rebaseState: false, policy: getGitPolicy(config), warnings: [], errors: [] };
+export function getGitSnapshot({ root = process.cwd(), config = {}, runGit = null } = {}) {
+  const result = { available: false, dubiousOwnership: false, safeDirectoryCommand: null, branch: null, upstream: null, ahead: null, behind: null, dirty: [], untracked: [], mergeState: false, rebaseState: false, policy: getGitPolicy(config), warnings: [], errors: [] };
   const gitCandidates = process.platform === 'win32' ? ['git.exe', 'git.cmd', 'git'] : ['git'];
   let gitCommand = null;
   function git(args) {
+    if (runGit) return String(runGit(args) ?? '').trim();
     const candidates = gitCommand ? [gitCommand] : gitCandidates;
     let lastError = null;
     for (const candidate of candidates) {
@@ -81,7 +95,17 @@ export function getGitSnapshot({ root = process.cwd(), config = {} } = {}) {
     }
     throw lastError ?? new Error('Git executable was not found.');
   }
-  try { git(['rev-parse', '--is-inside-work-tree']); result.available = true; } catch { result.warnings.push('Not inside a Git worktree or Git is unavailable.'); return result; }
+  try { git(['rev-parse', '--is-inside-work-tree']); result.available = true; } catch (error) {
+    if (isGitDubiousOwnershipError(error)) {
+      result.available = true;
+      result.dubiousOwnership = true;
+      result.safeDirectoryCommand = buildGitSafeDirectoryCommand(root);
+      result.errors.push(`Git refuses this worktree because ownership is considered dubious. Run: ${result.safeDirectoryCommand}`);
+    } else {
+      result.warnings.push('Not inside a Git worktree or Git is unavailable.');
+    }
+    return result;
+  }
   try { result.branch = git(['branch', '--show-current']) || 'detached'; } catch {}
   try { result.upstream = git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']); } catch { result.warnings.push('No upstream branch configured.'); }
   if (result.upstream) {

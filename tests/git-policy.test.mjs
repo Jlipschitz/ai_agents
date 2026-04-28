@@ -6,6 +6,8 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { buildGitSafeDirectoryCommand, getGitSnapshot, isGitDubiousOwnershipError } from '../scripts/lib/git-utils.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
@@ -85,6 +87,31 @@ test('doctor --json allows matching branch patterns', () => {
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.ok, true);
   assert.equal(payload.git.branch, 'agent/test-work');
+});
+
+test('git snapshot reports dubious ownership remediation', () => {
+  const root = path.join(os.tmpdir(), 'ai-agents-dubious-owner');
+  const error = new Error('git failed');
+  error.stderr = Buffer.from([
+    `fatal: detected dubious ownership in repository at '${root}'`,
+    'To add an exception for this directory, call:',
+    '',
+    `\tgit config --global --add safe.directory ${root}`,
+    '',
+  ].join('\n'));
+  const snapshot = getGitSnapshot({
+    root,
+    runGit(args) {
+      assert.deepEqual(args, ['rev-parse', '--is-inside-work-tree']);
+      throw error;
+    },
+  });
+
+  assert.equal(isGitDubiousOwnershipError(error), true);
+  assert.equal(snapshot.available, true);
+  assert.equal(snapshot.dubiousOwnership, true);
+  assert.equal(snapshot.safeDirectoryCommand, buildGitSafeDirectoryCommand(root));
+  assert.ok(snapshot.errors.some((entry) => entry.includes('safe.directory')));
 });
 
 test('claim is blocked when branch does not match configured patterns', () => {
