@@ -229,7 +229,7 @@ Each line is a JSON object with:
 - `summary`
 - `details`
 
-Current coverage includes command-layer apply flows such as board migration/repair/rollback, config migration, policy packs, templates, completed-task archiving, and Markdown backlog import. Legacy core lifecycle mutations are planned follow-up coverage.
+Current coverage includes command-layer apply flows such as board migration/repair/rollback, config migration, policy packs, templates, completed-task archiving, Markdown backlog import, and core lifecycle mutation entries. Richer legacy lifecycle audit details remain planned follow-up coverage.
 
 ### `runtime/watcher.status.json`
 

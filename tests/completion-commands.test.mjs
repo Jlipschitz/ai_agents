@@ -62,6 +62,8 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('version'));
   assert.ok(payload.commands.includes('publish-check'));
   assert.ok(payload.commands.includes('handoff'));
+  assert.ok(payload.commands.includes('handoff-bundle'));
+  assert.ok(payload.commands.includes('next'));
   assert.ok(payload.commands.includes('s'));
   assert.ok(payload.commands.includes('qa'));
 });
@@ -99,12 +101,20 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /release-sign/);
   assert.match(result.stdout, /dashboard/);
   assert.match(result.stdout, /--repos/);
+  assert.match(result.stdout, /--artifact-dir/);
+  assert.match(result.stdout, /--out-dir/);
+  assert.match(result.stdout, /--reviewed/);
+  assert.match(result.stdout, /--for-chat/);
   assert.match(result.stdout, /timeline/);
   assert.match(result.stdout, /version/);
   assert.match(result.stdout, /publish-check/);
   assert.match(result.stdout, /handoff/);
+  assert.match(result.stdout, /handoff-bundle/);
+  assert.match(result.stdout, /next/);
   assert.match(result.stdout, /--dry-run/);
+  assert.match(result.stdout, /--cli/);
   assert.match(result.stdout, /policy_pack_subcommands="list inspect apply"/);
+  assert.match(result.stdout, /completion_subcommands="list powershell bash zsh"/);
   assert.match(result.stdout, / qa /);
 });
 

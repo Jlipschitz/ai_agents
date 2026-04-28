@@ -260,6 +260,14 @@ npm run agents -- watch-diagnose --json
 
 The report flags stale watcher status, stale runtime locks, stale heartbeat files, and suggested cleanup actions.
 
+### `watch-tick`
+
+Runs one internal watcher tick. This is primarily used by `agent-watch-loop.mjs`.
+
+```bash
+npm run agents -- watch-tick --watcher-pid 1234 --interval 30000
+```
+
 ### `inspect-board`
 
 Inspects `board.json` for structural problems without mutating it.
@@ -269,7 +277,7 @@ npm run agents:board:inspect
 npm run agents -- inspect-board --json
 ```
 
-It reports task counts, duplicate IDs, unknown statuses, missing owners, missing agent references, and simple active path overlaps.
+It reports task counts, duplicate IDs, unknown statuses, missing owners, missing agent references, and exact or nested active path overlaps.
 
 ### `release-check`
 
@@ -538,6 +546,28 @@ npm run agents -- prompt agent-1 --json
 The prompt includes the assigned task, priority, due date, severity, objective, claimed paths, dependency status, relevant docs, docs-review state, verification expectations, recent task notes, and next actions. If a task ID is omitted, the command uses the agent's recorded assignment or active owned task.
 
 Set `privacy.mode` to `redacted` or `local-only`, or set `AI_AGENTS_PRIVACY_MODE=redacted`, to redact exported prompt summaries, claimed paths, notes, verification details, and approval summaries.
+
+### `next`
+
+Recommends one exact coordination command for an agent or task.
+
+```bash
+npm run agents:next -- agent-1
+npm run agents -- next agent-2 --task task-api --json
+```
+
+The recommendation looks at task status, open dependencies, pending approvals, docs review, verification requirements, and ready planned work. JSON output includes the category, reason, task summary, command arguments, and rendered command string.
+
+### `handoff-bundle`
+
+Generates copy-ready task handoff context plus the recommended next command.
+
+```bash
+npm run agents:handoff:bundle -- agent-1 task-api
+npm run agents -- handoff-bundle agent-1 task-api --json
+```
+
+The bundle includes task state, claimed paths, blockers, verification status, docs-review state, recent notes, a recommended next command, and a copy/paste prompt for the next agent. It is read-only and uses the same prompt privacy controls as `prompt`.
 
 ### `ask`
 
@@ -950,7 +980,7 @@ npm run agents -- blocked agent-1 task-id "Waiting for API contract."
 Marks a task waiting on one or more dependency tasks.
 
 ```bash
-npm run agents -- wait agent-2 task-ui --on task-api
+npm run agents -- wait agent-2 task-ui --on task-api --reason "Waiting for task-api"
 ```
 
 ### `review`
@@ -1161,6 +1191,7 @@ Generates deterministic board fixtures for tests, demos, and smoke checks.
 npm run agents -- fixture-board healthy
 npm run agents -- fixture-board blocked --out coordination/board.json --apply
 npm run agents -- fixture-board large --task-count 100 --json
+npm run agents -- fixture-board release-ready --project-name "Demo" --workspace coordination --reference-at 2026-01-01T00:00:00.000Z --json
 ```
 
 Supported fixture kinds: `empty`, `healthy`, `blocked`, `stale`, `large`, `malformed`, `multi-agent-conflict`, `release-ready`, `approval-required`, and `contract-sensitive`.

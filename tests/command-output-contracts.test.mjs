@@ -152,6 +152,27 @@ const successContracts = [
     },
   },
   {
+    args: ['next', 'agent-1', '--json'],
+    assertPayload(payload) {
+      assert.equal(payload.ok, true);
+      assert.equal(payload.agentId, 'agent-1');
+      assert.equal(payload.taskId, 'task-active');
+      assert.equal(typeof payload.command, 'string');
+      assert.equal(typeof payload.reason, 'string');
+    },
+  },
+  {
+    args: ['handoff-bundle', 'agent-1', 'task-active', '--json'],
+    assertPayload(payload) {
+      assert.equal(payload.ok, true);
+      assert.equal(payload.agentId, 'agent-1');
+      assert.equal(payload.taskId, 'task-active');
+      assert.equal(typeof payload.bundle, 'string');
+      assert.equal(typeof payload.prompt, 'string');
+      assert.equal(typeof payload.recommendation, 'object');
+    },
+  },
+  {
     args: ['ask', 'who owns src/feature', '--json'],
     assertPayload(payload) {
       assert.equal(payload.ok, true);

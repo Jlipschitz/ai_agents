@@ -26,6 +26,11 @@ test('doctor --fix creates starter runtime files', () => {
   assert.match(fs.readFileSync(path.join(root, '.gitignore'), 'utf8'), /\/coordination\//);
   assert.equal(packageJson.scripts['agents:doctor'], 'ai-agents doctor');
   assert.equal(packageJson.scripts['agents:doctor:json'], 'ai-agents doctor --json');
+  assert.equal(packageJson.scripts['agents:handoff:bundle'], 'ai-agents handoff-bundle');
+  assert.equal(packageJson.scripts['agents:next'], 'ai-agents next');
+  assert.equal(packageJson.scripts['agents:state:size'], 'ai-agents state-size');
+  assert.equal(packageJson.scripts['agents:status:badge'], 'ai-agents status-badge');
+  assert.equal(packageJson.scripts['agents:fixture:board'], 'ai-agents fixture-board');
 });
 
 test('workspace wrappers use distinct default coordination roots', () => {
@@ -59,7 +64,15 @@ test('doctor --fix uses copied coordinator scripts when present', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(packageJson.scripts.check, 'node ./scripts/check-syntax.mjs');
   assert.equal(packageJson.scripts['agents:doctor'], 'node ./scripts/agent-coordination.mjs doctor');
+  assert.equal(packageJson.scripts['agents:handoff:bundle'], 'node ./scripts/agent-coordination.mjs handoff-bundle');
+  assert.equal(packageJson.scripts['agents:next'], 'node ./scripts/agent-coordination.mjs next');
+  assert.equal(packageJson.scripts['agents:state:size'], 'node ./scripts/agent-coordination.mjs state-size');
+  assert.equal(packageJson.scripts['agents:status:badge'], 'node ./scripts/agent-coordination.mjs status-badge');
+  assert.equal(packageJson.scripts['agents:fixture:board'], 'node ./scripts/agent-coordination.mjs fixture-board');
   assert.equal(packageJson.scripts['agents2:doctor:json'], 'node ./scripts/agent-coordination-two.mjs doctor --json');
+  assert.equal(packageJson.scripts['agents2:state:size'], 'node ./scripts/agent-coordination-two.mjs state-size');
+  assert.equal(packageJson.scripts['agents2:status:badge'], 'node ./scripts/agent-coordination-two.mjs status-badge');
+  assert.equal(packageJson.scripts['agents2:fixture:board'], 'node ./scripts/agent-coordination-two.mjs fixture-board');
 });
 
 test('doctor --fix updates package scripts without reordering unrelated package fields', () => {
@@ -290,6 +303,8 @@ test('per-command help supports command flags and help aliases', () => {
   const claim = run(root, ['claim', '--help']);
   const summary = run(root, ['help', 'sum']);
   const handoff = run(root, ['handoff', '--help']);
+  const handoffBundle = run(root, ['handoff-bundle', '--help']);
+  const next = run(root, ['next', '--help']);
   const policyPacks = run(root, ['policy-packs', '--help']);
   const completions = run(root, ['completions', '--help']);
 
@@ -300,6 +315,10 @@ test('per-command help supports command flags and help aliases', () => {
   assert.match(summary.stdout, /summarize/);
   assert.equal(handoff.status, 0, handoff.stderr);
   assert.match(handoff.stdout, /handoff <agent>/);
+  assert.equal(handoffBundle.status, 0, handoffBundle.stderr);
+  assert.match(handoffBundle.stdout, /handoff-bundle <agent>/);
+  assert.equal(next.status, 0, next.stderr);
+  assert.match(next.stdout, /next \[agent-id\]/);
   assert.equal(policyPacks.status, 0, policyPacks.stderr);
   assert.match(policyPacks.stdout, /list\|inspect\|apply/);
   assert.equal(completions.status, 0, completions.stderr);

@@ -38,8 +38,13 @@ test('bootstrap creates package scripts and gitignore entries', () => {
   assert.equal(packageJson.scripts['format:check'], 'node ./scripts/agent-coordination.mjs format --check');
   assert.equal(packageJson.scripts['agents:doctor'], 'node ./scripts/agent-coordination.mjs doctor');
   assert.equal(packageJson.scripts['agents:interactive'], 'node ./scripts/agent-coordination.mjs interactive');
+  assert.equal(packageJson.scripts['agents:handoff:bundle'], 'node ./scripts/agent-coordination.mjs handoff-bundle');
+  assert.equal(packageJson.scripts['agents:next'], 'node ./scripts/agent-coordination.mjs next');
   assert.equal(packageJson.scripts['agents:board:migrate'], 'node ./scripts/agent-coordination.mjs migrate-board');
   assert.equal(packageJson.scripts['agents:state:compact'], 'node ./scripts/agent-coordination.mjs compact-state');
+  assert.equal(packageJson.scripts['agents:state:size'], 'node ./scripts/agent-coordination.mjs state-size');
+  assert.equal(packageJson.scripts['agents:status:badge'], 'node ./scripts/agent-coordination.mjs status-badge');
+  assert.equal(packageJson.scripts['agents:fixture:board'], 'node ./scripts/agent-coordination.mjs fixture-board');
   assert.equal(packageJson.scripts['agents:critical:path'], 'node ./scripts/agent-coordination.mjs critical-path');
   assert.equal(packageJson.scripts['agents:health:score'], 'node ./scripts/agent-coordination.mjs health-score');
   assert.equal(packageJson.scripts['agents:agent:history'], 'node ./scripts/agent-coordination.mjs agent-history');
@@ -59,7 +64,12 @@ test('bootstrap creates package scripts and gitignore entries', () => {
   assert.equal(packageJson.scripts['agents:approvals'], 'node ./scripts/agent-coordination.mjs approvals');
   assert.equal(packageJson.scripts['agents:calendar'], 'node ./scripts/agent-coordination.mjs calendar');
   assert.equal(packageJson.scripts['agents:release:sign'], 'node ./scripts/agent-coordination.mjs release-sign');
+  assert.equal(packageJson.scripts['agents2:handoff:bundle'], 'node ./scripts/agent-coordination-two.mjs handoff-bundle');
+  assert.equal(packageJson.scripts['agents2:next'], 'node ./scripts/agent-coordination-two.mjs next');
   assert.equal(packageJson.scripts['agents2:state:compact'], 'node ./scripts/agent-coordination-two.mjs compact-state');
+  assert.equal(packageJson.scripts['agents2:state:size'], 'node ./scripts/agent-coordination-two.mjs state-size');
+  assert.equal(packageJson.scripts['agents2:status:badge'], 'node ./scripts/agent-coordination-two.mjs status-badge');
+  assert.equal(packageJson.scripts['agents2:fixture:board'], 'node ./scripts/agent-coordination-two.mjs fixture-board');
   assert.equal(packageJson.scripts['validate:agents-config'], 'node ./scripts/validate-config.mjs');
   assert.match(gitignore, /\/coordination\//);
   assert.match(gitignore, /\/coordination-two\//);

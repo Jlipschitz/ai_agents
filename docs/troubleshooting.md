@@ -286,7 +286,7 @@ Fix:
 - add shared-risk paths to config
 - hand off or release paths that are no longer needed
 
-Future roadmap items include ownership reviews and task split validation.
+Use `npm run agents -- ownership-review` to find broad active claims and CODEOWNERS crossings. Use `npm run agents -- split-validate` to check overlap, dependencies, verification gaps, and broad paths before splitting or assigning work.
 
 ## Claim Blocked By Git Policy
 

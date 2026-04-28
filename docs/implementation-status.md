@@ -636,6 +636,29 @@ Main files:
 - `scripts/lib/privacy-utils.mjs`
 - `tests/prompt-commands.test.mjs`
 
+### Agent handoff bundle and next command
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:next -- agent-1
+npm run agents -- next agent-2 --task task-api --json
+npm run agents:handoff:bundle -- agent-1 task-api
+npm run agents -- handoff-bundle agent-1 task-api --json
+```
+
+Current behavior:
+
+- `next` recommends one exact coordination command for an agent or task.
+- Recommendations account for open dependencies, pending approvals, blocked/waiting state, docs review, missing verification, review completion, terminal release checks, and ready planned work.
+- `handoff-bundle` generates copy-ready task context with current state, claimed paths, blockers, verification status, docs-review state, recent notes, a recommended next command, and an embedded agent prompt.
+- Both commands support JSON output, are read-only, and reuse prompt privacy controls.
+
+Main files:
+
+- `scripts/lib/handoff-bundle-commands.mjs`
+- `tests/handoff-bundle-commands.test.mjs`
+
 ### Natural-language board query
 
 Status: partially implemented in the command layer.

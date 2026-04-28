@@ -93,6 +93,7 @@ Edit `agent-coordination.config.json` in the target repo:
 - `paths.sharedRisk`: shared files or folders that need stricter merge coordination.
 - `paths.visualSuite`: paths that own visual route, fixture, or snapshot work.
 - `paths.visualImpact`: UI paths that should require visual verification.
+- `verification.requiredChecks`: baseline verification checks used by config suggestions and future command gates.
 - `verification.visualRequiredChecks`: checks required before UI-impact work is marked done.
 - `notes.categories`: categories accepted by `app-note`.
 - `notes.sectionHeading`: section in `docs.appNotes` where agent discoveries are appended.
@@ -111,6 +112,7 @@ If the target app does not have visual tests, set:
     "visualImpact": []
   },
   "verification": {
+    "requiredChecks": [],
     "visualRequiredChecks": [],
     "visualSuiteUpdateChecks": []
   }

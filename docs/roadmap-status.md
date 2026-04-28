@@ -150,7 +150,7 @@ Next recommended work:
 - [x] Add watcher diagnostics command
 - [x] Add runtime cleanup command
 - [x] Keep PowerShell watcher as legacy fallback
-- [~] Add watcher failure recovery — partially covered by status/doctor/lock diagnostics; `watch-diagnose` remains open.
+- [~] Add watcher failure recovery — partially covered by status/doctor/lock diagnostics and `watch-diagnose`; richer automatic recovery remains open.
 
 ## Phase 10: Config Developer Experience
 
@@ -201,12 +201,12 @@ Next recommended work:
 - [ ] Doctor command wiring validation
 - [ ] End-to-end CLI smoke tests
 - [x] Fixture-board generator
-- [ ] Command output contract tests
-- [ ] Agent handoff bundle
-- [ ] Next command recommendation engine
+- [~] Command output contract tests - success and machine-readable failure contracts exist for high-value JSON commands; exhaustive all-command coverage remains open.
+- [x] Agent handoff bundle
+- [x] Next command recommendation engine
 - [~] State size and performance budget - `state-size` reports coordination file sizes and cleanup recommendations; explicit latency budgets remain open.
 - [ ] Upgrade and migration compatibility tests
-- [ ] Security and privacy redaction checks
+- [~] Security and privacy redaction checks - secrets scanning and prompt redaction tests exist; global redaction contracts across exported summaries remain open.
 - [x] Generated repo health status file
 - [ ] Minimal mode and command groups
 

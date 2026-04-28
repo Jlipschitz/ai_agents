@@ -28,6 +28,7 @@ import { runFixtureBoard } from './lib/fixture-board-generator.mjs';
 import { runFormat } from './lib/format-commands.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
+import { runHandoffBundle, runNextCommand } from './lib/handoff-bundle-commands.mjs';
 import { runGitHubStatus } from './lib/github-commands.mjs';
 import { hasHelpFlag, runCommandHelp } from './lib/help-command.mjs';
 import { runHealthScore } from './lib/health-score-commands.mjs';
@@ -119,6 +120,8 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'timeline',
   'version',
   'publish-check',
+  'next',
+  'handoff-bundle',
 ]);
 const DEFAULT_STALE_TASK_HOURS = 6;
 const DEFAULT_RECENT_CONTEXT_LINES = 8;
@@ -357,6 +360,8 @@ function expectedPackageScripts() {
       'agents:start': 'ai-agents start',
       'agents:finish': 'ai-agents finish',
       'agents:handoff-ready': 'ai-agents handoff-ready',
+      'agents:handoff:bundle': 'ai-agents handoff-bundle',
+      'agents:next': 'ai-agents next',
       'agents:lock:status': 'ai-agents lock-status',
       'agents:lock:clear': 'ai-agents lock-clear --stale-only',
       'agents:heartbeat:start': 'ai-agents heartbeat-start',
@@ -374,6 +379,9 @@ function expectedPackageScripts() {
       'agents:board:migrate': 'ai-agents migrate-board',
       'agents:state:rollback': 'ai-agents rollback-state',
       'agents:state:compact': 'ai-agents compact-state',
+      'agents:state:size': 'ai-agents state-size',
+      'agents:status:badge': 'ai-agents status-badge',
+      'agents:fixture:board': 'ai-agents fixture-board',
       'agents:run-check': 'ai-agents run-check',
       'agents:policy:check': 'ai-agents policy-check',
       'agents:format': 'ai-agents format',
@@ -435,6 +443,8 @@ function expectedPackageScripts() {
     'agents:start': 'node ./scripts/agent-coordination.mjs start',
     'agents:finish': 'node ./scripts/agent-coordination.mjs finish',
     'agents:handoff-ready': 'node ./scripts/agent-coordination.mjs handoff-ready',
+    'agents:handoff:bundle': 'node ./scripts/agent-coordination.mjs handoff-bundle',
+    'agents:next': 'node ./scripts/agent-coordination.mjs next',
     'agents:lock:status': 'node ./scripts/agent-coordination.mjs lock-status',
     'agents:lock:clear': 'node ./scripts/agent-coordination.mjs lock-clear --stale-only',
     'agents:heartbeat:start': 'node ./scripts/agent-coordination.mjs heartbeat-start',
@@ -453,6 +463,9 @@ function expectedPackageScripts() {
     'agents:board:migrate': 'node ./scripts/agent-coordination.mjs migrate-board',
     'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
     'agents:state:compact': 'node ./scripts/agent-coordination.mjs compact-state',
+    'agents:state:size': 'node ./scripts/agent-coordination.mjs state-size',
+    'agents:status:badge': 'node ./scripts/agent-coordination.mjs status-badge',
+    'agents:fixture:board': 'node ./scripts/agent-coordination.mjs fixture-board',
     'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
     'agents:policy:check': 'node ./scripts/agent-coordination.mjs policy-check',
     'agents:format': 'node ./scripts/agent-coordination.mjs format',
@@ -502,6 +515,8 @@ function expectedPackageScripts() {
     'agents2:start': 'node ./scripts/agent-coordination-two.mjs start',
     'agents2:finish': 'node ./scripts/agent-coordination-two.mjs finish',
     'agents2:handoff-ready': 'node ./scripts/agent-coordination-two.mjs handoff-ready',
+    'agents2:handoff:bundle': 'node ./scripts/agent-coordination-two.mjs handoff-bundle',
+    'agents2:next': 'node ./scripts/agent-coordination-two.mjs next',
     'agents2:lock:status': 'node ./scripts/agent-coordination-two.mjs lock-status',
     'agents2:lock:clear': 'node ./scripts/agent-coordination-two.mjs lock-clear --stale-only',
     'agents2:heartbeat:start': 'node ./scripts/agent-coordination-two.mjs heartbeat-start',
@@ -520,6 +535,9 @@ function expectedPackageScripts() {
     'agents2:board:migrate': 'node ./scripts/agent-coordination-two.mjs migrate-board',
     'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
     'agents2:state:compact': 'node ./scripts/agent-coordination-two.mjs compact-state',
+    'agents2:state:size': 'node ./scripts/agent-coordination-two.mjs state-size',
+    'agents2:status:badge': 'node ./scripts/agent-coordination-two.mjs status-badge',
+    'agents2:fixture:board': 'node ./scripts/agent-coordination-two.mjs fixture-board',
     'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
     'agents2:policy:check': 'node ./scripts/agent-coordination-two.mjs policy-check',
     'agents2:format': 'node ./scripts/agent-coordination-two.mjs format',
@@ -1731,6 +1749,8 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'timeline') status = runTimeline(commandArgs, getTemplateCommandContext());
   else if (commandName === 'version') status = runVersionCommand(commandArgs, { root: ROOT });
   else if (commandName === 'publish-check') status = runPublishCheck(commandArgs, { root: ROOT });
+  else if (commandName === 'next') status = runNextCommand(commandArgs, getPromptCommandContext());
+  else if (commandName === 'handoff-bundle') status = runHandoffBundle(commandArgs, getPromptCommandContext());
   process.exit(status);
 }
 
