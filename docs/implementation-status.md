@@ -224,10 +224,29 @@ npm run agents -- doctor --json --fix
 Output includes:
 
 - Config validation result.
+- Command wiring validation for package scripts and registered command metadata.
 - Git state and policy summary.
 - Coordination path summary.
 - Runtime file existence checks.
 - Optional applied fixes.
+
+### Command registry foundation
+
+Status: partially implemented.
+
+Current behavior:
+
+- `scripts/lib/command-registry.mjs` exposes normalized command metadata from the current help surface.
+- Shell completions consume the registry command list instead of reading the help table directly.
+- `doctor --json` includes `commandWiring` validation for package scripts and expected generated scripts.
+- The registry validates missing command usage/summary fields and unknown script command targets.
+
+Follow-up: make the registry the direct source for router groups, package/bootstrap script generation, docs generation, and command grouping.
+
+Main files:
+
+- `scripts/lib/command-registry.mjs`
+- `tests/command-registry.test.mjs`
 
 ### JSON schema for config
 

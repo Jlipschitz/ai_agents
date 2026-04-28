@@ -109,6 +109,8 @@ test('doctor --json reports config validation and git fields', () => {
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.ok, true);
   assert.equal(payload.configValidation.valid, true);
+  assert.equal(payload.commandWiring.ok, true);
+  assert.ok(payload.commandWiring.checkedScripts.some((entry) => entry.name === 'agents:next' && entry.command === 'next'));
   assert.equal(Array.isArray(payload.configSuggestions), true);
   assert.equal(Array.isArray(payload.onboardingChecklist.items), true);
   assert.ok(payload.onboardingChecklist.missing.includes('architecture'));

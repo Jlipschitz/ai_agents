@@ -15,6 +15,7 @@ import { runChangelogCommand } from './lib/changelog-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runCompletionsCommand } from './lib/completion-commands.mjs';
 import { resolveCommandAlias } from './lib/command-aliases.mjs';
+import { validateCommandWiring } from './lib/command-registry.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runContracts } from './lib/contract-commands.mjs';
 import { runCostTime } from './lib/cost-time-commands.mjs';
@@ -1381,12 +1382,13 @@ function doctorJson({ includeFixes = false } = {}) {
   const configValidation = validateAgentConfig(config, { root: ROOT });
   const { packageJson } = loadPackageJson();
   const configSuggestions = buildConfigSuggestions(config, configValidation, packageJson);
+  const commandWiring = validateCommandWiring({ packageJson, expectedScripts: expectedPackageScripts() });
   const onboardingChecklist = buildOnboardingChecklist({ root: ROOT, config, packageJson });
   const paths = getCoordinationPaths();
   const git = getGitSnapshot({ root: ROOT, config });
   const board = inspectBoard(getBoardMaintenanceContext());
   const files = { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) };
-  const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, configSuggestions, onboardingChecklist, git, board, files };
+  const result = { ok: configValidation.valid && git.errors.length === 0 && commandWiring.ok, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, configSuggestions, commandWiring, onboardingChecklist, git, board, files };
   if (includeFixes) result.fixes = fixes;
   return result;
 }

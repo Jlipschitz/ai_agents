@@ -197,8 +197,8 @@ Next recommended work:
 
 ## Phase 16: Command Registry, Contracts, and Agent Handoff
 
-- [ ] Central command registry
-- [ ] Doctor command wiring validation
+- [~] Central command registry - registry metadata foundation exists; router/script/doc generation remains open.
+- [~] Doctor command wiring validation - `doctor --json` validates package-script command targets; deeper dry-run and JSON behavior checks remain open.
 - [ ] End-to-end CLI smoke tests
 - [x] Fixture-board generator
 - [~] Command output contract tests - success and machine-readable failure contracts exist for high-value JSON commands; exhaustive all-command coverage remains open.

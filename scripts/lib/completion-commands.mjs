@@ -1,7 +1,7 @@
 import { getPositionals, hasFlag } from './args-utils.mjs';
 import { BUILT_IN_COMMAND_ALIASES, configuredCommandAliases } from './command-aliases.mjs';
+import { commandNames } from './command-registry.mjs';
 import { printCommandError } from './error-formatting.mjs';
-import { COMMANDS } from './help-command.mjs';
 
 const SHELLS = ['powershell', 'bash', 'zsh'];
 const COMPLETION_SUBCOMMANDS = ['list', ...SHELLS];
@@ -97,7 +97,7 @@ function collectCompletionData(context) {
     ...(Array.isArray(task.verificationLog) ? task.verificationLog.map((entry) => entry?.check) : []),
   ]);
   return {
-    commands: unique([...Object.keys(COMMANDS), ...aliases]),
+    commands: unique([...commandNames(), ...aliases]),
     flags: unique(COMMON_FLAGS),
     shells: SHELLS,
     completionSubcommands: COMPLETION_SUBCOMMANDS,
