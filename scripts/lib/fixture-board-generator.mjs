@@ -1,4 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+import { getFlagValue, getNumberFlag, getPositionals, hasFlag } from './args-utils.mjs';
+import { appendAuditLog, auditLogPath } from './audit-log.mjs';
 import { CURRENT_BOARD_VERSION } from './board-migration.mjs';
+import { normalizePath } from './path-utils.mjs';
+import { withStateTransactionSync } from './state-transaction.mjs';
+import { writeJson } from './file-utils.mjs';
+import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 export const DEFAULT_FIXTURE_REFERENCE_AT = '2026-04-28T12:00:00.000Z';
 export const DEFAULT_FIXTURE_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
@@ -523,4 +532,56 @@ export function generateFixtureBoard(kind = 'healthy', options = {}) {
 
 export function generateFixtureBoards(options = {}) {
   return Object.fromEntries(FIXTURE_BOARD_KINDS.map((kind) => [kind, generateFixtureBoard(kind, options)]));
+}
+
+function renderFixtureBoardResult(result) {
+  const lines = [`${result.applied ? 'Wrote' : 'Dry run for'} ${result.kind} fixture board.`];
+  lines.push(`Output: ${result.path}`);
+  lines.push(`Tasks: ${result.tasks}`);
+  lines.push(`Agents: ${result.agents}`);
+  if (!result.applied) lines.push('Pass --apply to write the board.');
+  return lines.join('\n');
+}
+
+export function runFixtureBoard(argv, context) {
+  const json = hasFlag(argv, '--json');
+  const apply = hasFlag(argv, '--apply');
+  const positionals = getPositionals(argv, new Set(['--out', '--task-count', '--reference-at', '--project-name', '--workspace']));
+  const kind = normalizeFixtureBoardKind(positionals[0] ?? 'healthy');
+  const outValue = getFlagValue(argv, '--out', '');
+  const outputPath = outValue ? path.resolve(context.root, outValue) : context.paths.boardPath;
+  const board = generateFixtureBoard(kind, {
+    referenceAt: getFlagValue(argv, '--reference-at', DEFAULT_FIXTURE_REFERENCE_AT),
+    projectName: getFlagValue(argv, '--project-name', '') || undefined,
+    workspace: getFlagValue(argv, '--workspace', '') || undefined,
+    agentIds: context.config?.agentIds,
+    taskCount: getNumberFlag(argv, '--task-count', undefined),
+  });
+  const result = {
+    ok: true,
+    applied: apply,
+    kind,
+    path: normalizePath(path.relative(context.root, outputPath)),
+    tasks: Array.isArray(board.tasks) ? board.tasks.length : 0,
+    agents: Array.isArray(board.agents) ? board.agents.length : 0,
+    workspaceSnapshotPath: null,
+  };
+
+  if (apply) {
+    withStateTransactionSync([outputPath, context.paths.snapshotsRoot, auditLogPath(context.paths)], () => {
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, `fixture-board-${kind}`);
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      writeJson(outputPath, board);
+      appendAuditLog(context.paths, {
+        command: 'fixture-board',
+        applied: true,
+        summary: `Generated ${kind} fixture board.`,
+        details: { kind, outputPath: result.path, tasks: result.tasks, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      });
+    });
+  }
+
+  if (json) console.log(JSON.stringify({ ...result, board }, null, 2));
+  else console.log(renderFixtureBoardResult(result));
+  return 0;
 }

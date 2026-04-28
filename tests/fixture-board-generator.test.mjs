@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import {
   DEFAULT_LARGE_FIXTURE_TASK_COUNT,
@@ -8,6 +10,7 @@ import {
   generateFixtureBoards,
   normalizeFixtureBoardKind,
 } from '../scripts/lib/fixture-board-generator.mjs';
+import { makeWorkspace, runCli } from './helpers/workspace.mjs';
 
 const EXPECTED_KINDS = [
   'empty',
@@ -173,4 +176,29 @@ test('release, approval, and contract-sensitive fixtures expose gate-specific fi
   assert.deepEqual(producer.claimedPaths, ['api/routes/orders.mjs', 'types/orders.d.ts']);
   assert.deepEqual(consumer.dependencies, ['task-contract-producer']);
   assert.equal(consumer.suggestedOwnerId, 'agent-2');
+});
+
+test('fixture-board command dry-runs and applies generated boards', () => {
+  const { root, coordinationRoot } = makeWorkspace({ prefix: 'ai-agents-fixture-board-cli-', packageName: 'fixture-board-cli', runtime: true });
+  const boardPath = path.join(coordinationRoot, 'board.json');
+  const dryRun = runCli(root, ['fixture-board', 'blocked', '--json'], { coordinationRoot });
+  const dryRunPayload = JSON.parse(dryRun.stdout);
+
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  assert.equal(dryRunPayload.applied, false);
+  assert.equal(dryRunPayload.kind, 'blocked');
+  assert.equal(dryRunPayload.board.tasks[0].id, 'task-blocked');
+  assert.equal(fs.existsSync(boardPath), false);
+
+  const applied = runCli(root, ['fixture-board', 'large', '--task-count', '6', '--apply', '--json'], { coordinationRoot });
+  const appliedPayload = JSON.parse(applied.stdout);
+  const board = JSON.parse(fs.readFileSync(boardPath, 'utf8'));
+
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.equal(appliedPayload.applied, true);
+  assert.equal(appliedPayload.kind, 'large');
+  assert.equal(board.tasks.length, 6);
+  assert.equal(board.fixture, 'large');
+  assert.ok(appliedPayload.workspaceSnapshotPath);
+  assert.equal(fs.existsSync(appliedPayload.workspaceSnapshotPath), true);
 });

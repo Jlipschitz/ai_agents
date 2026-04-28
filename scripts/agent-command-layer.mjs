@@ -22,8 +22,9 @@ import { runCriticalPath } from './lib/critical-path-commands.mjs';
 import { runDashboard } from './lib/dashboard-commands.mjs';
 import { runEscalationRoutes } from './lib/escalation-routing-commands.mjs';
 import { createStarterBoard } from './lib/board-migration.mjs';
-import { runInspectBoard, runMigrateBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
+import { inspectBoard, runInspectBoard, runMigrateBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
 import { exitCodeForError, printCliError, printCommandError } from './lib/error-formatting.mjs';
+import { runFixtureBoard } from './lib/fixture-board-generator.mjs';
 import { runFormat } from './lib/format-commands.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
@@ -74,6 +75,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'compact-state',
   'state-size',
   'status-badge',
+  'fixture-board',
   'run-check',
   'artifacts',
   'graph',
@@ -1394,7 +1396,12 @@ function runDoctorFix() {
 function runConfigValidation({ json = false } = {}) {
   const { configPath, config, configSources = [] } = loadConfig();
   const result = validateAgentConfig(config, { root: ROOT });
-  if (json) console.log(JSON.stringify({ ...result, configSources }, null, 2));
+  if (json) {
+    const board = inspectBoard(getBoardMaintenanceContext());
+    const valid = result.valid && board.ok;
+    console.log(JSON.stringify({ ...result, valid, configSources, board }, null, 2));
+    return valid ? 0 : 1;
+  }
   else {
     for (const warning of result.warnings) console.warn(`warning: ${warning}`);
     if (result.valid) console.log(`Config OK: ${normalizePath(configPath) || configPath}`);
@@ -1679,6 +1686,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'compact-state') status = runCompactState(commandArgs, getCoordinationPaths());
   else if (commandName === 'state-size') status = runStateSize(commandArgs, getImpactCommandContext());
   else if (commandName === 'status-badge') status = runStatusBadge(commandArgs, getImpactCommandContext());
+  else if (commandName === 'fixture-board') status = runFixtureBoard(commandArgs, getTemplateCommandContext());
   else if (commandName === 'run-check') status = runCheckCommand(commandArgs);
   else if (commandName === 'artifacts') status = runArtifactsCommand(commandArgs);
   else if (commandName === 'graph') status = runDependencyGraph(commandArgs);

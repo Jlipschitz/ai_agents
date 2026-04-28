@@ -25,7 +25,13 @@ function countTasksByStatus(tasks) {
   return counts;
 }
 
-function inspectBoard(context) {
+function pathsOverlap(left, right) {
+  const normalizedLeft = normalizePath(left);
+  const normalizedRight = normalizePath(right);
+  return normalizedLeft === normalizedRight || normalizedLeft.startsWith(`${normalizedRight}/`) || normalizedRight.startsWith(`${normalizedLeft}/`);
+}
+
+export function inspectBoard(context) {
   const { paths, validTaskStatuses, activeStatuses } = context;
   const { boardPath, exists, value: board, error } = readBoardDetailed(paths);
   const findings = [];
@@ -77,7 +83,7 @@ function inspectBoard(context) {
   const claimed = tasks.filter((task) => task?.ownerId && activeStatuses.has(task.status) && Array.isArray(task.claimedPaths));
   for (let leftIndex = 0; leftIndex < claimed.length; leftIndex += 1) {
     for (let rightIndex = leftIndex + 1; rightIndex < claimed.length; rightIndex += 1) {
-      const overlap = claimed[leftIndex].claimedPaths.find((left) => claimed[rightIndex].claimedPaths.includes(left));
+      const overlap = claimed[leftIndex].claimedPaths.find((left) => claimed[rightIndex].claimedPaths.some((right) => pathsOverlap(left, right)));
       if (overlap) overlapFindings.push(`Active path overlap between "${claimed[leftIndex].id}" and "${claimed[rightIndex].id}" on "${overlap}".`);
     }
   }

@@ -76,10 +76,10 @@ Use `blocked` when an agent cannot continue:
 npm run agents -- blocked agent-2 task-api "Need final recurring date rule format."
 ```
 
-Use `waiting` when a task depends on another task:
+Use `wait` when a task depends on another task:
 
 ```bash
-npm run agents -- waiting agent-1 task-ui --on task-api
+npm run agents -- wait agent-1 task-ui --on task-api --reason "Waiting for task-api"
 ```
 
 ## Verify Work

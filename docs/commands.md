@@ -970,6 +970,15 @@ npm run agents:handoff-ready -- agent-1 task-id "Ready for agent-2 to continue."
 npm run agents -- handoff-ready agent-1 task-id "Ready for agent-2 to continue."
 ```
 
+### `handoff`
+
+Marks a task ready for handoff and records either a free-form note or structured summary/next/blocker fields.
+
+```bash
+npm run agents -- handoff agent-1 task-id "Ready for agent-2 to continue."
+npm run agents -- handoff agent-1 task-id --summary "UI pass complete." --next "Run visual checks." --to agent-2
+```
+
 ### `verify`
 
 Records manual verification evidence for a task.
@@ -1143,6 +1152,20 @@ npm run agents -- state-size --json
 ```
 
 The report includes `board.json`, `journal.md`, `messages.ndjson`, the check artifact index, runtime state size, total coordination bytes, and recommended cleanup actions such as `compact-state` or `artifacts prune`.
+
+### `fixture-board`
+
+Generates deterministic board fixtures for tests, demos, and smoke checks.
+
+```bash
+npm run agents -- fixture-board healthy
+npm run agents -- fixture-board blocked --out coordination/board.json --apply
+npm run agents -- fixture-board large --task-count 100 --json
+```
+
+Supported fixture kinds: `empty`, `healthy`, `blocked`, `stale`, `large`, `malformed`, `multi-agent-conflict`, `release-ready`, `approval-required`, and `contract-sensitive`.
+
+The command is a dry run unless `--apply` is passed. Applied writes create a pre-mutation workspace snapshot and audit entry before writing the generated board.
 
 ### `status-badge`
 

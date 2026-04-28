@@ -200,7 +200,7 @@ Next recommended work:
 - [ ] Central command registry
 - [ ] Doctor command wiring validation
 - [ ] End-to-end CLI smoke tests
-- [~] Fixture-board generator - reusable fixture board library exists; CLI wiring remains open.
+- [x] Fixture-board generator
 - [ ] Command output contract tests
 - [ ] Agent handoff bundle
 - [ ] Next command recommendation engine

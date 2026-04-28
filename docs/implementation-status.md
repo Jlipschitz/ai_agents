@@ -1277,7 +1277,13 @@ Main files:
 
 ### Fixture board generator
 
-Status: partially implemented as a reusable library.
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- fixture-board healthy
+npm run agents -- fixture-board blocked --out coordination/board.json --apply
+npm run agents -- fixture-board large --task-count 100 --json
+```
 
 Current behavior:
 
@@ -1285,8 +1291,8 @@ Current behavior:
 - Supports configurable reference timestamps, agent IDs, project/workspace labels, and large-board task count.
 - Exposes all supported fixture names through `FIXTURE_BOARD_KINDS`.
 - Can generate every fixture in one call for tests, demos, and future smoke runners.
-
-Follow-up: wire the CLI command once command registry work defines the final command metadata surface.
+- `fixture-board` is dry-run by default and writes only with `--apply`.
+- Applied fixture board writes create a compressed pre-mutation workspace snapshot and audit entry.
 
 Main files:
 
