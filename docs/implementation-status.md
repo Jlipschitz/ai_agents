@@ -48,12 +48,14 @@ Current behavior:
 - Can include bundled docs only when `--include-docs` is passed.
 - Dry-run output includes a review summary with changed files and changed line sections.
 - Applied updates that create or replace files require `--reviewed` after reviewing the dry-run plan.
+- Compatibility coverage exercises upgrading an old copied install while preserving package scripts, local config, local docs, board state, and runtime lock files.
 
 Main files:
 
 - `scripts/lib/update-commands.mjs`
 - `scripts/lib/install-manifest.mjs`
 - `tests/update-commands.test.mjs`
+- `tests/update-compatibility.test.mjs`
 
 ### Backlog importer
 

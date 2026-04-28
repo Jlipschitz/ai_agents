@@ -1,0 +1,11 @@
+{
+  "projectName": "Old Install Fixture",
+  "tasks": [],
+  "agents": [
+    {
+      "id": "agent-1",
+      "status": "idle",
+      "taskId": null
+    }
+  ]
+}

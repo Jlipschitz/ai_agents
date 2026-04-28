@@ -1,0 +1,8 @@
+{
+  "name": "old-install-fixture",
+  "scripts": {
+    "custom": "node custom.js",
+    "agents": "node ./scripts/agent-coordination.mjs",
+    "agents:status": "node ./scripts/agent-coordination.mjs status"
+  }
+}

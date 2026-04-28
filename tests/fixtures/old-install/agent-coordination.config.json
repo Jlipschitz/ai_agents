@@ -1,0 +1,14 @@
+{
+  "configVersion": 1,
+  "projectName": "Old Install Fixture",
+  "agentIds": [
+    "agent-1"
+  ],
+  "privacy": {
+    "mode": "local-only",
+    "offline": true,
+    "redactPatterns": [
+      "fixture-secret"
+    ]
+  }
+}
