@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jlipschitz/ai_agents/agent-coordination.schema.json",
+  "title": "AI Agents coordination config",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "projectName": { "type": "string", "minLength": 1 },
+    "agentIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "docs": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "roots": { "$ref": "#/$defs/stringArray" },
+        "appNotes": { "type": "string" },
+        "visualWorkflow": { "type": "string" },
+        "apiPrefixes": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "sharedRisk": { "$ref": "#/$defs/stringArray" },
+        "visualSuite": { "$ref": "#/$defs/stringArray" },
+        "visualSuiteDefault": { "$ref": "#/$defs/stringArray" },
+        "visualImpact": { "$ref": "#/$defs/stringArray" },
+        "visualImpactFiles": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "visualRequiredChecks": { "$ref": "#/$defs/stringArray" },
+        "visualSuiteUpdateChecks": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "notes": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "categories": { "$ref": "#/$defs/stringArray" },
+        "sectionHeading": { "type": "string" }
+      }
+    },
+    "pathClassification": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "productPrefixes": { "$ref": "#/$defs/stringArray" },
+        "dataPrefixes": { "$ref": "#/$defs/stringArray" },
+        "verifyPrefixes": { "$ref": "#/$defs/stringArray" },
+        "docsPrefixes": { "$ref": "#/$defs/stringArray" },
+        "docsFiles": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "planning": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "defaultDomains": { "$ref": "#/$defs/stringArray" },
+        "productFallbackPaths": { "$ref": "#/$defs/stringArray" },
+        "dataFallbackPaths": { "$ref": "#/$defs/stringArray" },
+        "verifyFallbackPaths": { "$ref": "#/$defs/stringArray" },
+        "docsFallbackPaths": { "$ref": "#/$defs/stringArray" },
+        "agentSizing": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "minAgents": { "type": "integer", "minimum": 1 },
+            "maxAgents": { "type": "integer", "minimum": 1 },
+            "mediumComplexityScore": { "type": "integer", "minimum": 1 },
+            "largeComplexityScore": { "type": "integer", "minimum": 1 },
+            "productKeywords": { "$ref": "#/$defs/stringArray" },
+            "dataKeywords": { "$ref": "#/$defs/stringArray" },
+            "verifyKeywords": { "$ref": "#/$defs/stringArray" },
+            "docsKeywords": { "$ref": "#/$defs/stringArray" }
+          }
+        }
+      }
+    },
+    "domainRules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "keywords", "scopes"],
+        "additionalProperties": true,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "keywords": { "$ref": "#/$defs/stringArray" },
+          "scopes": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "product": { "$ref": "#/$defs/stringArray" },
+              "data": { "$ref": "#/$defs/stringArray" },
+              "verify": { "$ref": "#/$defs/stringArray" },
+              "docs": { "$ref": "#/$defs/stringArray" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "required": ["projectName", "agentIds", "docs", "paths", "verification", "pathClassification", "planning", "domainRules"],
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    }
+  }
+}
