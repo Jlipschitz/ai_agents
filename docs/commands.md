@@ -154,11 +154,29 @@ npm run agents -- plan "Improve mobile task modal"
 
 ### `claim`
 
-Claims a task for an agent and records claimed paths. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, and merge/rebase state. Merge or rebase-in-progress state blocks the claim.
+Claims a task for an agent and records claimed paths. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, merge/rebase state, and configured branch policies. Merge/rebase-in-progress state and configured branch policy violations block the claim.
 
 ```bash
 npm run agents -- claim agent-1 task-id --paths src/tasks,docs/tasks.md
 ```
+
+Configure branch claim policies in `agent-coordination.config.json`:
+
+```json
+{
+  "git": {
+    "allowMainBranchClaims": false,
+    "allowDetachedHead": false,
+    "allowedBranchPatterns": ["agent/*", "feature/*", "fix/*"]
+  }
+}
+```
+
+Policy fields:
+
+- `allowMainBranchClaims`: allow claims from `main` or `master`.
+- `allowDetachedHead`: allow claims when Git is in detached HEAD state.
+- `allowedBranchPatterns`: optional glob-style branch allowlist. When non-empty, the current branch must match at least one pattern.
 
 ### `start`
 
