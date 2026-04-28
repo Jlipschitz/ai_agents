@@ -1451,16 +1451,21 @@ Current behavior:
 
 - `npm run check` runs the local syntax checker.
 - `npm run lint` exists as an alias for the syntax checker.
+- `npm run format:check` checks JSON/text formatting without writing.
+- `npm run format` applies the formatter.
+- `npm run agents -- format --paths <path[,path...]>` supports targeted dry-run/apply formatting.
 - Node version hints are checked into `.nvmrc` and `.node-version`.
 - The package lock marks the package as `UNLICENSED`.
 
-Follow-up: add a real lint/style tool, formatter, type or JSDoc validation, contribution docs, security policy, license file, and examples directory.
+Follow-up: add a real lint/style tool, type or JSDoc validation, contribution docs, security policy, license file, and examples directory.
 
 Main files:
 
 - `package.json`
 - `scripts/check-syntax.mjs`
+- `scripts/lib/format-commands.mjs`
 - `tests/check-syntax.test.mjs`
+- `tests/format-commands.test.mjs`
 
 ## Not Yet Implemented
 
@@ -1508,7 +1513,6 @@ These roadmap items still need core, command-layer, or documentation work.
 ### Developer experience and repo maintenance
 
 - Dedicated linting beyond syntax checks.
-- Formatting command and configuration.
 - Type checking or JSDoc validation.
 - `CONTRIBUTING.md`.
 - `SECURITY.md`.

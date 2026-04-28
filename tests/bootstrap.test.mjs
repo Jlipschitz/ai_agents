@@ -30,6 +30,8 @@ test('bootstrap creates package scripts and gitignore entries', () => {
   assert.ok(operations.some((entry) => entry.includes('copy scripts/lib/file-utils.mjs')));
   assert.ok(operations.some((entry) => entry.includes('copy scripts/lib/artifact-commands.mjs')));
   assert.equal(packageJson.scripts.check, 'node ./scripts/check-syntax.mjs');
+  assert.equal(packageJson.scripts.format, 'node ./scripts/agent-coordination.mjs format --apply');
+  assert.equal(packageJson.scripts['format:check'], 'node ./scripts/agent-coordination.mjs format --check');
   assert.equal(packageJson.scripts['agents:doctor'], 'node ./scripts/agent-coordination.mjs doctor');
   assert.equal(packageJson.scripts['agents:board:migrate'], 'node ./scripts/agent-coordination.mjs migrate-board');
   assert.equal(packageJson.scripts['agents:state:compact'], 'node ./scripts/agent-coordination.mjs compact-state');
@@ -45,6 +47,7 @@ test('bootstrap creates package scripts and gitignore entries', () => {
   assert.equal(packageJson.scripts['agents:split:validate'], 'node ./scripts/agent-coordination.mjs split-validate');
   assert.equal(packageJson.scripts['agents:escalation:route'], 'node ./scripts/agent-coordination.mjs escalation-route');
   assert.equal(packageJson.scripts['agents:work:steal'], 'node ./scripts/agent-coordination.mjs steal-work');
+  assert.equal(packageJson.scripts['agents:format'], 'node ./scripts/agent-coordination.mjs format');
   assert.equal(packageJson.scripts['agents:approvals'], 'node ./scripts/agent-coordination.mjs approvals');
   assert.equal(packageJson.scripts['agents2:state:compact'], 'node ./scripts/agent-coordination-two.mjs compact-state');
   assert.equal(packageJson.scripts['validate:agents-config'], 'node ./scripts/validate-config.mjs');

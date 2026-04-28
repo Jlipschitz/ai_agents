@@ -54,6 +54,7 @@ export const COMMANDS = {
   'migrate-config': ['migrate-config [--apply] [--json]', 'Add current optional config defaults.'],
   'policy-packs': ['policy-packs <list|show|apply> [pack] [--apply] [--json]', 'Inspect or apply reusable policy packs.'],
   'policy-check': ['policy-check [--json]', 'Evaluate configured warn/block policy enforcement rules against active work.'],
+  format: ['format [--paths <path[,path...]>] [--check] [--apply] [--json]', 'Normalize JSON files plus trailing whitespace and final newlines for text files.'],
   branches: ['branches [--json] [--base <ref>] [--stale-days <days>] [--apply]', 'Report branch/task awareness and dry-run stale branch cleanup.'],
   'ownership-review': ['ownership-review [--json]', 'Review active claims for broad paths and CODEOWNERS boundary crossings.'],
   'test-impact': ['test-impact [--paths <path[,path...]>] [--json]', 'Select the smallest configured verification checks for changed paths.'],

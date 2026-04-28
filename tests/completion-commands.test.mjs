@@ -31,6 +31,7 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('claim'));
   assert.ok(payload.commands.includes('approvals'));
   assert.ok(payload.commands.includes('policy-check'));
+  assert.ok(payload.commands.includes('format'));
   assert.ok(payload.commands.includes('critical-path'));
   assert.ok(payload.commands.includes('health-score'));
   assert.ok(payload.commands.includes('agent-history'));
@@ -62,6 +63,7 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /prioritize/);
   assert.match(result.stdout, /approvals/);
   assert.match(result.stdout, /policy-check/);
+  assert.match(result.stdout, /format/);
   assert.match(result.stdout, /critical-path/);
   assert.match(result.stdout, /health-score/);
   assert.match(result.stdout, /agent-history/);

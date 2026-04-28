@@ -306,6 +306,18 @@ Flags:
 
 Config files may include `extends` as a string path or array of paths. Inherited paths are resolved relative to the config file that declares them, arrays merge uniquely, named object arrays merge by `name`, and local values override inherited values.
 
+### `format`
+
+Normalizes JSON files and trims trailing whitespace/final newlines for supported text files.
+
+```bash
+npm run format:check
+npm run format
+npm run agents -- format --paths package.json,docs/commands.md --json
+```
+
+The command is a dry run by default. Use `--check` to exit non-zero when formatting changes are needed, or `--apply` to write changes.
+
 ### `completions`
 
 Generates shell completion scripts for the current repo.

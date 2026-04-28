@@ -187,7 +187,7 @@ Next recommended work:
 ## Phase 15: Developer Experience and Repo Maintenance
 
 - [~] Add linting — `npm run lint` exists as a syntax-check alias; a dedicated lint/style tool remains open.
-- [ ] Add formatting
+- [x] Add formatting
 - [~] Add type checking or JSDoc validation — syntax and schema validation exist; type/JSDoc validation remains open.
 - [ ] Add contribution guide
 - [ ] Add security policy
@@ -224,6 +224,7 @@ Next recommended work:
 - `scripts/lib/cost-time-commands.mjs`
 - `scripts/lib/critical-path-commands.mjs`
 - `scripts/lib/error-formatting.mjs`
+- `scripts/lib/format-commands.mjs`
 - `scripts/lib/github-commands.mjs`
 - `scripts/lib/global-flags.mjs`
 - `scripts/lib/help-command.mjs`
@@ -265,6 +266,7 @@ Next recommended work:
 - `tests/critical-path-commands.test.mjs`
 - `tests/core-mutation-safety.test.mjs`
 - `tests/error-formatting.test.mjs`
+- `tests/format-commands.test.mjs`
 - `tests/git-policy.test.mjs`
 - `tests/github-status.test.mjs`
 - `tests/incident-commands.test.mjs`

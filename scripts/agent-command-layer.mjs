@@ -21,6 +21,7 @@ import { runEscalationRoutes } from './lib/escalation-routing-commands.mjs';
 import { createStarterBoard } from './lib/board-migration.mjs';
 import { runInspectBoard, runMigrateBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
 import { exitCodeForError, printCliError, printCommandError } from './lib/error-formatting.mjs';
+import { runFormat } from './lib/format-commands.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
 import { runGitHubStatus } from './lib/github-commands.mjs';
@@ -71,6 +72,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'migrate-config',
   'policy-packs',
   'policy-check',
+  'format',
   'branches',
   'ownership-review',
   'test-impact',
@@ -320,6 +322,8 @@ function expectedPackageScripts() {
   if (!hasLocalCoordinatorFiles()) {
     return {
       'ai-agents': 'ai-agents',
+      'format': 'ai-agents format --apply',
+      'format:check': 'ai-agents format --check',
       'agents': 'ai-agents',
       'agents:init': 'ai-agents init',
       'agents:plan': 'ai-agents plan',
@@ -351,6 +355,7 @@ function expectedPackageScripts() {
       'agents:state:compact': 'ai-agents compact-state',
       'agents:run-check': 'ai-agents run-check',
       'agents:policy:check': 'ai-agents policy-check',
+      'agents:format': 'ai-agents format',
       'agents:branches': 'ai-agents branches',
       'agents:ownership:review': 'ai-agents ownership-review',
       'agents:test-impact': 'ai-agents test-impact',
@@ -388,6 +393,8 @@ function expectedPackageScripts() {
     'bootstrap': 'node ./scripts/bootstrap.mjs',
     'check': CHECK_COMMAND,
     'lint': 'npm run check',
+    'format': 'node ./scripts/agent-coordination.mjs format --apply',
+    'format:check': 'node ./scripts/agent-coordination.mjs format --check',
     'agents': 'node ./scripts/agent-coordination.mjs',
     'agents:init': 'node ./scripts/agent-coordination.mjs init',
     'agents:plan': 'node ./scripts/agent-coordination.mjs plan',
@@ -420,6 +427,7 @@ function expectedPackageScripts() {
     'agents:state:compact': 'node ./scripts/agent-coordination.mjs compact-state',
     'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
     'agents:policy:check': 'node ./scripts/agent-coordination.mjs policy-check',
+    'agents:format': 'node ./scripts/agent-coordination.mjs format',
     'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
     'agents:ownership:review': 'node ./scripts/agent-coordination.mjs ownership-review',
     'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
@@ -480,6 +488,7 @@ function expectedPackageScripts() {
     'agents2:state:compact': 'node ./scripts/agent-coordination-two.mjs compact-state',
     'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
     'agents2:policy:check': 'node ./scripts/agent-coordination-two.mjs policy-check',
+    'agents2:format': 'node ./scripts/agent-coordination-two.mjs format',
     'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
     'agents2:ownership:review': 'node ./scripts/agent-coordination-two.mjs ownership-review',
     'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
@@ -1492,6 +1501,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'migrate-config') status = runMigrateConfig(commandArgs);
   else if (commandName === 'policy-packs') status = runPolicyPacks(commandArgs);
   else if (commandName === 'policy-check') status = runPolicyCheck(commandArgs, getImpactCommandContext());
+  else if (commandName === 'format') status = runFormat(commandArgs, { root: ROOT });
   else if (commandName === 'branches') status = runBranchStatus(commandArgs, getBranchCommandContext());
   else if (commandName === 'ownership-review') status = runOwnershipReview(commandArgs, getImpactCommandContext());
   else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());
