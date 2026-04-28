@@ -1,9 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync, spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
+import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
+import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
+import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
+import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
+import { writePackageScripts } from './lib/package-json-utils.mjs';
+import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
+import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 
 const ROOT = process.cwd();
 const DEFAULT_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
@@ -33,15 +40,8 @@ const COMMAND_ALIASES = new Map([
   ['p', 'plan'],
   ['sum', 'summarize'],
 ]);
-const DEFAULT_GIT_POLICY = {
-  allowMainBranchClaims: true,
-  allowDetachedHead: false,
-  allowedBranchPatterns: [],
-};
 const DEFAULT_STALE_TASK_HOURS = 6;
 const DEFAULT_RECENT_CONTEXT_LINES = 8;
-const DEFAULT_RUNTIME_STALE_MS = 300000;
-const DEFAULT_HEARTBEAT_TTL_MS = 90000;
 const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/explain-config.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/planner-sizing.mjs && node --check ./scripts/validate-config.mjs';
 const CURRENT_CONFIG_VERSION = 1;
 const DEFAULT_ARTIFACT_POLICY = { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] };
@@ -82,29 +82,6 @@ const POLICY_PACKS = {
   },
 };
 
-function normalizePath(inputPath) {
-  if (!inputPath) return '';
-  let normalized = String(inputPath).trim().replaceAll('\\', '/');
-  if (path.isAbsolute(normalized)) normalized = path.relative(ROOT, normalized).replaceAll('\\', '/');
-  return normalized.replace(/^\.\/+/, '').replace(/^\/+/, '').replace(/\/{2,}/g, '/');
-}
-
-function resolveRepoPath(value, fallbackRelativePath) {
-  const normalized = String(value ?? '').trim() || fallbackRelativePath;
-  return path.isAbsolute(normalized) ? normalized : path.resolve(ROOT, normalized);
-}
-
-function resolveCoordinationRoot() {
-  const rootOverride = String(process.env.AGENT_COORDINATION_ROOT ?? '').trim();
-  if (rootOverride) return path.isAbsolute(rootOverride) ? rootOverride : path.resolve(ROOT, rootOverride);
-  const dirOverride = String(process.env.AGENT_COORDINATION_DIR ?? '').trim();
-  return path.join(ROOT, dirOverride || 'coordination');
-}
-
-function resolveConfigPath() {
-  return resolveRepoPath(process.env.AGENT_COORDINATION_CONFIG, 'agent-coordination.config.json');
-}
-
 function loadConfig() {
   const configPath = resolveConfigPath();
   if (!fs.existsSync(configPath)) return { configPath, config: {} };
@@ -115,92 +92,6 @@ function loadPackageJson() {
   const packageJsonPath = path.join(ROOT, 'package.json');
   if (!fs.existsSync(packageJsonPath)) return { packageJsonPath, packageJson: null };
   return { packageJsonPath, packageJson: readJsonFile(packageJsonPath) };
-}
-
-function readJsonSafe(filePath, fallback = null) {
-  try {
-    if (!fs.existsSync(filePath)) return fallback;
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJson(filePath, value) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
-}
-
-function appendUniqueLines(filePath, lines) {
-  const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
-  const existing = new Set(current.split(/\r?\n/).map((line) => line.trim()));
-  const missing = lines.filter((line) => line === '' || !existing.has(line));
-  if (missing.filter(Boolean).length === 0) return false;
-  fs.writeFileSync(filePath, `${current.replace(/\s*$/, '')}\n${missing.join('\n')}\n`);
-  return true;
-}
-
-function ensureFile(filePath, content) {
-  if (fs.existsSync(filePath)) return false;
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content);
-  return true;
-}
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function fileTimestamp(date = new Date()) {
-  return date.toISOString().replace(/[:.]/g, '-');
-}
-
-function hasFlag(argv, flag) {
-  return argv.includes(flag);
-}
-
-function getFlagValue(argv, flag, fallback = '') {
-  const index = argv.indexOf(flag);
-  return index >= 0 ? String(argv[index + 1] ?? fallback) : fallback;
-}
-
-function getPositionals(argv, valuedFlags = new Set()) {
-  const positionals = [];
-  for (let index = 0; index < argv.length; index += 1) {
-    const entry = argv[index];
-    if (!entry.startsWith('--')) {
-      positionals.push(entry);
-      continue;
-    }
-    const flag = entry.includes('=') ? entry.slice(0, entry.indexOf('=')) : entry;
-    if (!entry.includes('=') && valuedFlags.has(flag)) index += 1;
-  }
-  return positionals;
-}
-
-function getNumberFlag(argv, flag, fallback) {
-  const value = Number.parseInt(getFlagValue(argv, flag, ''), 10);
-  return Number.isFinite(value) ? value : fallback;
-}
-
-function readJsonDetailed(filePath) {
-  if (!fs.existsSync(filePath)) return { exists: false, value: null, error: null };
-  try {
-    return { exists: true, value: JSON.parse(fs.readFileSync(filePath, 'utf8')), error: null };
-  } catch (error) {
-    return { exists: true, value: null, error: error.message };
-  }
-}
-
-function isPidAlive(pid) {
-  const normalizedPid = Number.parseInt(String(pid ?? ''), 10);
-  if (!Number.isFinite(normalizedPid) || normalizedPid <= 0) return null;
-  try {
-    process.kill(normalizedPid, 0);
-    return true;
-  } catch (error) {
-    return error?.code === 'EPERM';
-  }
 }
 
 function getCoordinationPaths() {
@@ -216,6 +107,18 @@ function getCoordinationPaths() {
     heartbeatsRoot: path.join(coordinationRoot, 'runtime', 'agent-heartbeats'),
     snapshotsRoot: path.join(coordinationRoot, 'runtime', 'snapshots'),
     artifactsRoot: path.join(ROOT, 'artifacts', 'checks'),
+  };
+}
+
+function getBoardMaintenanceContext() {
+  const { config } = loadConfig();
+  return {
+    root: ROOT,
+    paths: getCoordinationPaths(),
+    config,
+    defaultAgentIds: DEFAULT_AGENT_IDS,
+    validTaskStatuses: VALID_TASK_STATUSES,
+    activeStatuses: ACTIVE_STATUSES,
   };
 }
 
@@ -371,186 +274,6 @@ function doctorFix() {
   return fixes;
 }
 
-function globToRegExp(pattern) {
-  const escaped = String(pattern).replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
-  return new RegExp(`^${escaped}$`);
-}
-
-function branchMatchesPattern(branch, pattern) {
-  return globToRegExp(pattern).test(branch);
-}
-
-function findTopLevelObjectProperty(text, propertyName) {
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (char === '\\') escaped = true;
-      else if (char === '"') inString = false;
-      continue;
-    }
-    if (char === '"') {
-      if (depth !== 1) {
-        inString = true;
-        continue;
-      }
-      let end = index + 1;
-      let key = '';
-      let keyEscaped = false;
-      for (; end < text.length; end += 1) {
-        const keyChar = text[end];
-        if (keyEscaped) {
-          key += keyChar;
-          keyEscaped = false;
-        } else if (keyChar === '\\') {
-          keyEscaped = true;
-        } else if (keyChar === '"') {
-          break;
-        } else {
-          key += keyChar;
-        }
-      }
-      if (key !== propertyName) {
-        inString = true;
-        continue;
-      }
-      let colon = end + 1;
-      while (/\s/.test(text[colon] ?? '')) colon += 1;
-      if (text[colon] !== ':') {
-        inString = true;
-        continue;
-      }
-      let valueStart = colon + 1;
-      while (/\s/.test(text[valueStart] ?? '')) valueStart += 1;
-      if (text[valueStart] !== '{') return null;
-      let valueDepth = 0;
-      let valueInString = false;
-      let valueEscaped = false;
-      for (let valueEnd = valueStart; valueEnd < text.length; valueEnd += 1) {
-        const valueChar = text[valueEnd];
-        if (valueInString) {
-          if (valueEscaped) valueEscaped = false;
-          else if (valueChar === '\\') valueEscaped = true;
-          else if (valueChar === '"') valueInString = false;
-          continue;
-        }
-        if (valueChar === '"') valueInString = true;
-        else if (valueChar === '{') valueDepth += 1;
-        else if (valueChar === '}') {
-          valueDepth -= 1;
-          if (valueDepth === 0) return { start: index, end: valueEnd + 1 };
-        }
-      }
-      return null;
-    }
-    if (char === '{') depth += 1;
-    else if (char === '}') depth -= 1;
-  }
-  return null;
-}
-
-function formatScriptsProperty(scripts) {
-  return `"scripts": ${JSON.stringify(scripts, null, 2).replace(/\n/g, '\n  ')}`;
-}
-
-function writePackageScripts(packageJsonPath, scripts) {
-  const current = fs.readFileSync(packageJsonPath, 'utf8');
-  const property = formatScriptsProperty(scripts);
-  const range = findTopLevelObjectProperty(current, 'scripts');
-  if (range) {
-    fs.writeFileSync(packageJsonPath, `${current.slice(0, range.start)}${property}${current.slice(range.end)}`);
-    return;
-  }
-  const openBrace = current.indexOf('{');
-  if (openBrace < 0) {
-    fs.writeFileSync(packageJsonPath, `${JSON.stringify({ scripts }, null, 2)}\n`);
-    return;
-  }
-  const afterOpen = openBrace + 1;
-  const suffix = current.slice(afterOpen).replace(/^\s*/, '\n');
-  fs.writeFileSync(packageJsonPath, `${current.slice(0, afterOpen)}\n  ${property},${suffix}`);
-}
-
-function getGitPolicy(config) {
-  return {
-    allowMainBranchClaims: config.git?.allowMainBranchClaims ?? DEFAULT_GIT_POLICY.allowMainBranchClaims,
-    allowDetachedHead: config.git?.allowDetachedHead ?? DEFAULT_GIT_POLICY.allowDetachedHead,
-    allowedBranchPatterns: Array.isArray(config.git?.allowedBranchPatterns) ? config.git.allowedBranchPatterns.filter(Boolean) : [],
-  };
-}
-
-function applyGitPolicy(result, policy) {
-  const branch = result.branch;
-  if (!branch) return;
-  if (branch === 'detached' && !policy.allowDetachedHead) result.errors.push('Detached HEAD claims are disabled by git.allowDetachedHead.');
-  if ((branch === 'main' || branch === 'master') && !policy.allowMainBranchClaims) result.errors.push(`Claims on ${branch} are disabled by git.allowMainBranchClaims.`);
-  if (branch !== 'detached' && policy.allowedBranchPatterns.length && !policy.allowedBranchPatterns.some((pattern) => branchMatchesPattern(branch, pattern))) {
-    result.errors.push(`Branch ${branch} does not match git.allowedBranchPatterns: ${policy.allowedBranchPatterns.join(', ')}.`);
-  }
-}
-
-function getGitSnapshot(config = loadConfig().config) {
-  const result = { available: false, branch: null, upstream: null, ahead: null, behind: null, dirty: [], untracked: [], mergeState: false, rebaseState: false, policy: getGitPolicy(config), warnings: [], errors: [] };
-  const gitCandidates = process.platform === 'win32' ? ['git.exe', 'git.cmd', 'git'] : ['git'];
-  let gitCommand = null;
-  function git(args) {
-    const candidates = gitCommand ? [gitCommand] : gitCandidates;
-    let lastError = null;
-    for (const candidate of candidates) {
-      try {
-        const output = execFileSync(candidate, args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-        gitCommand = candidate;
-        return output;
-      } catch (error) {
-        lastError = error;
-        if (error?.code === 'ENOENT') continue;
-        throw error;
-      }
-    }
-    throw lastError ?? new Error('Git executable was not found.');
-  }
-  try { git(['rev-parse', '--is-inside-work-tree']); result.available = true; } catch { result.warnings.push('Not inside a Git worktree or Git is unavailable.'); return result; }
-  try { result.branch = git(['branch', '--show-current']) || 'detached'; } catch {}
-  try { result.upstream = git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']); } catch { result.warnings.push('No upstream branch configured.'); }
-  if (result.upstream) {
-    try { const [ahead, behind] = git(['rev-list', '--left-right', '--count', `${result.upstream}...HEAD`]).split(/\s+/).map((value) => Number.parseInt(value, 10)); result.ahead = Number.isFinite(ahead) ? ahead : null; result.behind = Number.isFinite(behind) ? behind : null; } catch {}
-  }
-  try {
-    const porcelain = git(['status', '--porcelain=v1']);
-    for (const line of porcelain.split(/\r?\n/).filter(Boolean)) {
-      const filePath = line.slice(3).trim();
-      if (line.startsWith('??')) result.untracked.push(filePath); else result.dirty.push(filePath);
-    }
-  } catch {}
-  const gitDir = (() => { try { return git(['rev-parse', '--git-dir']); } catch { return null; } })();
-  if (gitDir) {
-    const absoluteGitDir = path.isAbsolute(gitDir) ? gitDir : path.join(ROOT, gitDir);
-    result.mergeState = fs.existsSync(path.join(absoluteGitDir, 'MERGE_HEAD'));
-    result.rebaseState = fs.existsSync(path.join(absoluteGitDir, 'rebase-merge')) || fs.existsSync(path.join(absoluteGitDir, 'rebase-apply'));
-  }
-  if (result.behind && result.behind > 0) result.warnings.push(`Branch is behind upstream by ${result.behind} commit(s).`);
-  if (result.ahead && result.ahead > 0) result.warnings.push(`Branch has ${result.ahead} unpushed commit(s).`);
-  if (result.dirty.length) result.warnings.push(`Worktree has ${result.dirty.length} modified/staged file(s).`);
-  if (result.untracked.length) result.warnings.push(`Worktree has ${result.untracked.length} untracked file(s).`);
-  if (result.mergeState) result.errors.push('A merge is currently in progress. Resolve it before claiming work.');
-  if (result.rebaseState) result.errors.push('A rebase is currently in progress. Resolve it before claiming work.');
-  applyGitPolicy(result, result.policy);
-  return result;
-}
-
-function parseIsoMs(value) {
-  const parsed = Date.parse(String(value ?? ''));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function hoursSince(value) {
-  const parsed = parseIsoMs(value);
-  return parsed ? Math.max(0, (Date.now() - parsed) / 36e5) : null;
-}
-
 function taskSummary(task) {
   const owner = task.ownerId || task.suggestedOwnerId || 'unowned';
   const title = task.title || task.summary || task.id;
@@ -583,398 +306,6 @@ function readRecentMessages(messagesPath, limit = DEFAULT_RECENT_CONTEXT_LINES) 
       return `- ${line}`;
     }
   });
-}
-
-function getLockTimestamp(lock) {
-  return parseIsoMs(lock?.lockedAt) ?? parseIsoMs(lock?.updatedAt) ?? parseIsoMs(lock?.createdAt) ?? parseIsoMs(lock?.acquiredAt) ?? parseIsoMs(lock?.at);
-}
-
-function inspectRuntimeLock(staleMs = DEFAULT_RUNTIME_STALE_MS) {
-  const paths = getCoordinationPaths();
-  const lockPath = path.join(paths.runtimeRoot, 'state.lock.json');
-  const lockFile = readJsonDetailed(lockPath);
-  if (!lockFile.exists) return { exists: false, path: lockPath, stale: false, staleReasons: [], ageMs: null, pidAlive: null, lock: null };
-  if (lockFile.error) return { exists: true, path: lockPath, stale: true, staleReasons: ['malformed-json'], ageMs: null, pidAlive: null, lock: null, error: lockFile.error };
-  const timestamp = getLockTimestamp(lockFile.value);
-  const ageMs = timestamp === null ? null : Math.max(0, Date.now() - timestamp);
-  const pidAlive = isPidAlive(lockFile.value?.pid);
-  const staleByAge = ageMs !== null && ageMs >= staleMs;
-  const staleByPid = pidAlive === false;
-  return {
-    exists: true,
-    path: lockPath,
-    stale: Boolean(staleByAge || staleByPid),
-    staleReasons: [staleByAge ? `older-than-${staleMs}ms` : null, staleByPid ? 'pid-not-running' : null].filter(Boolean),
-    ageMs,
-    pidAlive,
-    lock: lockFile.value,
-  };
-}
-
-function getWatcherTimestamp(status) {
-  return parseIsoMs(status?.lastHeartbeatAt) ?? parseIsoMs(status?.updatedAt) ?? parseIsoMs(status?.lastSweepAt) ?? parseIsoMs(status?.startedAt);
-}
-
-function inspectWatcher(staleMs = DEFAULT_RUNTIME_STALE_MS) {
-  const paths = getCoordinationPaths();
-  const statusFile = readJsonDetailed(paths.watcherStatusPath);
-  if (!statusFile.exists) return { exists: false, path: paths.watcherStatusPath, stale: false, staleReasons: [], ageMs: null, pidAlive: null, status: null };
-  if (statusFile.error) return { exists: true, path: paths.watcherStatusPath, stale: true, staleReasons: ['malformed-json'], ageMs: null, pidAlive: null, status: null, error: statusFile.error };
-  const intervalMs = Number.parseInt(String(statusFile.value?.intervalMs ?? staleMs), 10);
-  const maxAgeMs = Math.max(Number.isFinite(intervalMs) ? intervalMs * 3 : staleMs, staleMs);
-  const timestamp = getWatcherTimestamp(statusFile.value);
-  const ageMs = timestamp === null ? null : Math.max(0, Date.now() - timestamp);
-  const pidAlive = isPidAlive(statusFile.value?.pid);
-  const staleByAge = ageMs !== null && ageMs >= maxAgeMs;
-  const staleByPid = pidAlive === false;
-  return {
-    exists: true,
-    path: paths.watcherStatusPath,
-    stale: Boolean(staleByAge || staleByPid || timestamp === null),
-    staleReasons: [
-      timestamp === null ? 'missing-timestamp' : null,
-      staleByAge ? `older-than-${maxAgeMs}ms` : null,
-      staleByPid ? 'pid-not-running' : null,
-    ].filter(Boolean),
-    ageMs,
-    pidAlive,
-    status: statusFile.value,
-  };
-}
-
-function getHeartbeatMaxAgeMs(heartbeat) {
-  const intervalMs = Number.parseInt(String(heartbeat?.intervalMs ?? 30000), 10);
-  return Math.max(Number.isFinite(intervalMs) ? intervalMs * 3 : DEFAULT_HEARTBEAT_TTL_MS, DEFAULT_HEARTBEAT_TTL_MS);
-}
-
-function inspectHeartbeatFile(filePath) {
-  const heartbeatFile = readJsonDetailed(filePath);
-  const agentId = path.basename(filePath, path.extname(filePath));
-  if (heartbeatFile.error) return { agentId, path: filePath, exists: true, stale: true, staleReasons: ['malformed-json'], ageMs: null, pidAlive: null, heartbeat: null, error: heartbeatFile.error };
-  const heartbeat = heartbeatFile.value;
-  const timestamp = parseIsoMs(heartbeat?.lastHeartbeatAt) ?? parseIsoMs(heartbeat?.updatedAt) ?? parseIsoMs(heartbeat?.startedAt);
-  const ageMs = timestamp === null ? null : Math.max(0, Date.now() - timestamp);
-  const maxAgeMs = getHeartbeatMaxAgeMs(heartbeat);
-  const pidAlive = isPidAlive(heartbeat?.pid);
-  const staleByAge = ageMs !== null && ageMs >= maxAgeMs;
-  const staleByPid = pidAlive === false;
-  return {
-    agentId: heartbeat?.agentId || agentId,
-    path: filePath,
-    exists: true,
-    stale: Boolean(staleByAge || staleByPid || timestamp === null),
-    staleReasons: [
-      timestamp === null ? 'missing-timestamp' : null,
-      staleByAge ? `older-than-${maxAgeMs}ms` : null,
-      staleByPid ? 'pid-not-running' : null,
-    ].filter(Boolean),
-    ageMs,
-    pidAlive,
-    heartbeat,
-  };
-}
-
-function inspectHeartbeats() {
-  const { heartbeatsRoot } = getCoordinationPaths();
-  if (!fs.existsSync(heartbeatsRoot)) return [];
-  return fs.readdirSync(heartbeatsRoot)
-    .filter((entry) => entry.endsWith('.json'))
-    .map((entry) => inspectHeartbeatFile(path.join(heartbeatsRoot, entry)));
-}
-
-function buildRuntimeDiagnostics(argv = []) {
-  const staleMs = getNumberFlag(argv, '--stale-ms', DEFAULT_RUNTIME_STALE_MS);
-  const lock = inspectRuntimeLock(staleMs);
-  const watcher = inspectWatcher(staleMs);
-  const heartbeats = inspectHeartbeats();
-  const staleHeartbeats = heartbeats.filter((entry) => entry.stale);
-  const problems = [];
-  const suggestions = [];
-  if (lock.stale) problems.push(`Runtime lock is stale: ${lock.staleReasons.join(', ')}`);
-  if (watcher.stale) problems.push(`Watcher status is stale: ${watcher.staleReasons.join(', ')}`);
-  if (staleHeartbeats.length) problems.push(`${staleHeartbeats.length} stale heartbeat file(s) found.`);
-  if (!watcher.exists) suggestions.push('Start the watcher with watch-start if automatic stale-work recovery is desired.');
-  if (lock.stale || watcher.stale || staleHeartbeats.length) suggestions.push('Run cleanup-runtime --apply after confirming no coordinator command is still running.');
-  return { ok: problems.length === 0, staleMs, coordinationRoot: getCoordinationPaths().coordinationRoot, lock, watcher, heartbeats, problems, suggestions };
-}
-
-function printRuntimeDiagnostics(report, json = false) {
-  if (json) {
-    console.log(JSON.stringify(report, null, 2));
-    return;
-  }
-  console.log(`# Runtime Diagnostics\n\nCoordination root: ${normalizePath(report.coordinationRoot) || report.coordinationRoot}`);
-  console.log(`Lock: ${report.lock.exists ? (report.lock.stale ? `stale (${report.lock.staleReasons.join(', ')})` : 'present') : 'missing'}`);
-  console.log(`Watcher: ${report.watcher.exists ? (report.watcher.stale ? `stale (${report.watcher.staleReasons.join(', ')})` : 'present') : 'missing'}`);
-  console.log(`Heartbeats: ${report.heartbeats.length} file(s), ${report.heartbeats.filter((entry) => entry.stale).length} stale`);
-  console.log('\nProblems:');
-  console.log(report.problems.length ? report.problems.map((entry) => `- ${entry}`).join('\n') : '- none');
-  console.log('\nSuggestions:');
-  console.log(report.suggestions.length ? report.suggestions.map((entry) => `- ${entry}`).join('\n') : '- none');
-}
-
-function runWatchDiagnose(argv) {
-  const report = buildRuntimeDiagnostics(argv);
-  printRuntimeDiagnostics(report, hasFlag(argv, '--json'));
-  return report.ok ? 0 : 1;
-}
-
-function runCleanupRuntime(argv) {
-  const apply = hasFlag(argv, '--apply');
-  const json = hasFlag(argv, '--json');
-  const report = buildRuntimeDiagnostics(argv);
-  const candidates = [];
-  if (report.lock.exists && report.lock.stale) candidates.push({ kind: 'lock', path: report.lock.path, reasons: report.lock.staleReasons });
-  if (report.watcher.exists && report.watcher.stale) candidates.push({ kind: 'watcher-status', path: report.watcher.path, reasons: report.watcher.staleReasons });
-  for (const heartbeat of report.heartbeats.filter((entry) => entry.stale)) candidates.push({ kind: 'heartbeat', path: heartbeat.path, reasons: heartbeat.staleReasons });
-  const removed = [];
-  if (apply) {
-    for (const candidate of candidates) {
-      fs.rmSync(candidate.path, { force: true });
-      removed.push(candidate);
-    }
-  }
-  const result = { ok: true, applied: apply, candidates, removed };
-  if (json) console.log(JSON.stringify(result, null, 2));
-  else {
-    console.log(apply ? 'Runtime cleanup applied.' : 'Runtime cleanup dry run.');
-    console.log(candidates.length ? candidates.map((entry) => `- ${entry.kind}: ${normalizePath(entry.path) || entry.path} (${entry.reasons.join(', ')})`).join('\n') : '- nothing to clean');
-  }
-  return 0;
-}
-
-function getConfiguredAgentIds() {
-  const { config } = loadConfig();
-  return Array.isArray(config.agentIds) && config.agentIds.length ? config.agentIds.filter((entry) => typeof entry === 'string' && entry.trim()) : DEFAULT_AGENT_IDS;
-}
-
-function createStarterBoard() {
-  const { config } = loadConfig();
-  const timestamp = nowIso();
-  return {
-    version: 1,
-    projectName: config.projectName || path.basename(ROOT),
-    agents: getConfiguredAgentIds().map((id) => ({ id, status: 'idle', taskId: null, updatedAt: timestamp })),
-    tasks: [],
-    resources: [],
-    incidents: [],
-    accessRequests: [],
-    updatedAt: timestamp,
-  };
-}
-
-function readBoardDetailed() {
-  const { boardPath } = getCoordinationPaths();
-  return { boardPath, ...readJsonDetailed(boardPath) };
-}
-
-function countTasksByStatus(tasks) {
-  const counts = {};
-  for (const task of tasks) counts[task?.status || 'unknown'] = (counts[task?.status || 'unknown'] ?? 0) + 1;
-  return counts;
-}
-
-function inspectBoard() {
-  const { boardPath, exists, value: board, error } = readBoardDetailed();
-  const findings = [];
-  const warnings = [];
-  if (!exists) return { ok: false, boardPath, exists, findings: ['board.json does not exist. Run doctor --fix or init first.'], warnings, counts: {}, tasks: 0 };
-  if (error) return { ok: false, boardPath, exists, malformed: true, findings: [`board.json is not valid JSON: ${error}`], warnings, counts: {}, tasks: 0 };
-  if (!board || typeof board !== 'object' || Array.isArray(board)) return { ok: false, boardPath, exists, findings: ['board.json must contain an object.'], warnings, counts: {}, tasks: 0 };
-  const tasks = Array.isArray(board.tasks) ? board.tasks : [];
-  const agents = Array.isArray(board.agents) ? board.agents : [];
-  if (!Array.isArray(board.tasks)) warnings.push('tasks is missing or not an array.');
-  if (!Array.isArray(board.agents)) warnings.push('agents is missing or not an array.');
-  for (const key of ['resources', 'incidents', 'accessRequests']) {
-    if (key in board && !Array.isArray(board[key])) warnings.push(`${key} is not an array.`);
-  }
-  const taskIds = new Set();
-  for (const task of tasks) {
-    if (!task || typeof task !== 'object' || Array.isArray(task)) {
-      findings.push('A task entry is not an object.');
-      continue;
-    }
-    if (!task.id || typeof task.id !== 'string') {
-      findings.push('A task is missing a string id.');
-      continue;
-    }
-    if (taskIds.has(task.id)) findings.push(`Task id "${task.id}" is duplicated.`);
-    taskIds.add(task.id);
-    if (!VALID_TASK_STATUSES.has(task.status)) findings.push(`Task "${task.id}" has unknown status "${task.status}".`);
-    if (ACTIVE_STATUSES.has(task.status) && !task.ownerId) findings.push(`Task "${task.id}" is ${task.status} but has no owner.`);
-  }
-  const agentIds = new Set();
-  for (const agent of agents) {
-    if (!agent || typeof agent !== 'object' || Array.isArray(agent)) {
-      findings.push('An agent entry is not an object.');
-      continue;
-    }
-    if (!agent.id || typeof agent.id !== 'string') {
-      findings.push('An agent is missing a string id.');
-      continue;
-    }
-    if (agentIds.has(agent.id)) findings.push(`Agent id "${agent.id}" is duplicated.`);
-    agentIds.add(agent.id);
-    if (agent.taskId && !taskIds.has(agent.taskId)) findings.push(`Agent "${agent.id}" points to missing task "${agent.taskId}".`);
-  }
-  for (const task of tasks) {
-    if (!task?.ownerId) continue;
-    if (!agentIds.has(task.ownerId)) findings.push(`Task "${task.id}" is owned by unknown agent "${task.ownerId}".`);
-  }
-  const overlapFindings = [];
-  const claimed = tasks.filter((task) => task?.ownerId && ACTIVE_STATUSES.has(task.status) && Array.isArray(task.claimedPaths));
-  for (let leftIndex = 0; leftIndex < claimed.length; leftIndex += 1) {
-    for (let rightIndex = leftIndex + 1; rightIndex < claimed.length; rightIndex += 1) {
-      const overlap = claimed[leftIndex].claimedPaths.find((left) => claimed[rightIndex].claimedPaths.includes(left));
-      if (overlap) overlapFindings.push(`Active path overlap between "${claimed[leftIndex].id}" and "${claimed[rightIndex].id}" on "${overlap}".`);
-    }
-  }
-  findings.push(...overlapFindings);
-  return { ok: findings.length === 0, boardPath, exists, malformed: false, findings, warnings, counts: countTasksByStatus(tasks), tasks: tasks.length, agents: agents.length, updatedAt: board.updatedAt ?? null };
-}
-
-function printBoardInspection(report, json = false) {
-  if (json) {
-    console.log(JSON.stringify(report, null, 2));
-    return;
-  }
-  console.log(`# Board Inspection\n\nBoard: ${normalizePath(report.boardPath) || report.boardPath}`);
-  console.log(`Tasks: ${report.tasks}`);
-  console.log(`Agents: ${report.agents ?? 0}`);
-  console.log(`Counts: ${Object.entries(report.counts).map(([key, value]) => `${key}=${value}`).join(', ') || 'none'}`);
-  console.log('\nFindings:');
-  console.log(report.findings.length ? report.findings.map((entry) => `- ${entry}`).join('\n') : '- none');
-  console.log('\nWarnings:');
-  console.log(report.warnings.length ? report.warnings.map((entry) => `- ${entry}`).join('\n') : '- none');
-}
-
-function repairBoardObject(board) {
-  const repaired = board && typeof board === 'object' && !Array.isArray(board) ? JSON.parse(JSON.stringify(board)) : createStarterBoard();
-  const changes = [];
-  const timestamp = nowIso();
-  if (!Number.isInteger(repaired.version)) { repaired.version = 1; changes.push('set version'); }
-  if (typeof repaired.projectName !== 'string' || !repaired.projectName.trim()) { repaired.projectName = loadConfig().config.projectName || path.basename(ROOT); changes.push('set projectName'); }
-  for (const key of ['tasks', 'resources', 'incidents', 'accessRequests']) {
-    if (!Array.isArray(repaired[key])) { repaired[key] = []; changes.push(`initialized ${key}`); }
-  }
-  if (!Array.isArray(repaired.agents)) { repaired.agents = []; changes.push('initialized agents'); }
-  for (const agentId of getConfiguredAgentIds()) {
-    if (!repaired.agents.some((agent) => agent?.id === agentId)) {
-      repaired.agents.push({ id: agentId, status: 'idle', taskId: null, updatedAt: timestamp });
-      changes.push(`added agent ${agentId}`);
-    }
-  }
-  const agentIds = new Set(repaired.agents.map((agent) => agent?.id).filter(Boolean));
-  const taskIds = new Set();
-  for (const task of repaired.tasks) {
-    if (!task || typeof task !== 'object' || Array.isArray(task) || typeof task.id !== 'string' || !task.id) continue;
-    taskIds.add(task.id);
-    if (!VALID_TASK_STATUSES.has(task.status)) {
-      if (!task.status) { task.status = 'planned'; changes.push(`set missing status on ${task.id}`); }
-    }
-    for (const key of ['claimedPaths', 'dependencies', 'waitingOn', 'verification', 'verificationLog', 'notes', 'relevantDocs']) {
-      if (!Array.isArray(task[key])) { task[key] = []; changes.push(`initialized ${task.id}.${key}`); }
-    }
-    if (!('docsReviewedAt' in task)) { task.docsReviewedAt = null; changes.push(`initialized ${task.id}.docsReviewedAt`); }
-    if (!('lastOwnerId' in task)) { task.lastOwnerId = null; changes.push(`initialized ${task.id}.lastOwnerId`); }
-    if (task.ownerId && !agentIds.has(task.ownerId)) { task.lastOwnerId = task.ownerId; task.ownerId = null; task.status = task.status === 'active' ? 'handoff' : task.status; changes.push(`cleared unknown owner on ${task.id}`); }
-  }
-  for (const agent of repaired.agents) {
-    if (!agent || typeof agent !== 'object' || !agent.id) continue;
-    if (!agent.status) { agent.status = agent.taskId ? 'active' : 'idle'; changes.push(`set status on ${agent.id}`); }
-    if (agent.taskId && !taskIds.has(agent.taskId)) { agent.taskId = null; agent.status = 'idle'; changes.push(`cleared missing task pointer on ${agent.id}`); }
-    if (!agent.updatedAt) agent.updatedAt = timestamp;
-  }
-  if (changes.length) repaired.updatedAt = timestamp;
-  return { board: repaired, changes };
-}
-
-function snapshotBoard(label = 'snapshot') {
-  const { boardPath, snapshotsRoot } = getCoordinationPaths();
-  if (!fs.existsSync(boardPath)) return null;
-  fs.mkdirSync(snapshotsRoot, { recursive: true });
-  const snapshotPath = path.join(snapshotsRoot, `board-${fileTimestamp()}-${label}.json`);
-  fs.copyFileSync(boardPath, snapshotPath);
-  return snapshotPath;
-}
-
-function runInspectBoard(argv) {
-  const report = inspectBoard();
-  printBoardInspection(report, hasFlag(argv, '--json'));
-  return report.ok ? 0 : 1;
-}
-
-function runRepairBoard(argv) {
-  const apply = hasFlag(argv, '--apply');
-  const json = hasFlag(argv, '--json');
-  const { exists, value: board, error } = readBoardDetailed();
-  if (error) {
-    const result = { ok: false, applied: false, error: `Cannot repair malformed JSON automatically: ${error}` };
-    if (json) console.log(JSON.stringify(result, null, 2));
-    else console.error(result.error);
-    return 1;
-  }
-  const sourceBoard = exists ? board : createStarterBoard();
-  const repair = repairBoardObject(sourceBoard);
-  const result = { ok: true, applied: apply, createdBoard: !exists, changes: exists ? repair.changes : ['created board'], snapshotPath: null };
-  if (apply) {
-    result.snapshotPath = snapshotBoard('before-repair');
-    writeJson(getCoordinationPaths().boardPath, repair.board);
-  }
-  if (json) console.log(JSON.stringify(result, null, 2));
-  else {
-    console.log(apply ? 'Board repair applied.' : 'Board repair dry run.');
-    console.log(result.changes.length ? result.changes.map((entry) => `- ${entry}`).join('\n') : '- no changes needed');
-    if (result.snapshotPath) console.log(`Snapshot: ${normalizePath(result.snapshotPath) || result.snapshotPath}`);
-  }
-  return 0;
-}
-
-function listBoardSnapshots() {
-  const { snapshotsRoot } = getCoordinationPaths();
-  if (!fs.existsSync(snapshotsRoot)) return [];
-  return fs.readdirSync(snapshotsRoot)
-    .filter((entry) => /^board-.*\.json$/.test(entry))
-    .map((entry) => path.join(snapshotsRoot, entry))
-    .sort();
-}
-
-function runRollbackState(argv) {
-  const json = hasFlag(argv, '--json');
-  const apply = hasFlag(argv, '--apply');
-  const snapshots = listBoardSnapshots();
-  if (hasFlag(argv, '--list') || !getFlagValue(argv, '--to', '')) {
-    const result = { snapshots };
-    if (json) console.log(JSON.stringify(result, null, 2));
-    else console.log(snapshots.length ? snapshots.map((entry) => `- ${normalizePath(entry) || entry}`).join('\n') : 'No board snapshots found.');
-    return 0;
-  }
-  const target = getFlagValue(argv, '--to', '');
-  const snapshotPath = target === 'latest' ? snapshots.at(-1) : resolveRepoPath(target, target);
-  if (!snapshotPath || !fs.existsSync(snapshotPath)) {
-    const message = `Snapshot not found: ${target}`;
-    if (json) console.log(JSON.stringify({ ok: false, error: message }, null, 2));
-    else console.error(message);
-    return 1;
-  }
-  const parsed = readJsonDetailed(snapshotPath);
-  if (parsed.error) {
-    const message = `Snapshot is not valid JSON: ${parsed.error}`;
-    if (json) console.log(JSON.stringify({ ok: false, error: message }, null, 2));
-    else console.error(message);
-    return 1;
-  }
-  const result = { ok: true, applied: apply, snapshotPath, backupPath: null };
-  if (apply) {
-    result.backupPath = snapshotBoard('before-rollback');
-    writeJson(getCoordinationPaths().boardPath, parsed.value);
-  }
-  if (json) console.log(JSON.stringify(result, null, 2));
-  else {
-    console.log(apply ? `Rolled back board from ${normalizePath(snapshotPath) || snapshotPath}.` : `Rollback dry run: ${normalizePath(snapshotPath) || snapshotPath}`);
-    if (result.backupPath) console.log(`Previous board snapshot: ${normalizePath(result.backupPath) || result.backupPath}`);
-  }
-  return 0;
 }
 
 function latestVerificationOutcome(task, check) {
@@ -1688,7 +1019,7 @@ function buildPrSummary(argv = []) {
     title: getFlagValue(argv, '--title', board.projectName || path.basename(ROOT)),
     boardUpdatedAt: board.updatedAt || null,
     tasks: describedTasks,
-    git: getGitSnapshot(loadConfig().config),
+    git: getGitSnapshot({ root: ROOT, config: loadConfig().config }),
     risks,
     followUps: activeFollowUps,
   };
@@ -1778,7 +1109,7 @@ function doctorJson({ includeFixes = false } = {}) {
   const { packageJson } = loadPackageJson();
   const configSuggestions = buildConfigSuggestions(config, configValidation, packageJson);
   const paths = getCoordinationPaths();
-  const git = getGitSnapshot(config);
+  const git = getGitSnapshot({ root: ROOT, config });
   const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, configSuggestions, git, files: { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) } };
   if (includeFixes) result.fixes = fixes;
   return result;
@@ -1810,7 +1141,8 @@ function runConfigValidation({ json = false } = {}) {
 }
 
 function runGitPreflightForClaim() {
-  const git = getGitSnapshot();
+  const { config } = loadConfig();
+  const git = getGitSnapshot({ root: ROOT, config });
   for (const warning of git.warnings) console.warn(`git warning: ${warning}`);
   for (const error of git.errors) console.error(`git error: ${error}`);
   if (git.branch) console.warn(`git branch: ${git.branch}${git.upstream ? ` tracking ${git.upstream}` : ''}`);
@@ -1970,12 +1302,12 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   } else if (commandName === 'watch-start') status = runWatchStart(commandArgs, normalizedCoordinatorPath);
   else if (commandName === 'lock-status' || commandName === 'lock-clear') status = runLockCommand(commandName, commandArgs);
   else if (VALID_LIFECYCLE_COMMANDS.has(commandName)) status = runLifecycle(commandName, commandArgs, normalizedCoordinatorPath);
-  else if (commandName === 'watch-diagnose') status = runWatchDiagnose(commandArgs);
-  else if (commandName === 'cleanup-runtime') status = runCleanupRuntime(commandArgs);
+  else if (commandName === 'watch-diagnose') status = runWatchDiagnose(commandArgs, getCoordinationPaths());
+  else if (commandName === 'cleanup-runtime') status = runCleanupRuntime(commandArgs, getCoordinationPaths());
   else if (commandName === 'release-check') status = runReleaseCheck(commandArgs);
-  else if (commandName === 'inspect-board') status = runInspectBoard(commandArgs);
-  else if (commandName === 'repair-board') status = runRepairBoard(commandArgs);
-  else if (commandName === 'rollback-state') status = runRollbackState(commandArgs);
+  else if (commandName === 'inspect-board') status = runInspectBoard(commandArgs, getBoardMaintenanceContext());
+  else if (commandName === 'repair-board') status = runRepairBoard(commandArgs, getBoardMaintenanceContext());
+  else if (commandName === 'rollback-state') status = runRollbackState(commandArgs, getBoardMaintenanceContext());
   else if (commandName === 'run-check') status = runCheckCommand(commandArgs);
   else if (commandName === 'artifacts') status = runArtifactsCommand(commandArgs);
   else if (commandName === 'graph') status = runDependencyGraph(commandArgs);

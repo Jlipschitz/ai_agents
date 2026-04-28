@@ -1,58 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..');
-const cliPath = path.join(repoRoot, 'scripts', 'agent-coordination.mjs');
-const validConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, 'agent-coordination.config.json'), 'utf8'));
+import { coordinationRoot, makeWorkspace as makeTestWorkspace, repoRoot, runCli, runWithoutCoordinationEnv, writeBoard } from './helpers/workspace.mjs';
 
 function makeWorkspace() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-layer-'));
-  fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'agent-coordination.config.json'), `${JSON.stringify(validConfig, null, 2)}\n`);
-  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'layer-test', scripts: {} }, null, 2));
-  return root;
-}
-
-function coordinationRoot(root) {
-  return path.join(root, 'coordination');
-}
-
-function writeBoard(root, board) {
-  fs.mkdirSync(coordinationRoot(root), { recursive: true });
-  fs.writeFileSync(path.join(coordinationRoot(root), 'board.json'), JSON.stringify(board, null, 2));
-  fs.writeFileSync(path.join(coordinationRoot(root), 'journal.md'), '# Journal\n\n');
-  fs.writeFileSync(path.join(coordinationRoot(root), 'messages.ndjson'), '');
+  return makeTestWorkspace({ prefix: 'ai-agents-layer-', packageName: 'layer-test' }).root;
 }
 
 function run(root, args) {
-  return spawnSync(process.execPath, [cliPath, ...args], {
-    cwd: root,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      AGENT_COORDINATION_ROOT: coordinationRoot(root),
-      AGENT_COORDINATION_CONFIG: path.join(root, 'agent-coordination.config.json'),
-    },
-  });
-}
-
-function runWithoutCoordinationEnv(cli, root, args) {
-  const env = { ...process.env };
-  delete env.AGENT_COORDINATION_ROOT;
-  delete env.AGENT_COORDINATION_DIR;
-  delete env.AGENT_COORDINATION_CONFIG;
-  return spawnSync(process.execPath, [cli, ...args], {
-    cwd: root,
-    encoding: 'utf8',
-    env,
-  });
+  return runCli(root, args);
 }
 
 test('doctor --fix creates starter runtime files', () => {
@@ -154,8 +112,7 @@ test('doctor --json includes config improvement suggestions', () => {
 });
 
 test('doctor --json --fix reports post-fix state', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-layer-empty-'));
-  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'layer-empty-test', scripts: {} }, null, 2));
+  const root = makeTestWorkspace({ prefix: 'ai-agents-layer-empty-', packageName: 'layer-empty-test', config: false }).root;
   const result = run(root, ['doctor', '--json', '--fix']);
 
   assert.equal(result.status, 0, result.stderr);

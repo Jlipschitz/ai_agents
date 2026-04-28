@@ -1,45 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..');
-const cliPath = path.join(repoRoot, 'scripts', 'agent-coordination.mjs');
-const validConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, 'agent-coordination.config.json'), 'utf8'));
+import { makeWorkspace as makeTestWorkspace, runCli, writeBoard } from './helpers/workspace.mjs';
 
 function makeWorkspace() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-roadmap-'));
-  const coordinationRoot = path.join(root, 'coordination');
-  fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
-  fs.mkdirSync(path.join(coordinationRoot, 'runtime', 'agent-heartbeats'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'agent-coordination.config.json'), `${JSON.stringify(validConfig, null, 2)}\n`);
-  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'roadmap-test', scripts: {} }, null, 2));
-  return { root, coordinationRoot };
-}
-
-function writeBoard(root, board) {
-  const coordinationRoot = path.join(root, 'coordination');
-  fs.mkdirSync(coordinationRoot, { recursive: true });
-  fs.writeFileSync(path.join(coordinationRoot, 'board.json'), `${JSON.stringify(board, null, 2)}\n`);
-  fs.writeFileSync(path.join(coordinationRoot, 'journal.md'), '# Journal\n\n');
-  fs.writeFileSync(path.join(coordinationRoot, 'messages.ndjson'), '');
+  return makeTestWorkspace({ prefix: 'ai-agents-roadmap-', packageName: 'roadmap-test', heartbeatRuntime: true });
 }
 
 function run(root, coordinationRoot, args) {
-  return spawnSync(process.execPath, [cliPath, ...args], {
-    cwd: root,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      AGENT_COORDINATION_ROOT: coordinationRoot,
-      AGENT_COORDINATION_CONFIG: path.join(root, 'agent-coordination.config.json'),
-    },
-  });
+  return runCli(root, args, { coordinationRoot });
 }
 
 test('watch-diagnose reports stale runtime state and cleanup-runtime removes it when applied', () => {

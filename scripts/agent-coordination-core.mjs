@@ -5,6 +5,12 @@ import { execFileSync } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 
+import { createCorePathAnalysis } from './lib/core-path-analysis.mjs';
+import { ensureDirectory, fileExists, isPidAlive, nowIso } from './lib/file-utils.mjs';
+import { normalizePath, resolveRepoPath } from './lib/path-utils.mjs';
+import { createSupportOperationCommands } from './lib/support-operation-commands.mjs';
+import { createTaskCompletionCommands } from './lib/task-completion-commands.mjs';
+
 const ROOT = process.cwd();
 const COORDINATION_ROOT_OVERRIDE = String(process.env.AGENT_COORDINATION_ROOT ?? '').trim();
 const COORDINATION_DIR_OVERRIDE = String(process.env.AGENT_COORDINATION_DIR ?? '').trim();
@@ -241,6 +247,66 @@ const PLANNING_AGENT_SIZING = {
 const DOMAIN_RULES = normalizeDomainRules(AGENT_CONFIG.domainRules, DEFAULT_DOMAIN_RULES);
 const APP_NOTE_CATEGORIES = new Set(normalizeConfigStringArray(AGENT_CONFIG.notes?.categories, DEFAULT_APP_NOTE_CATEGORIES));
 const APP_NOTES_SECTION_HEADING = normalizeConfigString(AGENT_CONFIG.notes?.sectionHeading, 'Agent-Maintained Notes');
+const {
+  classifyGitPaths,
+  collectMergeRiskWarnings,
+  getGitChangedPaths,
+  hasVisualCheck,
+  hasVisualImpact,
+  hasVisualSuiteScope,
+  inferDomainsFromPaths,
+  isVisualSuitePath,
+  mergeVerificationChecks,
+  pathStartsWith,
+} = createCorePathAnalysis({
+  root: ROOT,
+  visualSuitePaths: VISUAL_SUITE_PATHS,
+  visualImpactPaths: VISUAL_IMPACT_PATHS,
+  visualImpactFiles: VISUAL_IMPACT_FILES,
+  sharedRiskPaths: SHARED_RISK_PATHS,
+  pathClassification: PATH_CLASSIFICATION,
+  coordinationLabel: COORDINATION_LABEL,
+  domainRules: DOMAIN_RULES,
+  ensureTaskDefaults,
+});
+const { doneCommand, releaseCommand, verifyCommand } = createTaskCompletionCommands({
+  root: ROOT,
+  artifactRoots: ARTIFACT_ROOTS,
+  appAgentNotesDoc: APP_AGENT_NOTES_DOC,
+  appendJournalLine,
+  cliRunLabel,
+  ensureTask,
+  getBoard,
+  getCommandAgent,
+  getMissingVisualPassingChecks,
+  note,
+  saveBoard,
+  withMutationLock,
+});
+const {
+  closeIncidentCommand,
+  completeAccessCommand,
+  denyAccessCommand,
+  grantAccessCommand,
+  joinIncidentCommand,
+  releaseResourceCommand,
+  requestAccessCommand,
+  reserveResourceCommand,
+  startIncidentCommand,
+} = createSupportOperationCommands({
+  appendJournalLine,
+  ensureTask,
+  findActiveAccessRequestByScope,
+  getAccessRequest,
+  getAgent,
+  getBoard,
+  getCommandAgent,
+  getTask,
+  note,
+  saveBoard,
+  slugify,
+  withMutationLock,
+});
 
 function resolveCliEntrypoint() {
   const override = String(process.env.AGENT_COORDINATION_CLI_ENTRYPOINT ?? '').trim();
@@ -263,11 +329,6 @@ function resolveCliEntrypoint() {
   }
 
   return 'agents';
-}
-
-function resolveRepoPath(value, fallbackRelativePath) {
-  const normalized = String(value ?? '').trim() || fallbackRelativePath;
-  return path.isAbsolute(normalized) ? normalized : path.resolve(ROOT, normalized);
 }
 
 function cliRunLabel(commandSuffix = '') {
@@ -346,43 +407,6 @@ function normalizeDomainRules(value, fallback = DEFAULT_DOMAIN_RULES) {
 
 let docsLibraryCache = null;
 let currentCommandName = 'unknown';
-
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function ensureDirectory(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
-}
-
-function fileExists(filePath) {
-  return fs.existsSync(filePath);
-}
-
-function isPidAlive(pid) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error?.code === 'EPERM';
-  }
-}
-
-function normalizePath(inputPath) {
-  if (!inputPath) {
-    return '';
-  }
-
-  let normalized = inputPath.trim().replaceAll('\\', '/');
-
-  if (path.isAbsolute(normalized)) {
-    normalized = path.relative(ROOT, normalized).replaceAll('\\', '/');
-  }
-
-  normalized = normalized.replace(/^\.\/+/, '').replace(/^\/+/, '').replace(/\/{2,}/g, '/');
-
-  return normalized;
-}
 
 function normalizePaths(inputs) {
   return [...new Set(inputs.map(normalizePath).filter(Boolean))].sort();
@@ -1996,350 +2020,6 @@ Set AGENT_TERMINAL_ID in each terminal for stricter same-agent protection when y
 `);
 }
 
-function execGit(args) {
-  const candidates = process.platform === 'win32' ? ['git.exe', 'git.cmd', 'git'] : ['git'];
-
-  for (const candidate of candidates) {
-    try {
-      return execFileSync(candidate, args, {
-        cwd: ROOT,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-      }).trim();
-    } catch (error) {
-      if (error?.code === 'ENOENT') {
-        continue;
-      }
-    }
-  }
-
-  return null;
-}
-
-function parseGitStatusPath(line) {
-  const status = line.slice(0, 2);
-  const rawPath = line.slice(3).trim();
-  const renameSeparator = ' -> ';
-
-  if ((status.includes('R') || status.includes('C')) && rawPath.includes(renameSeparator)) {
-    return rawPath.slice(rawPath.lastIndexOf(renameSeparator) + renameSeparator.length);
-  }
-
-  return rawPath;
-}
-
-function sliceAfterNthSpace(value, count) {
-  let index = -1;
-
-  for (let seen = 0; seen < count; seen += 1) {
-    index = value.indexOf(' ', index + 1);
-    if (index === -1) {
-      return '';
-    }
-  }
-
-  return value.slice(index + 1);
-}
-
-function parseGitStatusPorcelainV2(output) {
-  const records = output.split('\0');
-  const paths = [];
-
-  for (let index = 0; index < records.length; index += 1) {
-    const record = records[index];
-    if (!record || record.startsWith('#')) {
-      continue;
-    }
-
-    const recordType = record[0];
-    if (recordType === '1') {
-      paths.push(sliceAfterNthSpace(record, 8));
-      continue;
-    }
-
-    if (recordType === '2') {
-      paths.push(sliceAfterNthSpace(record, 9));
-      index += 1;
-      continue;
-    }
-
-    if (recordType === 'u') {
-      paths.push(sliceAfterNthSpace(record, 10));
-      continue;
-    }
-
-    if (recordType === '?') {
-      paths.push(record.slice(2));
-    }
-  }
-
-  return normalizePaths(paths);
-}
-
-function getGitChangedPaths() {
-  const porcelainV2Output = execGit(['status', '--porcelain=v2', '-z']);
-
-  if (porcelainV2Output != null) {
-    return { available: true, paths: parseGitStatusPorcelainV2(porcelainV2Output) };
-  }
-
-  const shortOutput = execGit(['status', '--short']);
-
-  if (shortOutput == null) {
-    return { available: false, paths: [] };
-  }
-
-  const paths = shortOutput
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map((line) => normalizePath(parseGitStatusPath(line)))
-    .filter(Boolean);
-
-  return { available: true, paths: normalizePaths(paths) };
-}
-
-function isSourceFile(filePath) {
-  return ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'].includes(path.extname(filePath).toLowerCase());
-}
-
-function pathStartsWith(filePath, prefix) {
-  return filePath === prefix || filePath.startsWith(`${prefix}/`);
-}
-
-function isVisualSuitePath(filePath) {
-  return VISUAL_SUITE_PATHS.some((prefix) => pathStartsWith(filePath, prefix));
-}
-
-function isVisualImpactPath(filePath) {
-  return (
-    isVisualSuitePath(filePath) ||
-    VISUAL_IMPACT_PATHS.some((prefix) => pathStartsWith(filePath, prefix)) ||
-    VISUAL_IMPACT_FILES.includes(filePath)
-  );
-}
-
-function hasVisualImpact(paths) {
-  return normalizePaths(paths).some((filePath) => isVisualImpactPath(filePath));
-}
-
-function hasVisualSuiteScope(paths) {
-  return normalizePaths(paths).some((filePath) => isVisualSuitePath(filePath));
-}
-
-function hasVisualCheck(checks) {
-  return checks.some((check) => check === 'visual' || check.startsWith('visual:'));
-}
-
-function mergeVerificationChecks(existingChecks, requiredChecks) {
-  return [...new Set([...(existingChecks ?? []), ...requiredChecks])];
-}
-
-function isSharedRiskPath(filePath) {
-  return SHARED_RISK_PATHS.some((prefix) => pathStartsWith(filePath, prefix));
-}
-
-function collectFilesFromClaimedPath(claimedPath, result = []) {
-  const absolutePath = path.join(ROOT, claimedPath);
-
-  if (!fileExists(absolutePath)) {
-    return result;
-  }
-
-  const stat = fs.statSync(absolutePath);
-
-  if (stat.isFile()) {
-    if (isSourceFile(claimedPath)) {
-      result.push(normalizePath(claimedPath));
-    }
-    return result;
-  }
-
-  for (const entry of fs.readdirSync(absolutePath, { withFileTypes: true })) {
-    const nextPath = normalizePath(path.join(claimedPath, entry.name));
-    if (entry.isDirectory()) {
-      collectFilesFromClaimedPath(nextPath, result);
-      continue;
-    }
-    if (entry.isFile() && isSourceFile(nextPath)) {
-      result.push(nextPath);
-    }
-  }
-
-  return result;
-}
-
-function resolveImportPath(fromFile, specifier) {
-  const candidates = [];
-
-  if (specifier.startsWith('@/')) {
-    candidates.push(path.join(ROOT, specifier.slice(2)));
-  } else if (specifier.startsWith('.')) {
-    candidates.push(path.resolve(path.dirname(path.join(ROOT, fromFile)), specifier));
-  } else {
-    return null;
-  }
-
-  for (const candidate of candidates) {
-    const variants = [
-      candidate,
-      `${candidate}.ts`,
-      `${candidate}.tsx`,
-      `${candidate}.js`,
-      `${candidate}.jsx`,
-      `${candidate}.mjs`,
-      `${candidate}.cjs`,
-      path.join(candidate, 'index.ts'),
-      path.join(candidate, 'index.tsx'),
-      path.join(candidate, 'index.js'),
-      path.join(candidate, 'index.jsx'),
-      path.join(candidate, 'index.mjs'),
-      path.join(candidate, 'index.cjs'),
-    ];
-
-    for (const variant of variants) {
-      if (fileExists(variant) && fs.statSync(variant).isFile()) {
-        return normalizePath(path.relative(ROOT, variant));
-      }
-    }
-  }
-
-  return null;
-}
-
-function parseLocalImports(filePath) {
-  const absolutePath = path.join(ROOT, filePath);
-  if (!fileExists(absolutePath)) {
-    return [];
-  }
-
-  const content = fs.readFileSync(absolutePath, 'utf8');
-  const matches = [...content.matchAll(/from\s+['"]([^'"]+)['"]|import\s+['"]([^'"]+)['"]/g)];
-  const imports = matches
-    .map((match) => match[1] ?? match[2] ?? '')
-    .map((specifier) => resolveImportPath(filePath, specifier))
-    .filter(Boolean);
-
-  return normalizePaths(imports);
-}
-
-function buildTaskFileSet(task) {
-  return normalizePaths(task.claimedPaths.flatMap((claimedPath) => collectFilesFromClaimedPath(claimedPath)));
-}
-
-function collectMergeRiskWarnings(candidateTask, otherTasks) {
-  const warnings = [];
-  ensureTaskDefaults(candidateTask);
-  const candidateFiles = buildTaskFileSet(candidateTask);
-  const candidateImports = new Map(candidateFiles.map((filePath) => [filePath, parseLocalImports(filePath)]));
-
-  for (const otherTask of otherTasks) {
-    ensureTaskDefaults(otherTask);
-    const otherFiles = buildTaskFileSet(otherTask);
-    const otherImports = new Map(otherFiles.map((filePath) => [filePath, parseLocalImports(filePath)]));
-
-    if (candidateTask.issueKey && otherTask.issueKey && candidateTask.issueKey === otherTask.issueKey) {
-      warnings.push(`Task "${otherTask.id}" is already working the same issue key "${candidateTask.issueKey}".`);
-    }
-
-    for (const candidateFile of candidateFiles) {
-      for (const importedFile of otherImports.values()) {
-        if (importedFile.includes(candidateFile)) {
-          warnings.push(`Task "${otherTask.id}" imports claimed file "${candidateFile}".`);
-        }
-      }
-    }
-
-    for (const otherFile of otherFiles) {
-      for (const importedFile of candidateImports.values()) {
-        if (importedFile.includes(otherFile)) {
-          warnings.push(`Claimed files import "${otherFile}" from active task "${otherTask.id}".`);
-        }
-      }
-    }
-
-    const candidateSharedDeps = [...candidateImports.values()].flat().filter((filePath) => isSharedRiskPath(filePath));
-    const otherSharedDeps = [...otherImports.values()].flat().filter((filePath) => isSharedRiskPath(filePath));
-    const sharedOverlap = candidateSharedDeps.find((filePath) => otherSharedDeps.includes(filePath));
-    if (sharedOverlap) {
-      warnings.push(`Both tasks depend on shared hotspot "${sharedOverlap}".`);
-    }
-
-    const hotspotClaim = candidateTask.claimedPaths.find((filePath) => isSharedRiskPath(filePath));
-    if (hotspotClaim) {
-      const consumer = [...otherImports.values()].some((imports) => imports.some((imported) => pathStartsWith(imported, hotspotClaim) || imported === hotspotClaim));
-      if (consumer) {
-        warnings.push(`Task "${otherTask.id}" consumes shared hotspot claim "${hotspotClaim}".`);
-      }
-    }
-  }
-
-  return [...new Set(warnings)];
-}
-
-function classifyGitPaths(paths) {
-  const buckets = {
-    product: [],
-    data: [],
-    verify: [],
-    docs: [],
-  };
-
-  for (const filePath of paths) {
-    if (isVisualSuitePath(filePath)) {
-      buckets.verify.push(filePath);
-      continue;
-    }
-
-    if (PATH_CLASSIFICATION.productPrefixes.some((prefix) => pathStartsWith(filePath, prefix))) {
-      buckets.product.push(filePath);
-      continue;
-    }
-
-    if (PATH_CLASSIFICATION.dataPrefixes.some((prefix) => pathStartsWith(filePath, prefix))) {
-      buckets.data.push(filePath);
-      continue;
-    }
-
-    if (PATH_CLASSIFICATION.verifyPrefixes.some((prefix) => pathStartsWith(filePath, prefix))) {
-      buckets.verify.push(filePath);
-      continue;
-    }
-
-    if (
-      PATH_CLASSIFICATION.docsFiles.includes(filePath) ||
-      PATH_CLASSIFICATION.docsPrefixes.some((prefix) => pathStartsWith(filePath, prefix)) ||
-      (COORDINATION_LABEL !== '.' && pathStartsWith(filePath, COORDINATION_LABEL))
-    ) {
-      buckets.docs.push(filePath);
-      continue;
-    }
-
-    buckets.docs.push(filePath);
-  }
-
-  return {
-    product: normalizePaths(buckets.product),
-    data: normalizePaths(buckets.data),
-    verify: normalizePaths(buckets.verify),
-    docs: normalizePaths(buckets.docs),
-  };
-}
-
-function inferDomainsFromPaths(paths) {
-  const matched = new Set();
-
-  for (const filePath of paths) {
-    const loweredPath = filePath.toLowerCase();
-    for (const rule of DOMAIN_RULES) {
-      if (rule.keywords.some((keyword) => loweredPath.includes(keyword))) {
-        matched.add(rule.name);
-      }
-    }
-  }
-
-  return [...matched];
-}
-
 async function initCommand() {
   await withMutationLock(async () => {
     ensureBaseFiles();
@@ -2653,183 +2333,6 @@ async function resumeCommand(positionals) {
   });
 }
 
-async function reserveResourceCommand(positionals, options) {
-  const [agentId, resourceName, ...reasonParts] = positionals;
-  const reason = reasonParts.join(' ').trim();
-  const taskId = typeof options.task === 'string' ? options.task : null;
-
-  if (!agentId || !resourceName || !reason) {
-    throw new Error('Usage: reserve-resource <agent> <resource> <reason> [--task <task-id>]');
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    getCommandAgent(board, agentId);
-
-    if (taskId) {
-      ensureTask(board, taskId);
-    }
-
-    const normalizedResource = slugify(resourceName);
-    const existing = board.resources.find((resource) => resource.name === normalizedResource);
-    if (existing && existing.ownerId !== agentId) {
-      throw new Error(`Resource "${normalizedResource}" is already reserved by ${existing.ownerId}.`);
-    }
-
-    const timestamp = nowIso();
-    if (existing) {
-      existing.reason = reason;
-      existing.taskId = taskId;
-      existing.updatedAt = timestamp;
-    } else {
-      board.resources.push({
-        name: normalizedResource,
-        ownerId: agentId,
-        taskId,
-        reason,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      });
-    }
-
-    appendJournalLine(`- ${timestamp} | ${agentId} reserved resource \`${normalizedResource}\`${taskId ? ` for ${taskId}` : ''}: ${reason}`);
-    await saveBoard(board);
-    console.log(`Reserved resource ${normalizedResource}.`);
-  });
-}
-
-async function releaseResourceCommand(positionals) {
-  const [agentId, resourceName] = positionals;
-
-  if (!agentId || !resourceName) {
-    throw new Error('Usage: release-resource <agent> <resource>');
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    getCommandAgent(board, agentId);
-    const normalizedResource = slugify(resourceName);
-    const beforeCount = board.resources.length;
-    board.resources = board.resources.filter((resource) => !(resource.name === normalizedResource && resource.ownerId === agentId));
-
-    if (board.resources.length === beforeCount) {
-      throw new Error(`${agentId} does not hold resource "${normalizedResource}".`);
-    }
-
-    const timestamp = nowIso();
-    appendJournalLine(`- ${timestamp} | ${agentId} released resource \`${normalizedResource}\`.`);
-    await saveBoard(board);
-    console.log(`Released resource ${normalizedResource}.`);
-  });
-}
-
-async function requestAccessCommand(positionals) {
-  const [agentId, taskId, scope, ...reasonParts] = positionals;
-  const reason = reasonParts.join(' ').trim();
-
-  if (!agentId || !taskId || !scope || !reason) {
-    throw new Error('Usage: request-access <agent> <task-id> <scope> <reason>');
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    const task = ensureTask(board, taskId);
-    const agent = getCommandAgent(board, agentId);
-
-    if (task.ownerId !== agentId) {
-      throw new Error(`${agentId} cannot request access for "${taskId}" because it is currently owned by ${task.ownerId ?? 'nobody'}.`);
-    }
-
-    const normalizedScope = slugify(scope);
-    const existing = findActiveAccessRequestByScope(board, normalizedScope);
-    if (existing) {
-      throw new Error(`Access scope "${normalizedScope}" already has an active request: ${existing.id} (${existing.status}).`);
-    }
-
-    const timestamp = nowIso();
-    const requestId = `access-${agentId}-${normalizedScope}-${slugify(taskId)}-${Date.now()}`;
-    board.accessRequests.push({
-      id: requestId,
-      scope: normalizedScope,
-      status: 'pending',
-      requestedBy: agentId,
-      taskId,
-      reason,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      resolvedAt: null,
-      resolvedBy: null,
-      resolutionNote: null,
-    });
-
-    task.updatedAt = timestamp;
-    note(task, agentId, 'access-request', `Requested privileged access for scope ${normalizedScope}. ${reason}`);
-    agent.updatedAt = timestamp;
-    appendJournalLine(`- ${timestamp} | ${agentId} requested access \`${requestId}\` for scope \`${normalizedScope}\`: ${reason}`);
-    await saveBoard(board);
-    console.log(`Created access request ${requestId}.`);
-  });
-}
-
-async function resolveAccessRequestCommand(requestId, nextStatus, options) {
-  if (!requestId) {
-    throw new Error(`Usage: ${nextStatus}-access <request-id> [--by <agent>] [--note <text>]`);
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    const request = getAccessRequest(board, requestId);
-
-    if (!request) {
-      throw new Error(`Unknown access request "${requestId}".`);
-    }
-
-    if (request.status !== 'pending' && nextStatus !== 'completed') {
-      throw new Error(`Access request "${requestId}" is already ${request.status}.`);
-    }
-
-    if (nextStatus === 'completed' && request.status !== 'granted') {
-      throw new Error(`Access request "${requestId}" must be granted before it can be completed.`);
-    }
-
-    const actingAgent = typeof options.by === 'string' ? options.by : 'system';
-    if (actingAgent !== 'system') {
-      getAgent(board, actingAgent);
-    }
-    const noteText = typeof options.note === 'string' ? options.note.trim() : '';
-    const timestamp = nowIso();
-    request.status = nextStatus;
-    request.updatedAt = timestamp;
-    request.resolvedAt = timestamp;
-    request.resolvedBy = actingAgent;
-    request.resolutionNote = noteText || null;
-
-    const task = request.taskId ? getTask(board, request.taskId) : null;
-    if (task) {
-      task.updatedAt = timestamp;
-      note(task, actingAgent, `access-${nextStatus}`, `${nextStatus} privileged access for scope ${request.scope}.${noteText ? ` ${noteText}` : ''}`);
-    }
-
-    appendJournalLine(
-      `- ${timestamp} | ${actingAgent} ${nextStatus} access \`${requestId}\`${noteText ? `: ${noteText}` : ''}`
-    );
-    await saveBoard(board);
-    console.log(`Marked access request ${requestId} as ${nextStatus}.`);
-  });
-}
-
-async function grantAccessCommand(positionals, options) {
-  await resolveAccessRequestCommand(positionals[0], 'granted', options);
-}
-
-async function denyAccessCommand(positionals, options) {
-  await resolveAccessRequestCommand(positionals[0], 'denied', options);
-}
-
-async function completeAccessCommand(positionals, options) {
-  await resolveAccessRequestCommand(positionals[0], 'completed', options);
-}
-
 function areDependenciesSatisfied(board, task) {
   return task.dependencies.every((dependencyId) => {
     const dependencyTask = getTask(board, dependencyId);
@@ -3124,324 +2627,6 @@ async function handoffCommand(positionals, options) {
     appendJournalLine(`- ${timestamp} | ${agentId} handed off \`${taskId}\`${task.lastHandoff.to ? ` to ${task.lastHandoff.to}` : ''}: ${body}`);
     await saveBoard(board);
     console.log(`Handoff recorded for ${taskId}.`);
-  });
-}
-
-function parseArtifactPaths(value) {
-  if (typeof value !== 'string') {
-    return [];
-  }
-
-  return value
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
-
-function isAllowedArtifactPath(normalizedPath) {
-  return ARTIFACT_ROOTS.some((root) => normalizedPath === root || normalizedPath.startsWith(`${root}/`));
-}
-
-function inferArtifactKind(filePath) {
-  const extension = path.extname(filePath).toLowerCase();
-  if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(extension)) return 'image';
-  if (['.html', '.htm'].includes(extension)) return 'report';
-  if (['.zip', '.trace'].includes(extension)) return 'trace';
-  if (['.log', '.txt'].includes(extension)) return 'log';
-  if (['.json', '.ndjson'].includes(extension)) return 'data';
-  return 'file';
-}
-
-function buildVerificationArtifactReferences(options) {
-  const artifactPaths = parseArtifactPaths(options.artifact);
-  const allowUntracked = options['allow-untracked-artifact'] === true;
-
-  return artifactPaths.map((artifactPath) => {
-    const absolutePath = path.isAbsolute(artifactPath) ? artifactPath : path.resolve(ROOT, artifactPath);
-    const normalizedPath = normalizePath(absolutePath);
-
-    if (!fileExists(absolutePath)) {
-      throw new Error(`Verification artifact does not exist: ${artifactPath}`);
-    }
-
-    if (!allowUntracked && !isAllowedArtifactPath(normalizedPath)) {
-      throw new Error(`Verification artifact must be under configured artifact roots (${ARTIFACT_ROOTS.join(', ')}): ${artifactPath}`);
-    }
-
-    const stats = fs.statSync(absolutePath);
-    return {
-      path: normalizedPath,
-      kind: inferArtifactKind(artifactPath),
-      sizeBytes: stats.size,
-      createdAt: stats.birthtime.toISOString(),
-    };
-  });
-}
-
-async function verifyCommand(positionals, options) {
-  const [agentId, taskId, check, outcome] = positionals;
-  const normalizedOutcome = (outcome ?? '').toLowerCase();
-  const details = typeof options.details === 'string' ? options.details.trim() : positionals.slice(4).join(' ').trim();
-
-  if (!agentId || !taskId || !check || !normalizedOutcome) {
-    throw new Error('Usage: verify <agent> <task-id> <check> <pass|fail> [--details <text>]');
-  }
-
-  if (!['pass', 'fail'].includes(normalizedOutcome)) {
-    throw new Error('Verification outcome must be either "pass" or "fail".');
-  }
-
-  const artifacts = buildVerificationArtifactReferences(options);
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    const task = ensureTask(board, taskId);
-    getCommandAgent(board, agentId);
-
-    task.updatedAt = nowIso();
-    if (!task.verification.includes(check)) {
-      task.verification.push(check);
-    }
-    const entry = {
-      at: task.updatedAt,
-      agent: agentId,
-      check,
-      outcome: normalizedOutcome,
-      details,
-    };
-    if (artifacts.length) {
-      entry.artifacts = artifacts;
-    }
-    task.verificationLog.push(entry);
-
-    const artifactSuffix = artifacts.length ? ` artifacts: ${artifacts.map((artifact) => artifact.path).join(', ')}` : '';
-    note(task, agentId, 'verify', `${check}: ${normalizedOutcome}${details ? ` (${details})` : ''}${artifactSuffix}`);
-    appendJournalLine(`- ${task.updatedAt} | ${agentId} verified \`${taskId}\` with ${check}: ${normalizedOutcome}${details ? ` | ${details}` : ''}${artifactSuffix ? ` | ${artifactSuffix}` : ''}`);
-    await saveBoard(board);
-    console.log(`Recorded verification for ${taskId}.`);
-  });
-}
-
-async function startIncidentCommand(positionals, options) {
-  const [agentId, incidentKeyRaw, ...summaryParts] = positionals;
-  const summary = summaryParts.join(' ').trim();
-  const incidentKey = slugify(incidentKeyRaw ?? '');
-  const resource = typeof options.resource === 'string' ? slugify(options.resource) : null;
-  const taskId = typeof options.task === 'string' ? options.task : null;
-
-  if (!agentId || !incidentKey || !summary) {
-    throw new Error('Usage: start-incident <agent> <incident-key> <summary> [--resource <name>] [--task <task-id>]');
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    getCommandAgent(board, agentId);
-
-    if (taskId) {
-      ensureTask(board, taskId);
-    }
-
-    const existing = board.incidents.find((incident) => incident.key === incidentKey && incident.status === 'open');
-    if (existing) {
-      throw new Error(`Incident "${incidentKey}" is already open and owned by ${existing.ownerId}.`);
-    }
-
-    const timestamp = nowIso();
-    board.incidents.push({
-      key: incidentKey,
-      ownerId: agentId,
-      participants: [agentId],
-      taskId,
-      resource,
-      status: 'open',
-      summary,
-      resolution: null,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-
-    if (resource) {
-      const existingResource = board.resources.find((entry) => entry.name === resource);
-      if (existingResource && existingResource.ownerId !== agentId) {
-        throw new Error(`Resource "${resource}" is already reserved by ${existingResource.ownerId}.`);
-      }
-
-      if (existingResource) {
-        existingResource.reason = `Incident ${incidentKey}: ${summary}`;
-        existingResource.taskId = taskId;
-        existingResource.updatedAt = timestamp;
-      } else {
-        board.resources.push({
-          name: resource,
-          ownerId: agentId,
-          taskId,
-          reason: `Incident ${incidentKey}: ${summary}`,
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        });
-      }
-    }
-
-    appendJournalLine(`- ${timestamp} | ${agentId} started incident \`${incidentKey}\`: ${summary}`);
-    await saveBoard(board);
-    console.log(`Started incident ${incidentKey}.`);
-  });
-}
-
-async function joinIncidentCommand(positionals, options) {
-  const [agentId, incidentKeyRaw] = positionals;
-  const incidentKey = slugify(incidentKeyRaw ?? '');
-  const taskId = typeof options.task === 'string' ? options.task : null;
-
-  if (!agentId || !incidentKey) {
-    throw new Error('Usage: join-incident <agent> <incident-key> [--task <task-id>]');
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    getCommandAgent(board, agentId);
-
-    if (taskId) {
-      ensureTask(board, taskId);
-    }
-
-    const incident = board.incidents.find((entry) => entry.key === incidentKey && entry.status === 'open');
-    if (!incident) {
-      throw new Error(`Incident "${incidentKey}" is not open.`);
-    }
-
-    incident.participants = [...new Set([...(incident.participants ?? []), agentId])];
-    incident.updatedAt = nowIso();
-    if (!incident.taskId && taskId) {
-      incident.taskId = taskId;
-    }
-
-    appendJournalLine(`- ${incident.updatedAt} | ${agentId} joined incident \`${incidentKey}\`.`);
-    await saveBoard(board);
-    console.log(`Joined incident ${incidentKey}.`);
-  });
-}
-
-async function closeIncidentCommand(positionals) {
-  const [agentId, incidentKeyRaw, ...resolutionParts] = positionals;
-  const incidentKey = slugify(incidentKeyRaw ?? '');
-  const resolution = resolutionParts.join(' ').trim();
-
-  if (!agentId || !incidentKey || !resolution) {
-    throw new Error('Usage: close-incident <agent> <incident-key> <resolution>');
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    getCommandAgent(board, agentId);
-
-    const incident = board.incidents.find((entry) => entry.key === incidentKey && entry.status === 'open');
-    if (!incident) {
-      throw new Error(`Incident "${incidentKey}" is not open.`);
-    }
-
-    if (incident.ownerId !== agentId) {
-      throw new Error(`${agentId} cannot close incident "${incidentKey}" because it is owned by ${incident.ownerId}.`);
-    }
-
-    const timestamp = nowIso();
-    incident.status = 'closed';
-    incident.resolution = resolution;
-    incident.updatedAt = timestamp;
-
-    if (incident.resource) {
-      board.resources = board.resources.filter((resource) => !(resource.name === incident.resource && resource.ownerId === incident.ownerId));
-    }
-
-    appendJournalLine(`- ${timestamp} | ${agentId} closed incident \`${incidentKey}\`: ${resolution}`);
-    await saveBoard(board);
-    console.log(`Closed incident ${incidentKey}.`);
-  });
-}
-
-async function releaseCommand(positionals, options) {
-  const [agentId, taskId] = positionals;
-
-  if (!agentId || !taskId) {
-    throw new Error('Usage: release <agent> <task-id> [--note <text>]');
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    const task = ensureTask(board, taskId);
-    const agent = getCommandAgent(board, agentId);
-
-    if (task.ownerId !== agentId) {
-      throw new Error(`${agentId} cannot release "${taskId}" because it is currently owned by ${task.ownerId ?? 'nobody'}.`);
-    }
-
-    const timestamp = nowIso();
-    task.ownerId = null;
-    task.status = 'released';
-    task.updatedAt = timestamp;
-    task.lastOwnerId = agentId;
-
-    if (typeof options.note === 'string' && options.note.trim()) {
-      note(task, agentId, 'release', options.note.trim());
-    }
-
-    agent.status = 'idle';
-    agent.taskId = null;
-    agent.updatedAt = timestamp;
-
-    appendJournalLine(`- ${timestamp} | ${agentId} released \`${taskId}\`${options.note ? `: ${options.note}` : ''}`);
-    await saveBoard(board);
-    console.log(`Released ${taskId}.`);
-  });
-}
-
-async function doneCommand(positionals) {
-  const [agentId, taskId, ...noteParts] = positionals;
-  const body = noteParts.join(' ').trim();
-
-  if (!agentId || !taskId || !body) {
-    throw new Error('Usage: done <agent> <task-id> <note>');
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    const task = ensureTask(board, taskId);
-    const agent = getCommandAgent(board, agentId);
-
-    if (task.ownerId !== agentId) {
-      throw new Error(`${agentId} cannot mark "${taskId}" done because it is currently owned by ${task.ownerId ?? 'nobody'}.`);
-    }
-
-    const missingVisualChecks = getMissingVisualPassingChecks(board, task);
-    if (missingVisualChecks.length) {
-      throw new Error(
-        `Cannot mark "${taskId}" done because UI/visual changes still need passing visual verification: ${missingVisualChecks.join(
-          ', '
-        )}. Update routes/snapshots when intentional, then record the visual pass.`
-      );
-    }
-
-    const timestamp = nowIso();
-    task.ownerId = null;
-    task.status = 'done';
-    task.updatedAt = timestamp;
-    task.lastOwnerId = agentId;
-    note(task, agentId, 'done', body);
-
-    agent.status = 'idle';
-    agent.taskId = null;
-    agent.updatedAt = timestamp;
-
-    appendJournalLine(`- ${timestamp} | ${agentId} completed \`${taskId}\`: ${body}`);
-    await saveBoard(board);
-    console.log(`Marked ${taskId} done.`);
-    if (APP_AGENT_NOTES_DOC) {
-      console.log(
-        `If this exposed reusable errors, inconsistencies, or behavior changes, record them with: ${cliRunLabel(
-          ` -- app-note ${agentId} change "..." --task ${taskId}`
-        )}`
-      );
-    }
   });
 }
 
