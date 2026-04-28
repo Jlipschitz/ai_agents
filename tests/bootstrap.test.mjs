@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { bootstrap, listBootstrapProfiles, parseArgs } from '../scripts/bootstrap.mjs';
+import { buildLocalPackageScripts, buildPortablePackageScripts } from '../scripts/lib/package-script-manifest.mjs';
 
 test('bootstrap dry-run reports intended setup without writing files', () => {
   const target = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-bootstrap-'));
@@ -75,6 +76,25 @@ test('bootstrap creates package scripts and gitignore entries', () => {
   assert.match(gitignore, /\/coordination\//);
   assert.match(gitignore, /\/coordination-two\//);
   assert.equal(fs.existsSync(path.join(target, 'docs', 'ai-agent-app-notes.md')), true);
+});
+
+test('shared package script manifest matches repository scripts', () => {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+  const expectedScripts = buildLocalPackageScripts();
+
+  for (const [name, command] of Object.entries(expectedScripts)) {
+    assert.equal(packageJson.scripts[name], command);
+  }
+});
+
+test('portable package script manifest uses installed ai-agents commands', () => {
+  const scripts = buildPortablePackageScripts();
+
+  assert.equal(scripts.agents, 'ai-agents');
+  assert.equal(scripts['agents:redact:check'], 'ai-agents redact-check');
+  assert.equal(scripts['validate:agents-config'], 'ai-agents validate --json');
+  assert.equal(scripts['agents:watch:node'], undefined);
+  assert.equal(scripts.agents2, undefined);
 });
 
 test('bootstrap exposes and parses repo profiles', () => {

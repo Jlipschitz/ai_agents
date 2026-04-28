@@ -197,7 +197,7 @@ Next recommended work:
 
 ## Phase 16: Command Registry, Contracts, and Agent Handoff
 
-- [~] Central command registry - registry metadata foundation exists; router/script/doc generation remains open.
+- [~] Central command registry - registry metadata and shared package-script manifest exist; router/doc generation and command grouping remain open.
 - [~] Doctor command wiring validation - `doctor --json` validates package-script command targets; deeper dry-run and JSON behavior checks remain open.
 - [~] End-to-end CLI smoke tests - representative temp-repo bootstrap smoke runner exists; registry-driven all-command coverage remains open.
 - [x] Fixture-board generator

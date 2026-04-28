@@ -237,16 +237,19 @@ Status: partially implemented.
 Current behavior:
 
 - `scripts/lib/command-registry.mjs` exposes normalized command metadata from the current help surface.
+- `scripts/lib/package-script-manifest.mjs` generates local bootstrap scripts and portable installed-package scripts from one shortcut manifest.
 - Shell completions consume the registry command list instead of reading the help table directly.
 - `doctor --json` includes `commandWiring` validation for package scripts and expected generated scripts.
 - The registry validates missing command usage/summary fields and unknown script command targets.
 
-Follow-up: make the registry the direct source for router groups, package/bootstrap script generation, docs generation, and command grouping.
+Follow-up: make the registry the direct source for router groups, docs generation, and command grouping.
 
 Main files:
 
 - `scripts/lib/command-registry.mjs`
+- `scripts/lib/package-script-manifest.mjs`
 - `tests/command-registry.test.mjs`
+- `tests/bootstrap.test.mjs`
 
 ### End-to-end CLI smoke tests
 

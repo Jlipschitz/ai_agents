@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { commandFromPackageScript, commandNames, findCommandMetadata, validateCommandRegistry, validateCommandWiring } from '../scripts/lib/command-registry.mjs';
+import { buildLocalPackageScripts, buildPortablePackageScripts } from '../scripts/lib/package-script-manifest.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,6 +29,16 @@ test('command registry validates package script command targets', () => {
   assert.equal(validation.ok, true);
   assert.ok(validation.checkedScripts.some((entry) => entry.name === 'agents:next' && entry.command === 'next'));
   assert.ok(validation.checkedScripts.some((entry) => entry.name === 'agents:handoff:bundle' && entry.command === 'handoff-bundle'));
+});
+
+test('command registry validates generated package script manifests', () => {
+  const local = validateCommandWiring({ expectedScripts: buildLocalPackageScripts() });
+  const portable = validateCommandWiring({ expectedScripts: buildPortablePackageScripts() });
+
+  assert.equal(local.ok, true);
+  assert.equal(portable.ok, true);
+  assert.ok(local.checkedScripts.some((entry) => entry.name === 'agents2:redact:check' && entry.command === 'redact-check'));
+  assert.ok(portable.checkedScripts.some((entry) => entry.name === 'agents:redact:check' && entry.command === 'redact-check'));
 });
 
 test('command registry reports unknown package script targets', () => {
