@@ -9,6 +9,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
+function isCliEntrypoint() {
+  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === __filename;
+}
+
 function parseArgs(argv) {
   const args = {
     nodePath: process.execPath,
@@ -44,8 +48,10 @@ function parseArgs(argv) {
     throw new Error('--interval must be at least 1000 milliseconds.');
   }
 
-  args.coordinatorScriptPath = path.resolve(args.workspaceRoot, args.coordinatorScriptPath);
   args.workspaceRoot = path.resolve(args.workspaceRoot);
+  args.coordinatorScriptPath = path.isAbsolute(args.coordinatorScriptPath)
+    ? args.coordinatorScriptPath
+    : path.resolve(args.workspaceRoot, args.coordinatorScriptPath);
 
   return args;
 }
@@ -100,7 +106,7 @@ export async function runWatcher(argv = process.argv.slice(2)) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isCliEntrypoint()) {
   try {
     process.exitCode = await runWatcher();
   } catch (error) {
