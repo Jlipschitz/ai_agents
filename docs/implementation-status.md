@@ -1310,17 +1310,17 @@ Current behavior:
 
 ### Per-repo onboarding checklist
 
-Status: partially implemented in `doctor`.
+Status: implemented in `doctor`.
 
 Current behavior:
 
 - `doctor --json` includes an `onboardingChecklist` payload.
 - Text `doctor` prints an onboarding checklist section.
-- The checklist recommends missing architecture, testing, deployment, app notes, and visual workflow docs.
+- The checklist recommends missing architecture, testing, deployment, app notes, visual workflow docs, profile-specific docs, and configured custom checklist items.
 - Visual workflow docs are required only when visual checks are configured.
+- Built-in onboarding profiles cover `react`, `backend`, `docs`, and `release`.
+- Bootstrap profiles add matching `onboarding.profiles` entries to target config.
 - Missing onboarding docs are warnings/recommendations, not hard doctor failures.
-
-Follow-up: expand the checklist by repo profile and allow custom checklist items in config.
 
 Main files:
 

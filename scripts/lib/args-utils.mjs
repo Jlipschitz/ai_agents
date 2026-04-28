@@ -1,10 +1,13 @@
 export function hasFlag(argv, flag) {
-  return argv.includes(flag);
+  return argv.includes(flag) || argv.some((entry) => entry.startsWith(`${flag}=`));
 }
 
 export function getFlagValue(argv, flag, fallback = '') {
   const index = argv.indexOf(flag);
-  return index >= 0 ? String(argv[index + 1] ?? fallback) : fallback;
+  if (index >= 0) return String(argv[index + 1] ?? fallback);
+  const prefix = `${flag}=`;
+  const inline = argv.find((entry) => entry.startsWith(prefix));
+  return inline ? inline.slice(prefix.length) : fallback;
 }
 
 export function getPositionals(argv, valuedFlags = new Set()) {

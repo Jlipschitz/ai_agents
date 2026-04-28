@@ -281,6 +281,50 @@
         }
       }
     },
+    "onboarding": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "profile": {
+          "type": "string"
+        },
+        "profiles": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "checklist": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "id",
+              "paths"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string"
+              },
+              "paths": {
+                "$ref": "#/$defs/stringArray"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "recommendation": {
+                "type": "string"
+              },
+              "profile": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
     "pathClassification": {
       "type": "object",
       "additionalProperties": true,

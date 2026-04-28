@@ -56,7 +56,7 @@ Next recommended work:
 - [x] PR handoff generator
 - [~] Stale branch cleanup — `branches` reports dry-run cleanup candidates and can delete them with `--apply`; richer remote/PR checks remain open.
 - [x] Session replay
-- [~] Per-repo onboarding checklist — `doctor` reports repo-doc onboarding recommendations; profile-specific checklist expansion remains open.
+- [x] Per-repo onboarding checklist - `doctor` reports repo-doc, profile-specific, and custom config onboarding recommendations.
 - [x] Agent prompt generator
 - [x] Safe release gate
 - [x] Workspace snapshots

@@ -167,7 +167,25 @@ Useful modes:
 - `--json`: prints machine-readable doctor output including config validation and Git state.
 - `--fix`: creates safe missing starter files/folders, updates `.gitignore`, adds missing package scripts, and creates starter app notes.
 
-The JSON output includes `configSuggestions`, a list of non-blocking config improvement recommendations such as missing visual checks, missing docs roots, branch policy gaps, or missing domain rules for detected repo types. It also includes `onboardingChecklist` recommendations for architecture, testing, deployment, app notes, and visual workflow docs.
+The JSON output includes `configSuggestions`, a list of non-blocking config improvement recommendations such as missing visual checks, missing docs roots, branch policy gaps, or missing domain rules for detected repo types. It also includes `onboardingChecklist` recommendations for architecture, testing, deployment, app notes, visual workflow docs, profile-specific docs, and configured custom checklist items.
+
+Repo profile and custom onboarding checks are configured with `onboarding`:
+
+```json
+{
+  "onboarding": {
+    "profiles": ["react", "backend"],
+    "checklist": [
+      {
+        "id": "support-runbook",
+        "label": "Support runbook",
+        "paths": ["docs/support.md"],
+        "recommendation": "Document support escalation steps."
+      }
+    ]
+  }
+}
+```
 
 ### `heartbeat-status`
 

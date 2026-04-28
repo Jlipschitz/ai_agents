@@ -33,16 +33,78 @@ function configuredVisualChecks(config) {
   return checks.filter(Boolean);
 }
 
+function stringArray(value) {
+  return Array.isArray(value) ? value.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim()) : [];
+}
+
+const PROFILE_CHECKLIST_ITEMS = {
+  react: [
+    {
+      id: 'ui-structure',
+      label: 'UI structure notes',
+      paths: ['docs/ui.md', 'docs/components.md', 'docs/frontend.md'],
+      recommendation: 'Document key routes, shared components, styling conventions, and visual review expectations.',
+    },
+  ],
+  backend: [
+    {
+      id: 'api-contracts',
+      label: 'API contracts',
+      paths: ['docs/api.md', 'docs/api-contracts.md', 'docs/openapi.md', 'openapi.yaml', 'openapi.json'],
+      recommendation: 'Document API contracts, compatibility expectations, and how backend changes are verified.',
+    },
+    {
+      id: 'data-migrations',
+      label: 'Data migration notes',
+      paths: ['docs/migrations.md', 'docs/database.md', 'migrations/README.md'],
+      recommendation: 'Document migration workflow, rollback expectations, and required database verification.',
+    },
+  ],
+  docs: [
+    {
+      id: 'docs-style-guide',
+      label: 'Docs style guide',
+      paths: ['docs/style-guide.md', 'docs/content-style.md', 'docs/writing.md'],
+      recommendation: 'Document style, structure, and review expectations for documentation changes.',
+    },
+  ],
+  release: [
+    {
+      id: 'release-process',
+      label: 'Release process',
+      paths: ['docs/release.md', 'RELEASE.md'],
+      recommendation: 'Document release checks, approval expectations, versioning, and handoff steps.',
+    },
+    {
+      id: 'rollback-plan',
+      label: 'Rollback plan',
+      paths: ['docs/rollback.md', 'docs/runbooks/rollback.md'],
+      recommendation: 'Document rollback triggers, owners, commands, and post-rollback verification.',
+    },
+  ],
+};
+
+function configuredProfiles(config) {
+  const onboarding = config?.onboarding && typeof config.onboarding === 'object' && !Array.isArray(config.onboarding) ? config.onboarding : {};
+  return [...new Set([onboarding.profile, ...stringArray(onboarding.profiles)].filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim().toLowerCase()))];
+}
+
+function customChecklistItems(config) {
+  const onboarding = config?.onboarding && typeof config.onboarding === 'object' && !Array.isArray(config.onboarding) ? config.onboarding : {};
+  return Array.isArray(onboarding.checklist) ? onboarding.checklist : [];
+}
+
 function firstExistingPath(root, paths) {
   return paths.find((entry) => fileExists(root, entry)) ?? null;
 }
 
-function buildItem({ root, id, label, paths, recommendation, required = true, ok = null, foundPath = null }) {
+function buildItem({ root, id, label, paths, recommendation, required = true, ok = null, foundPath = null, profile = null }) {
   const discoveredPath = foundPath ?? firstExistingPath(root, paths);
   const present = ok ?? Boolean(discoveredPath);
   return {
     id,
     label,
+    ...(profile ? { profile } : {}),
     required,
     ok: present || !required,
     status: present ? 'present' : required ? 'missing' : 'not-required',
@@ -58,6 +120,28 @@ export function buildOnboardingChecklist({ root, config = {}, packageJson = null
   const appNotesPath = typeof config?.docs?.appNotes === 'string' ? config.docs.appNotes.trim() : '';
   const readmeHasTesting = readmeMentions(root, [/\bnpm\s+test\b/i, /\btest instructions\b/i, /\bverification\b/i]);
   const readmeHasDeployment = readmeMentions(root, [/\bdeploy(ment)?\b/i, /\brelease\b/i]);
+  const profileItems = configuredProfiles(config).flatMap((profile) =>
+    (PROFILE_CHECKLIST_ITEMS[profile] ?? []).map((item) => ({
+      ...item,
+      id: `${profile}-${item.id}`,
+      profile,
+    }))
+  );
+  const customItems = customChecklistItems(config).flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+    const id = typeof item.id === 'string' && item.id.trim() ? item.id.trim() : '';
+    const label = typeof item.label === 'string' && item.label.trim() ? item.label.trim() : id;
+    const paths = stringArray(item.paths);
+    if (!id || !label || !paths.length) return [];
+    return [{
+      id,
+      label,
+      paths,
+      required: item.required !== false,
+      recommendation: typeof item.recommendation === 'string' && item.recommendation.trim() ? item.recommendation.trim() : `Add onboarding documentation for ${label}.`,
+      profile: typeof item.profile === 'string' && item.profile.trim() ? item.profile.trim() : 'custom',
+    }];
+  });
   const items = [
     buildItem({
       root,
@@ -100,6 +184,8 @@ export function buildOnboardingChecklist({ root, config = {}, packageJson = null
       required: visualChecks.length > 0,
       recommendation: 'Document how to run, update, and review visual verification artifacts.',
     }),
+    ...profileItems.map((item) => buildItem({ root, ...item })),
+    ...customItems.map((item) => buildItem({ root, ...item })),
   ];
   const missing = items.filter((entry) => entry.required && entry.status === 'missing');
   return {

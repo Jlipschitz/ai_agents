@@ -2,357 +2,194 @@
 
 Portable coordination tooling for running multiple coding agents in one repository.
 
-`ai_agents` helps multiple coding agents work in the same repo without stepping on each other. It keeps a local coordination board, tracks task ownership, records notes and verification, manages heartbeats, and provides doctor/status commands for safer handoffs.
-
-## Requirements
-
-- Node.js 24 or newer.
-- npm with lockfile support.
-
-The repo includes both `.nvmrc` and `.node-version` set to `24`.
-
-## What It Does
-
-- Creates a repo-local coordination workspace.
-- Tracks planned, active, blocked, review, handoff, done, and released tasks.
-- Records claimed paths so agents can avoid overlapping work.
-- Stores journal entries and lightweight messages.
-- Supports agent heartbeats and watcher status.
-- Provides `doctor`, `validate`, `status`, `plan`, and enhanced `summarize` commands.
-- Supports `doctor --fix` and `doctor --json` through the command layer.
-- Formats top-level CLI errors consistently in text and JSON modes.
-- Explains active config and environment overrides with `explain-config`.
-- Performs Git preflight checks before task claims.
-- Supports `--dry-run` for legacy core mutations and process commands.
-- Applies claim capacity/conflict policies and reports branch cleanup candidates.
-- Reviews broad/CODEOWNERS ownership claims and selects impacted checks.
-- Reports local GitHub remote and merge queue workflow awareness.
-- Provides config and task templates with dry-run/apply flows.
-- Archives old completed work out of the active board with snapshots.
-- Updates copied coordinator files from a source package or checkout while preserving local config and runtime state.
-- Writes compressed workspace snapshots of board, journal, messages, and runtime state.
-- Takes compressed pre-mutation snapshots before command-layer apply flows.
-- Imports Markdown TODOs into planned backlog tasks.
-- Records audit entries for command-layer apply flows and legacy core mutations.
-- Restores board, task docs, journal, and messages if a lock-protected core mutation fails mid-write.
-- Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
-- Supports optional `finish` safety gates for verification and docs review.
-- Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
-- Provides runtime diagnostics and cleanup via `watch-diagnose` and `cleanup-runtime`.
-- Provides release gating, board inspection, board migration/repair, rollback, and check artifact capture commands.
-- Validates portable config with `npm run validate:agents-config` and the `validate`/`doctor` command layer.
-- Uses a cross-platform Node watcher by default for `watch-start`.
-- Bootstraps the coordinator into another repo with `npm run bootstrap`.
-- Can be copied into other repos and configured per project.
+`ai_agents` keeps a repo-local coordination board so agents can claim work, avoid path conflicts, record progress, attach verification, and hand off safely. It is local-first: runtime state lives in `coordination/` or `coordination-two/`, and those folders should stay ignored by Git.
 
 ## Quick Start
 
-Install dependencies from the lockfile:
-
 ```bash
 npm ci
-```
-
-Validate the portable config:
-
-```bash
-npm run validate:agents-config
-```
-
-Explain the active config:
-
-```bash
-npm run agents:explain-config
-npm run agents -- explain-config --json
-```
-
-Initialize the default coordination workspace:
-
-```bash
 npm run agents:init
 npm run agents:doctor
+npm run agents:status
 ```
 
-Run a machine-readable doctor report or apply safe setup fixes:
+Typical result:
 
-```bash
-npm run agents:doctor:json
-npm run agents:doctor:fix
+```text
+Agent coordination doctor
+Project: AI Agents
+Workspace: coordination
+
+Passes (...):
+- Config loaded: agent-coordination.config.json
+- Current board snapshot is valid.
+
+Warnings (...):
+- Onboarding: Add docs/architecture.md ...
+
+Findings (0):
+- none
 ```
 
-Or use the second workspace wrapper:
+Use the public CLI entrypoint through npm:
 
 ```bash
-npm run agents2:init
-npm run agents2:doctor
-```
-
-You can also use the public CLI entrypoint:
-
-```bash
-npm run ai-agents -- init
 npm run ai-agents -- doctor
-npm run ai-agents -- explain-config --json
+npm run ai-agents -- status
+npm run ai-agents -- summarize --json
 ```
 
-If this private package is installed locally or from a GitHub/source checkout, the CLI is intended to run as:
+If installed as a package or linked locally:
 
 ```bash
-ai-agents init
 ai-agents doctor
 ai-agents status
-ai-agents explain-config
+ai-agents summarize
 ```
 
-## Bootstrap Into Another Repo
+## Common Workflow
 
-Preview the install:
+Plan work:
 
 ```bash
-npm run bootstrap -- --target C:\path\to\repo --dry-run
+npm run agents -- plan "Add task labels and reporting"
 ```
 
-Apply it:
+Claim and start a task:
 
 ```bash
-npm run bootstrap -- --target C:\path\to\repo
+npm run agents:start -- agent-1 task-labels --paths src/tasks "Starting task label support."
 ```
 
-The bootstrap command copies the coordinator scripts, docs, config, and schema into the target repo, adds useful `package.json` scripts, updates `.gitignore`, creates starter agent notes, and runs `agents:doctor` unless `--skip-doctor` is passed.
-
-Useful flags:
-
-- `--force`: replace existing copied coordinator files.
-- `--dry-run`: print intended operations without writing files.
-- `--skip-doctor`: skip the final doctor run.
-
-## Common Commands
+Check status:
 
 ```bash
-npm run bootstrap -- --target C:\path\to\repo --dry-run
-npm run validate:agents-config
-npm run agents -- help
-npm run agents:init
-npm run agents:doctor
-npm run agents:doctor:json
-npm run agents:doctor:fix
-npm run agents:explain-config
-npm run agents -- explain-config --json
-npm run agents -- migrate-config
-npm run agents -- policy-packs list
-npm run agents:plan
-npm run agents:prompt -- agent-1
-npm run agents:ask -- "what is blocked?"
 npm run agents:status
-npm run agents:summarize
 npm run agents -- summarize --for-chat
-npm run agents -- summarize --json
-npm run agents:validate
-npm run agents:start -- agent-1 task-id --paths src/path "Starting work."
-npm run agents:finish -- agent-1 task-id "Finished and verified."
-npm run agents -- finish agent-1 task-id --require-verification --require-doc-review "Finished and verified."
-npm run agents:handoff-ready -- agent-1 task-id "Ready for handoff."
-npm run agents:lock:status
-npm run agents:lock:clear
-npm run agents:heartbeat:start
-npm run agents:heartbeat:status
-npm run agents:heartbeat:stop
-npm run agents:watch:start
-npm run agents:watch:node
-npm run agents:watch:status
-npm run agents:watch:stop
-npm run agents:watch:diagnose
-npm run agents:runtime:cleanup
-npm run agents:release:check -- task-id
-npm run agents -- pr-summary task-id
-npm run agents -- release-bundle task-id --apply
-npm run agents:changelog
-npm run agents -- graph
-npm run agents -- ownership-map
-npm run agents:ownership:review
-npm run agents:test-impact -- --paths src/file.js
-npm run agents:branches
-npm run agents:github:status
-npm run agents:templates -- list
-npm run agents:archive:completed
-npm run agents:update
-npm run agents:snapshot:workspace -- --apply
-npm run agents:backlog:import -- --from BACKLOG.md
-npm run agents:completions -- powershell
-npm run agents:board:inspect
-npm run agents:board:repair
-npm run agents:board:migrate
-npm run agents:state:rollback -- --list
-npm run agents:run-check -- test
-npm run agents -- artifacts list
-npm run agents -- artifacts prune
 ```
 
-The `agents2` scripts mirror the same commands but use the `coordination-two` workspace by default.
+Record verification and finish:
 
-## Documentation
+```bash
+npm run agents -- run-check test
+npm run agents -- verify agent-1 task-labels unit pass "npm test passed"
+npm run agents:finish -- agent-1 task-labels "Implemented and verified."
+```
 
-- [`docs/commands.md`](docs/commands.md): command reference.
-- [`docs/explain-config.md`](docs/explain-config.md): `explain-config` usage, text output, JSON output, and environment override reporting.
-- [`docs/workflows.md`](docs/workflows.md): common workflows and copy/paste examples.
-- [`docs/architecture.md`](docs/architecture.md): command layer, core coordinator, wrappers, watcher, heartbeat, locking, and runtime architecture.
-- [`docs/state-files.md`](docs/state-files.md): reference for `board.json`, `journal.md`, `messages.ndjson`, runtime lock files, watcher state, and heartbeats.
-- [`docs/troubleshooting.md`](docs/troubleshooting.md): setup, Git, watcher, heartbeat, stale-lock, board, CI, and recovery troubleshooting.
-- [`docs/terminal-output-examples.md`](docs/terminal-output-examples.md): representative command output examples.
-- [`docs/agent-coordination-portability.md`](docs/agent-coordination-portability.md): configuration and portability notes.
-- [`docs/implementation-status.md`](docs/implementation-status.md): implemented vs pending status.
-- [`docs/roadmap-status.md`](docs/roadmap-status.md): current roadmap status tracker.
+Expected status result:
 
-## Default Files
+```text
+Project: AI Agents
+Tasks by status:
+- active: 1
+- planned: 2
 
-- `.nvmrc` and `.node-version`: Node 24 runtime hints.
-- `package-lock.json`: npm lockfile used by CI for reproducible `npm ci` installs and cache keys.
-- `bin/ai-agents.mjs`: public CLI entrypoint.
-- `scripts/agent-command-layer.mjs`: command-layer features such as `doctor --fix`, `doctor --json`, enhanced `summarize`, lifecycle helpers, Git preflight, finish gates, lock routing, Node watcher start, PR summaries, release bundles, dependency graphs, ownership maps, and artifact listing.
-- `scripts/agent-coordination-core.mjs`: shared coordinator implementation.
-- `scripts/agent-coordination.mjs`: `agents` workspace wrapper.
-- `scripts/agent-coordination-two.mjs`: `agents2` workspace wrapper.
-- `scripts/bootstrap.mjs`: installer for copying `ai_agents` into another repo.
-- `scripts/lib/update-commands.mjs`: copied-coordinator update command.
-- `scripts/lib/install-manifest.mjs`: shared install/update file manifest.
-- `scripts/lib/audit-log.mjs`: runtime audit log helper for applied command-layer and core mutations.
-- `scripts/validate-config.mjs`: config validator with text and JSON output.
-- `scripts/explain-config.mjs`: active config explanation, suggestions, and environment override reporting.
-- `scripts/lock-runtime.mjs`: runtime lock inspection and safe stale-lock cleanup.
-- `scripts/planner-sizing.mjs`: reusable planner lane sizing helper and regression-test target.
-- `scripts/agent-watch-loop.mjs`: cross-platform Node watch-loop helper.
-- `scripts/agent-watch-loop.ps1`: legacy Windows watch-loop helper for `agents`.
-- `scripts/agent-watch-loop-two.ps1`: legacy Windows watch-loop helper for `agents2`.
-- `agent-coordination.schema.json`: JSON schema for portable config files.
-- `agent-coordination.config.json`: app-specific planning, docs, paths, and verification config.
-- `ai_agents_roadmap.md`: detailed planned improvements backlog.
+Active work:
+- task-labels owned by agent-1
+```
 
-## Runtime Files
+## Bootstrap Another Repo
 
-The coordinator creates local runtime state in `coordination/` or `coordination-two/` depending on the wrapper used. These folders are intended to be ignored by Git.
+Preview install:
 
-Typical runtime files include:
+```bash
+npm run bootstrap -- --target C:\path\to\repo --dry-run
+```
 
-- `board.json`
-- `journal.md`
-- `messages.ndjson`
-- `runtime/state.lock.json`
-- `runtime/watcher.status.json`
-- `runtime/agent-heartbeats/`
-- `tasks/`
+Apply install:
 
-See [`docs/state-files.md`](docs/state-files.md) for details.
+```bash
+npm run bootstrap -- --target C:\path\to\repo --profile react
+```
+
+Profiles:
+
+- `react`: frontend defaults, visual checks, UI impact paths.
+- `backend`: API, database, migration, and backend test defaults.
+- `docs`: documentation-heavy defaults.
+- `release`: stricter release policy, build checks, longer artifact retention.
+
+Bootstrap copies the coordinator scripts, schema, config, and docs into the target repo, adds npm shortcuts, updates `.gitignore`, creates starter agent notes, and runs `agents:doctor` unless `--skip-doctor` is passed.
+
+## Useful Commands
+
+```bash
+npm run validate:agents-config
+npm run agents -- explain-config
+npm run agents -- doctor --json
+npm run agents -- doctor --fix
+npm run agents -- ask "what is blocked?"
+npm run agents -- prompt agent-1
+npm run agents -- test-impact --paths src/file.js
+npm run agents -- artifacts list
+npm run agents -- release-check task-id
+npm run agents -- pr-summary task-id
+npm run agents -- changelog
+```
+
+The `agents2` shortcuts mirror `agents` but use `coordination-two/` by default.
+
+## Runtime State
+
+Typical generated files:
+
+```text
+coordination/
+  board.json
+  journal.md
+  messages.ndjson
+  runtime/state.lock.json
+  runtime/watcher.status.json
+  runtime/agent-heartbeats/
+  tasks/
+```
+
+These files are local runtime state. Keep them out of commits unless your repo intentionally tracks coordination state.
 
 ## Configuration
 
-Edit `agent-coordination.config.json` for the target app before using the planner heavily. The included config is a working example and should be adapted for each repository.
+Project behavior is controlled by `agent-coordination.config.json`.
 
-Validate and explain config changes with:
+Validate and inspect it:
 
 ```bash
 npm run validate:agents-config
-node ./scripts/validate-config.mjs --config ./agent-coordination.config.json --json
-npm run agents -- validate --json
 npm run agents -- explain-config
 npm run agents -- explain-config --json
 ```
 
-Important config areas:
+Important areas:
 
-- `projectName`
-- `agentIds`
-- `docs`
-- `git`
-- `capacity`
-- `conflictPrediction`
-- `ownership`
-- `paths.sharedRisk`
-- `paths.visualImpact`
-- `verification`
-- `artifacts`
-- `checks`
-- `pathClassification`
-- `planning`
-- `domainRules`
+- `agentIds`: available agent slots.
+- `docs`: documentation roots and durable app notes.
+- `git`: branch and claim safety policy.
+- `capacity`: per-agent active/blocked task limits.
+- `paths`: shared-risk and visual-impact paths.
+- `verification` and `checks`: required test/check commands.
+- `onboarding`: profile-specific and custom doctor checklist items.
+- `planning` and `domainRules`: planner defaults.
 
-See [`docs/agent-coordination-portability.md`](docs/agent-coordination-portability.md) and [`docs/explain-config.md`](docs/explain-config.md) for details.
+## Development Checks
 
-## Using In Another Repo
-
-Use the bootstrap command instead of manually copying files:
-
-```bash
-npm run bootstrap -- --target C:\path\to\repo
-```
-
-Then open the target repo, adapt `agent-coordination.config.json`, and run:
-
-```bash
-npm run validate:agents-config
-npm run agents:explain-config
-npm run agents:init
-npm run agents:doctor
-```
-
-## Troubleshooting
-
-See [`docs/troubleshooting.md`](docs/troubleshooting.md) for the full guide.
-
-### Git says the repository has dubious ownership
-
-If Git shows:
-
-```text
-fatal: detected dubious ownership in repository
-```
-
-Add the repo as a safe directory:
-
-```bash
-git config --global --add safe.directory <repo-path>
-```
-
-### Watcher does not start
-
-Run:
-
-```bash
-npm run agents:watch:status
-npm run agents:doctor
-```
-
-`watch-start` uses the Node watcher by default. The PowerShell watcher scripts remain available as legacy compatibility helpers.
-
-```bash
-npm run agents:watch:start
-npm run agents -- watch-start --interval 30000
-npm run agents:watch:node
-npm run agents2:watch:node
-```
-
-### Config errors
-
-Run:
-
-```bash
-npm run validate:agents-config
-npm run agents:explain-config
-npm run agents:validate
-npm run agents:doctor
-```
-
-## Testing
+Run the same local gates used by CI:
 
 ```bash
 npm run check
+npm run lint
+npm run jsdoc:check
+npm run format:check
+npm run validate:agents-config
 npm test
 ```
 
-`npm run check` recursively syntax-checks `.mjs` files under `bin`, `scripts`, and `tests`.
-`npm test` runs the Node test suite. CI runs `npm run check` before `npm test` so syntax checking is not repeated inside the test script.
+CI runs on Node 24, installs with `npm ci`, and uses npm caching keyed by `package-lock.json`.
 
-CI runs on Node 24, installs with `npm ci`, and uses GitHub Actions npm caching keyed by `package-lock.json`.
+## Documentation
 
-## Roadmap
-
-See [`ai_agents_roadmap.md`](ai_agents_roadmap.md) for the long backlog and [`docs/roadmap-status.md`](docs/roadmap-status.md) for the current status tracker.
+- [`docs/commands.md`](docs/commands.md): full command reference.
+- [`docs/workflows.md`](docs/workflows.md): common workflows and examples.
+- [`docs/explain-config.md`](docs/explain-config.md): config explanation output.
+- [`docs/state-files.md`](docs/state-files.md): runtime file reference.
+- [`docs/troubleshooting.md`](docs/troubleshooting.md): setup and recovery help.
+- [`docs/terminal-output-examples.md`](docs/terminal-output-examples.md): output examples.
+- [`docs/roadmap-status.md`](docs/roadmap-status.md): current roadmap status.

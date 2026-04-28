@@ -1,11 +1,20 @@
 {
   "projectName": "Fixture Basic Repo",
-  "agentIds": ["agent-1", "agent-2", "agent-3", "agent-4"],
+  "agentIds": [
+    "agent-1",
+    "agent-2",
+    "agent-3",
+    "agent-4"
+  ],
   "docs": {
-    "roots": ["docs"],
+    "roots": [
+      "docs"
+    ],
     "appNotes": "docs/ai-agent-app-notes.md",
     "visualWorkflow": "",
-    "apiPrefixes": ["docs/api"]
+    "apiPrefixes": [
+      "docs/api"
+    ]
   },
   "git": {
     "allowMainBranchClaims": true,
@@ -13,7 +22,11 @@
     "allowedBranchPatterns": [],
     "defaultBaseBranch": "main",
     "staleBranchDays": 30,
-    "protectedBranchPatterns": ["main", "master", "release/*"]
+    "protectedBranchPatterns": [
+      "main",
+      "master",
+      "release/*"
+    ]
   },
   "capacity": {
     "maxActiveTasksPerAgent": 1,
@@ -26,75 +39,154 @@
     "blockOnGitOverlap": true
   },
   "ownership": {
-    "codeownersFiles": [".github/CODEOWNERS"],
-    "broadPathPatterns": ["app", "src", "components", "features", "lib", "api", "server", "packages"]
+    "codeownersFiles": [
+      ".github/CODEOWNERS"
+    ],
+    "broadPathPatterns": [
+      "app",
+      "src",
+      "components",
+      "features",
+      "lib",
+      "api",
+      "server",
+      "packages"
+    ]
   },
   "paths": {
-    "sharedRisk": ["src", "api"],
+    "sharedRisk": [
+      "src",
+      "api"
+    ],
     "visualSuite": [],
     "visualSuiteDefault": [],
-    "visualImpact": ["app"],
+    "visualImpact": [
+      "app"
+    ],
     "visualImpactFiles": []
   },
   "verification": {
-    "visualRequiredChecks": ["visual:test"],
+    "visualRequiredChecks": [
+      "visual:test"
+    ],
     "visualSuiteUpdateChecks": []
   },
   "checks": {
     "api": {
       "command": "npm run api:test",
-      "requiredForPaths": ["api"],
-      "artifactRoots": ["artifacts"],
+      "requiredForPaths": [
+        "api"
+      ],
+      "artifactRoots": [
+        "artifacts"
+      ],
       "requireArtifacts": false
     }
   },
   "notes": {
-    "categories": ["change", "setup"],
+    "categories": [
+      "change",
+      "setup"
+    ],
     "sectionHeading": "Agent-Maintained Notes"
   },
   "pathClassification": {
-    "productPrefixes": ["app", "src"],
-    "dataPrefixes": ["api", "lib"],
-    "verifyPrefixes": ["tests"],
-    "docsPrefixes": ["docs"],
-    "docsFiles": ["README.md"]
+    "productPrefixes": [
+      "app",
+      "src"
+    ],
+    "dataPrefixes": [
+      "api",
+      "lib"
+    ],
+    "verifyPrefixes": [
+      "tests"
+    ],
+    "docsPrefixes": [
+      "docs"
+    ],
+    "docsFiles": [
+      "README.md"
+    ]
   },
   "planning": {
-    "defaultDomains": ["app"],
-    "productFallbackPaths": ["app"],
-    "dataFallbackPaths": ["api"],
-    "verifyFallbackPaths": ["tests"],
-    "docsFallbackPaths": ["README.md", "docs"],
+    "defaultDomains": [
+      "app"
+    ],
+    "productFallbackPaths": [
+      "app"
+    ],
+    "dataFallbackPaths": [
+      "api"
+    ],
+    "verifyFallbackPaths": [
+      "tests"
+    ],
+    "docsFallbackPaths": [
+      "README.md",
+      "docs"
+    ],
     "agentSizing": {
       "minAgents": 1,
       "maxAgents": 4,
       "mediumComplexityScore": 10,
       "largeComplexityScore": 16,
-      "productKeywords": ["app", "ui"],
-      "dataKeywords": ["api"],
-      "verifyKeywords": ["test"],
-      "docsKeywords": ["docs"]
+      "productKeywords": [
+        "app",
+        "ui"
+      ],
+      "dataKeywords": [
+        "api"
+      ],
+      "verifyKeywords": [
+        "test"
+      ],
+      "docsKeywords": [
+        "docs"
+      ]
     }
   },
   "domainRules": [
     {
       "name": "app",
-      "keywords": ["app", "ui"],
+      "keywords": [
+        "app",
+        "ui"
+      ],
       "scopes": {
-        "product": ["app"],
-        "data": ["lib"],
-        "verify": ["tests"],
-        "docs": ["README.md", "docs"]
+        "product": [
+          "app"
+        ],
+        "data": [
+          "lib"
+        ],
+        "verify": [
+          "tests"
+        ],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
       }
     },
     {
       "name": "backend",
-      "keywords": ["api", "backend"],
+      "keywords": [
+        "api",
+        "backend"
+      ],
       "scopes": {
         "product": [],
-        "data": ["api"],
-        "verify": ["tests"],
-        "docs": ["README.md", "docs"]
+        "data": [
+          "api"
+        ],
+        "verify": [
+          "tests"
+        ],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
       }
     }
   ]

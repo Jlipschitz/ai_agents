@@ -180,6 +180,7 @@ const BOOTSTRAP_PROFILES = {
         visualSuiteDefault: ['tests/visual'],
       },
       verification: { visualRequiredChecks: ['visual:test'], visualSuiteUpdateChecks: ['visual:update'] },
+      onboarding: { profiles: ['react'] },
       checks: {
         'visual:test': {
           command: 'npm run visual:test',
@@ -206,6 +207,7 @@ const BOOTSTRAP_PROFILES = {
           requireArtifacts: false,
         },
       },
+      onboarding: { profiles: ['backend'] },
       planning: { defaultDomains: ['backend'], dataFallbackPaths: ['api', 'server', 'lib', 'db', 'database', 'migrations', 'types'] },
       domainRules: [
         {
@@ -225,6 +227,7 @@ const BOOTSTRAP_PROFILES = {
     description: 'Documentation-heavy defaults with docs-focused risk and planning paths.',
     config: {
       docs: { roots: ['docs'], appNotes: 'docs/ai-agent-app-notes.md' },
+      onboarding: { profiles: ['docs'] },
       paths: { sharedRisk: ['README.md', 'docs'], visualImpact: [], visualSuite: [], visualSuiteDefault: [] },
       verification: { visualRequiredChecks: [], visualSuiteUpdateChecks: [] },
       planning: { defaultDomains: ['docs'], productFallbackPaths: [], dataFallbackPaths: [], docsFallbackPaths: ['README.md', 'docs'] },
@@ -243,6 +246,7 @@ const BOOTSTRAP_PROFILES = {
       git: { allowMainBranchClaims: false, allowDetachedHead: false, allowedBranchPatterns: ['release/*', 'hotfix/*', 'fix/*', 'agent/*', 'feature/*'] },
       policyEnforcement: { mode: 'block', rules: { finishRequiresApproval: true, finishRequiresDocsReview: true, finishApprovalScope: 'release' } },
       artifacts: { roots: ['artifacts', 'playwright-report', 'test-results'], keepDays: 30, keepFailedDays: 90, maxMb: 1000, protectPatterns: ['**/baseline/**', '**/reference/**'] },
+      onboarding: { profiles: ['release'] },
       checks: {
         build: {
           command: 'npm run build',

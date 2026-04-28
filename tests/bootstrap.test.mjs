@@ -85,6 +85,7 @@ test('bootstrap applies react profile to target config', () => {
   assert.ok(config.paths.visualImpact.includes('components'));
   assert.ok(config.paths.visualSuite.includes('tests/visual'));
   assert.ok(config.verification.visualRequiredChecks.includes('visual:test'));
+  assert.ok(config.onboarding.profiles.includes('react'));
   assert.equal(config.checks['visual:test'].command, 'npm run visual:test');
   assert.equal(config.checks['visual:test'].requireArtifacts, true);
 });
@@ -122,4 +123,5 @@ test('bootstrap profile merges existing named domain rules', () => {
   assert.ok(backendRule.keywords.includes('migration'));
   assert.ok(backendRule.scopes.data.includes('existing-api'));
   assert.ok(backendRule.scopes.data.includes('migrations'));
+  assert.ok(config.onboarding.profiles.includes('backend'));
 });

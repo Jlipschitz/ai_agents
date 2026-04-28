@@ -89,6 +89,20 @@ function validConfig() {
       categories: ['change', 'setup'],
       sectionHeading: 'Agent-Maintained Notes',
     },
+    onboarding: {
+      profile: 'react',
+      profiles: ['backend'],
+      checklist: [
+        {
+          id: 'security-runbook',
+          label: 'Security runbook',
+          paths: ['docs/security-runbook.md'],
+          required: false,
+          recommendation: 'Add a security runbook.',
+          profile: 'custom',
+        },
+      ],
+    },
     pathClassification: {
       productPrefixes: ['src'],
       dataPrefixes: ['lib'],
@@ -157,6 +171,10 @@ test('validateAgentConfig reports actionable errors', () => {
   config.monorepo.fallbackRoot = 1;
   config.checks.unit.timeoutMs = 500;
   config.checks.unit.requireArtifacts = 'yes';
+  config.onboarding.profiles = ['react', 'react'];
+  config.onboarding.checklist.push({ id: 'security-runbook', paths: ['docs/other.md'] });
+  config.onboarding.checklist[0].required = 'yes';
+  config.onboarding.checklist[0].paths = [];
 
   const result = validateAgentConfig(config, { root: process.cwd() });
 
@@ -182,6 +200,10 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('monorepo.fallbackRoot')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.timeoutMs')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.requireArtifacts')));
+  assert.ok(result.errors.some((entry) => entry.includes('onboarding.profiles[1]')));
+  assert.ok(result.errors.some((entry) => entry.includes('onboarding.checklist[0].paths')));
+  assert.ok(result.errors.some((entry) => entry.includes('onboarding.checklist[0].required')));
+  assert.ok(result.errors.some((entry) => entry.includes('onboarding.checklist[1].id')));
 });
 
 test('loadAgentConfigWithSources merges inherited config files', () => {

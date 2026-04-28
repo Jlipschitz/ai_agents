@@ -102,6 +102,40 @@ test('doctor --json reports config validation and git fields', () => {
   assert.equal(typeof payload.git.available, 'boolean');
 });
 
+test('doctor --json includes profile and custom onboarding checklist items', () => {
+  const root = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.onboarding = {
+    profiles: ['backend', 'react'],
+    checklist: [
+      {
+        id: 'support-runbook',
+        label: 'Support runbook',
+        paths: ['docs/support.md'],
+        recommendation: 'Document support escalation steps.',
+      },
+    ],
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'docs', 'frontend.md'), '# Frontend\n');
+
+  const result = run(root, ['doctor', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  const items = Object.fromEntries(payload.onboardingChecklist.items.map((item) => [item.id, item]));
+  assert.equal(items['react-ui-structure'].status, 'present');
+  assert.equal(items['react-ui-structure'].profile, 'react');
+  assert.equal(items['backend-api-contracts'].status, 'missing');
+  assert.equal(items['backend-data-migrations'].status, 'missing');
+  assert.equal(items['support-runbook'].status, 'missing');
+  assert.equal(items['support-runbook'].profile, 'custom');
+  assert.ok(payload.onboardingChecklist.missing.includes('support-runbook'));
+  assert.ok(payload.onboardingChecklist.recommendations.includes('Document support escalation steps.'));
+});
+
 test('doctor text output routes through core diagnostics', () => {
   const root = makeWorkspace();
   const result = run(root, ['doctor']);

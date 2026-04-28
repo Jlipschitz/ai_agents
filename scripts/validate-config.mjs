@@ -354,6 +354,39 @@ export function validateAgentConfig(config, options = {}) {
     if ('sectionHeading' in config.notes) validateString(config.notes.sectionHeading, 'notes.sectionHeading', errors, { allowEmpty: true });
   }
 
+  if ('onboarding' in config && validateObject(config.onboarding, 'onboarding', errors)) {
+    if ('profile' in config.onboarding) validateString(config.onboarding.profile, 'onboarding.profile', errors, { allowEmpty: true });
+    if ('profiles' in config.onboarding) validateStringArray(config.onboarding.profiles, 'onboarding.profiles', errors);
+    if ('checklist' in config.onboarding) {
+      if (!Array.isArray(config.onboarding.checklist)) {
+        addIssue(errors, 'onboarding.checklist', 'must be an array');
+      } else {
+        const seenChecklistIds = new Set();
+        config.onboarding.checklist.forEach((item, index) => {
+          const base = `onboarding.checklist[${index}]`;
+          if (!validateObject(item, base, errors)) return;
+          if ('id' in item) {
+            validateString(item.id, `${base}.id`, errors);
+            if (typeof item.id === 'string' && item.id.trim()) {
+              if (seenChecklistIds.has(item.id)) {
+                addIssue(errors, `${base}.id`, `duplicates "${item.id}"`);
+              }
+              seenChecklistIds.add(item.id);
+            }
+          } else {
+            addIssue(errors, `${base}.id`, 'is required');
+          }
+          if ('label' in item) validateString(item.label, `${base}.label`, errors);
+          if ('paths' in item) validateStringArray(item.paths, `${base}.paths`, errors, { allowEmpty: false });
+          else addIssue(errors, `${base}.paths`, 'is required');
+          if ('required' in item) validateBoolean(item.required, `${base}.required`, errors);
+          if ('recommendation' in item) validateString(item.recommendation, `${base}.recommendation`, errors, { allowEmpty: true });
+          if ('profile' in item) validateString(item.profile, `${base}.profile`, errors, { allowEmpty: true });
+        });
+      }
+    }
+  }
+
   if ('pathClassification' in config) {
     validateKnownStringArrays(config.pathClassification, 'pathClassification', ['productPrefixes', 'dataPrefixes', 'verifyPrefixes', 'docsPrefixes', 'docsFiles'], errors);
   }
