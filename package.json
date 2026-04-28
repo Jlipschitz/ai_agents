@@ -58,6 +58,6 @@
     "agents2:watch:node": "node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination-two.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   }
 }
