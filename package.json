@@ -9,9 +9,11 @@
   },
   "scripts": {
     "ai-agents": "node ./bin/ai-agents.mjs",
-    "check": "node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs",
+    "bootstrap": "node ./scripts/bootstrap.mjs",
+    "check": "node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/validate-config.mjs",
+    "validate:agents-config": "node ./scripts/validate-config.mjs",
     "lint": "npm run check",
-    "test": "npm run check",
+    "test": "npm run check && node --test",
     "agents": "node ./scripts/agent-coordination.mjs",
     "agents:init": "node ./scripts/agent-coordination.mjs init",
     "agents:plan": "node ./scripts/agent-coordination.mjs plan",
@@ -24,6 +26,7 @@
     "agents:watch:start": "node ./scripts/agent-coordination.mjs watch-start",
     "agents:watch:status": "node ./scripts/agent-coordination.mjs watch-status",
     "agents:watch:stop": "node ./scripts/agent-coordination.mjs watch-stop",
+    "agents:watch:node": "node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination.mjs",
     "agents2": "node ./scripts/agent-coordination-two.mjs",
     "agents2:init": "node ./scripts/agent-coordination-two.mjs init",
     "agents2:plan": "node ./scripts/agent-coordination-two.mjs plan",
@@ -35,7 +38,8 @@
     "agents2:heartbeat:status": "node ./scripts/agent-coordination-two.mjs heartbeat-status",
     "agents2:watch:start": "node ./scripts/agent-coordination-two.mjs watch-start",
     "agents2:watch:status": "node ./scripts/agent-coordination-two.mjs watch-status",
-    "agents2:watch:stop": "node ./scripts/agent-coordination-two.mjs watch-stop"
+    "agents2:watch:stop": "node ./scripts/agent-coordination-two.mjs watch-stop",
+    "agents2:watch:node": "node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination-two.mjs"
   },
   "engines": {
     "node": ">=22"
