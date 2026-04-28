@@ -20,7 +20,7 @@ Implemented behavior:
 - Adds coordination runtime folders to `.gitignore`.
 - Creates starter app notes when missing.
 - Runs `npm run agents:doctor` unless `--skip-doctor` is passed.
-- Installs the command layer, lock diagnostics, and the new command shortcuts into target repos.
+- Installs the command layer, planner sizing helper, lock diagnostics, and the new command shortcuts into target repos.
 
 Main files:
 
@@ -155,7 +155,7 @@ Config example:
 
 ### Board summarize
 
-Status: implemented in the command layer.
+Status: implemented and enhanced in the command layer.
 
 ```bash
 npm run agents:summarize
@@ -164,7 +164,17 @@ npm run agents -- summarize --for-chat
 npm run agents -- summarize --json
 ```
 
-The summary includes counts, active work, blockers, review queue, and next planned work.
+The summary now includes:
+
+- counts by status
+- active work
+- blockers
+- review queue
+- stale active work
+- next planned work
+- next recommended actions
+- recent journal lines
+- recent messages
 
 ### Lifecycle helpers
 
@@ -182,15 +192,29 @@ Helpers delegate to existing core commands:
 - `finish` -> `done`.
 - `handoff-ready` -> `handoff`.
 
+`finish` now supports optional safety gates:
+
+```bash
+npm run agents -- finish agent-1 task-id --require-verification --require-doc-review "Finished safely."
+```
+
+Gate behavior:
+
+- `--require-verification`: all task `verification` checks must have latest passing verification log entries.
+- `--require-doc-review`: the task must have `docsReviewedAt` recorded.
+- If a gate fails, the command exits before delegating to core `done`, so the board is not mutated.
+
 ### Runtime lock diagnostics
 
-Status: implemented as a standalone utility and npm scripts.
+Status: implemented as a standalone utility, npm scripts, and routed main CLI commands.
 
 ```bash
 npm run agents:lock:status
 npm run agents:lock:clear
 npm run agents2:lock:status
 npm run agents2:lock:clear
+npm run agents -- lock-status --json
+npm run agents -- lock-clear --stale-only --json
 node ./scripts/lock-runtime.mjs status --coordination-dir coordination --json
 node ./scripts/lock-runtime.mjs clear --stale-only --coordination-dir coordination --json
 ```
@@ -208,6 +232,28 @@ Main files:
 - `scripts/lock-runtime.mjs`
 - `tests/lock-runtime.test.mjs`
 
+### Planner lane sizing helper
+
+Status: implemented as a reusable helper and regression-test target.
+
+```js
+import { classifyPlannerLanes } from './scripts/planner-sizing.mjs';
+```
+
+The helper classifies likely product, data, verify, and docs lanes from `planning.agentSizing` keywords and returns:
+
+- keyword scores by lane
+- overall complexity score
+- recommended agent count
+- selected lanes
+
+Main files:
+
+- `scripts/planner-sizing.mjs`
+- `tests/planner-sizing.test.mjs`
+
+Follow-up: connect this helper directly into the core planner once the planner refactor is safe.
+
 ### Focused tests
 
 Status: expanded.
@@ -220,12 +266,16 @@ Current coverage:
 - Bootstrap writes package scripts, `.gitignore`, copied files, and starter docs.
 - `doctor --fix` creates starter runtime files.
 - `doctor --json` emits machine-readable health data.
-- `summarize --for-chat` prints compact board state.
+- `summarize --for-chat` prints compact board state, stale work, and next actions.
+- `summarize --json` emits counts and recent context.
 - `validate --json` emits machine-readable config validation.
-- Read-only command-layer commands do not mutate board, journal, or messages files.
+- Read-only command-layer and core read-only commands do not mutate board, journal, messages, or watcher status files.
 - Git policy blocks disallowed main-branch claims and non-matching branch patterns.
 - Git policy allows matching branch patterns.
 - Runtime lock diagnostics report missing locks, stale locks, stale lock clearing, and refusal to clear fresh locks.
+- Main CLI routes `lock-status` and `lock-clear` correctly.
+- `finish` safety gates block before mutating board state.
+- Planner lane sizing covers simple, complex, capped, and fallback cases.
 
 Main files:
 
@@ -235,11 +285,12 @@ Main files:
 - `tests/read-only-commands.test.mjs`
 - `tests/git-policy.test.mjs`
 - `tests/lock-runtime.test.mjs`
+- `tests/planner-sizing.test.mjs`
 
 Follow-up tests still needed:
 
-- Planner lane sizing.
-- Broader read-only mutation coverage for core read-only commands.
+- Direct core planner integration tests once planner internals are refactored around `scripts/planner-sizing.mjs`.
+- Broader read-only mutation coverage for every core read-only edge case.
 
 ### Cross-platform watcher
 
@@ -298,7 +349,7 @@ These roadmap items still need core or deeper implementation work:
 
 - `doctor --fix` integration inside the core implementation rather than the command layer.
 - `doctor --json` integration inside the core implementation rather than the command layer.
-- More complete lifecycle helpers with verification/doc-review gates.
-- Broader read-only mutation tests for every core read-only command.
-- `summarize` output that includes journal/message-derived stale-work context.
+- Deeper integration of planner sizing helper into the core planner.
+- More complete lifecycle helpers with configurable verification/doc-review gates.
+- `summarize` output that includes richer dependency and owner context from journal/message-derived history.
 - Core-native lock diagnostics instead of the standalone utility wrapper.
