@@ -1455,15 +1455,17 @@ Current behavior:
 - `npm run format` applies the formatter.
 - `npm run agents -- format --paths <path[,path...]>` supports targeted dry-run/apply formatting.
 - `CONTRIBUTING.md` documents local setup, development flow, command expectations, and PR checks.
+- `SECURITY.md` documents supported versions, private vulnerability reporting, local guardrails, and disclosure expectations.
 - Node version hints are checked into `.nvmrc` and `.node-version`.
 - The package lock marks the package as `UNLICENSED`.
 
-Follow-up: add a real lint/style tool, type or JSDoc validation, security policy, license file, and examples directory.
+Follow-up: add a real lint/style tool, type or JSDoc validation, license file, and examples directory.
 
 Main files:
 
 - `package.json`
 - `CONTRIBUTING.md`
+- `SECURITY.md`
 - `scripts/check-syntax.mjs`
 - `scripts/lib/format-commands.mjs`
 - `tests/check-syntax.test.mjs`
@@ -1516,6 +1518,5 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Dedicated linting beyond syntax checks.
 - Type checking or JSDoc validation.
-- `SECURITY.md`.
 - `LICENSE`.
 - Example repos under `examples/`.

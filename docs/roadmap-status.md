@@ -190,7 +190,7 @@ Next recommended work:
 - [x] Add formatting
 - [~] Add type checking or JSDoc validation — syntax and schema validation exist; type/JSDoc validation remains open.
 - [x] Add contribution guide
-- [ ] Add security policy
+- [x] Add security policy
 - [ ] Add license
 - [ ] Add examples directory
 
@@ -250,6 +250,7 @@ Next recommended work:
 - `.nvmrc`
 - `.node-version`
 - `CONTRIBUTING.md`
+- `SECURITY.md`
 - `tests/archive-commands.test.mjs`
 - `tests/agent-history-commands.test.mjs`
 - `tests/approval-ledger.test.mjs`
