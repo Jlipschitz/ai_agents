@@ -219,6 +219,108 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
   - Timeout
   - Owning paths
 
+- [ ] **Visual check runner and artifact capture**
+
+  Add first-class visual verification support so the coordinator can run checks, capture evidence, and record artifact paths.
+
+  Config additions:
+
+  ```json
+  {
+    "checks": {
+      "visual:test": {
+        "command": "npm run visual:test",
+        "timeoutMs": 120000,
+        "artifactRoots": ["artifacts", "playwright-report", "test-results"],
+        "requiredForPaths": ["app", "components", "features"],
+        "requireArtifacts": true
+      }
+    },
+    "artifacts": {
+      "roots": ["artifacts", "playwright-report", "test-results"],
+      "keepDays": 14,
+      "keepFailedDays": 45,
+      "maxMb": 500,
+      "protectPatterns": ["**/baseline/**", "**/reference/**"]
+    }
+  }
+  ```
+
+  Implementation steps:
+
+  1. Validate `checks` and `artifacts` in the config schema.
+  2. Add `run-check <agent> <task-id> <check> [--allow-fail] [--json]`.
+  3. Verify the agent owns the task before running a check.
+  4. Snapshot configured artifact roots before the command runs.
+  5. Run the configured command with timeout, exit-code capture, stdout capture, and stderr capture.
+  6. Snapshot artifact roots after the command finishes.
+  7. Diff the before/after snapshots to collect new or changed screenshots, traces, diffs, reports, and logs.
+  8. Record a verification log entry with check name, outcome, duration, exit code, command, details, and artifact metadata.
+  9. Keep the existing manual `verify` command working for checks that are run outside the coordinator.
+
+  Verification record target shape:
+
+  ```json
+  {
+    "check": "visual:test",
+    "outcome": "pass",
+    "details": "npm run visual:test exited 0",
+    "durationMs": 83421,
+    "exitCode": 0,
+    "artifacts": [
+      {
+        "path": "artifacts/visual/run-2026-04-27/index.html",
+        "kind": "report",
+        "sizeBytes": 4281,
+        "createdAt": "2026-04-27T12:00:00.000Z"
+      }
+    ],
+    "at": "2026-04-27T12:00:00.000Z",
+    "agent": "agent-1"
+  }
+  ```
+
+- [ ] **Artifact index and manual attachments**
+
+  Track artifacts independently from task logs so reports can be listed, inspected, pruned, and attached to existing verification records.
+
+  Add an artifact index at `runtime/artifacts.json` or `artifacts/index.json`:
+
+  ```json
+  {
+    "version": 1,
+    "items": [
+      {
+        "path": "artifacts/visual/run-2026-04-27/index.html",
+        "taskId": "task-ui",
+        "check": "visual:test",
+        "outcome": "pass",
+        "sizeBytes": 4281,
+        "createdAt": "2026-04-27T12:00:00.000Z",
+        "lastReferencedAt": "2026-04-27T12:00:00.000Z",
+        "protected": false
+      }
+    ]
+  }
+  ```
+
+  Add commands:
+
+  ```bash
+  artifacts list [--task <task-id>] [--check <check>] [--json]
+  artifacts inspect <artifact-path>
+  verify <agent> <task-id> <check> <pass|fail> --artifact <path[,path...]>
+  ```
+
+  Implementation steps:
+
+  1. Rebuild the artifact index from configured roots when it is missing.
+  2. Cross-reference indexed artifacts with verification logs.
+  3. Reject `verify --artifact` paths outside configured artifact roots unless `--allow-untracked-artifact` is passed.
+  4. Reject missing artifact paths.
+  5. Attach accepted artifact metadata to the verification log and artifact index.
+  6. Include artifact paths in `status`, `summarize`, `summarize --for-chat`, and future `pr-summary` output when useful.
+
 - [ ] **Path ownership map**
 
   Generate a map showing:
@@ -764,6 +866,40 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 
   While keeping important evidence.
 
+  Add commands:
+
+  ```bash
+  artifacts prune --dry-run
+  artifacts prune --apply
+  artifacts prune --task <task-id> --apply
+  ```
+
+  Retention rules:
+
+  - Keep artifacts referenced by active, blocked, waiting, or review tasks.
+  - Keep failed-check artifacts for `artifacts.keepFailedDays`.
+  - Keep passing-check artifacts for `artifacts.keepDays`.
+  - Never delete protected patterns.
+  - Respect `artifacts.maxMb` by deleting oldest eligible artifacts first.
+  - Print exact paths and bytes before deletion.
+  - Require `--apply` before deleting anything.
+
+  `doctor` enforcement:
+
+  - Warn when configured artifact roots are missing.
+  - Warn when artifact roots are not ignored by Git, unless explicitly protected.
+  - Warn when artifact storage exceeds `artifacts.maxMb`.
+  - Warn when verification records reference missing artifacts.
+  - Warn when required visual checks passed without artifacts and `requireArtifacts` is true.
+
+  Suggested tests:
+
+  - `artifacts prune --dry-run` does not delete files.
+  - `artifacts prune --apply` preserves active-task artifacts.
+  - Failed-check artifacts survive longer than passed-check artifacts.
+  - Protected patterns are never deleted.
+  - Missing artifact references are reported by `doctor`.
+
 - [ ] **Human-readable changelog**
 
   Generate a changelog from completed tasks and verification records.
@@ -827,6 +963,7 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 8. `summarize --for-chat`
 9. Single-command lifecycle
 10. `--json` support
+11. Visual check runner config model
 
 ### Next Priorities
 
@@ -840,6 +977,8 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 8. Lock diagnostics
 9. Dry-run support
 10. PR summary generator
+11. Visual check runner and artifact attachment
+12. Artifact retention dry-run/apply
 
 ### Later / Advanced
 
