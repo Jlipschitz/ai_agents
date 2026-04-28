@@ -32,7 +32,11 @@ function run(root, args) {
 }
 
 function readSnapshot(name) {
-  return fs.readFileSync(path.join(snapshotRoot, name), 'utf8').trim();
+  return normalizeEol(fs.readFileSync(path.join(snapshotRoot, name), 'utf8'));
+}
+
+function normalizeEol(value) {
+  return value.replace(/\r\n/g, '\n').trim();
 }
 
 test('ownership-review fixture output matches snapshot', () => {
@@ -40,7 +44,7 @@ test('ownership-review fixture output matches snapshot', () => {
   const result = run(root, ['ownership-review', '--json']);
 
   assert.equal(result.status, 1);
-  assert.equal(result.stdout.trim(), readSnapshot('ownership-review.json'));
+  assert.equal(normalizeEol(result.stdout), readSnapshot('ownership-review.json'));
 });
 
 test('test-impact fixture output matches snapshot', () => {
@@ -48,5 +52,5 @@ test('test-impact fixture output matches snapshot', () => {
   const result = run(root, ['test-impact', '--paths', 'app/page.js,api/route.js', '--json']);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), readSnapshot('test-impact.json'));
+  assert.equal(normalizeEol(result.stdout), readSnapshot('test-impact.json'));
 });
