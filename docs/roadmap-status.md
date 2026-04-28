@@ -109,7 +109,7 @@ Next recommended work:
 - [x] Workspace health score
 - [ ] Partial checkout / monorepo support
 - [x] Task priority and deadlines
-- [ ] Escalation routing
+- [x] Escalation routing
 - [x] Reusable runbooks
 - [x] Semantic path grouping
 - [x] Task split validator

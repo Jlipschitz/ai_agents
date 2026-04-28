@@ -4,7 +4,7 @@ import { COMMANDS } from './help-command.mjs';
 
 const SHELLS = ['powershell', 'bash', 'zsh'];
 const STATUSES = ['planned', 'active', 'blocked', 'waiting', 'review', 'handoff', 'done', 'released'];
-const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--apply', '--force', '--strict', '--keep-journal-lines', '--keep-message-lines', '--fail-under', '--priority', '--due-at', '--due', '--severity', '--approval-scope', '--scope', '--status', '--task', '--board', '--by', '--owner', '--producer', '--consumer', '--consumers', '--summary', '--note', '--title', '--keywords', '--paths', '--steps', '--checks', '--docs'];
+const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--apply', '--force', '--strict', '--keep-journal-lines', '--keep-message-lines', '--fail-under', '--priority', '--due-at', '--due', '--severity', '--approval-scope', '--scope', '--status', '--task', '--board', '--by', '--owner', '--producer', '--consumer', '--consumers', '--summary', '--reason', '--note', '--title', '--keywords', '--paths', '--steps', '--checks', '--docs'];
 const AGENT_COMMANDS = new Set([
   'claim',
   'start',

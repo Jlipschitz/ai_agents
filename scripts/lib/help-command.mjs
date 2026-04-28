@@ -64,6 +64,7 @@ export const COMMANDS = {
   runbooks: ['runbooks list|show <id>|suggest|create <id> [options]', 'List, suggest, or create reusable coordination runbooks.'],
   'path-groups': ['path-groups [--paths <path[,path...]>] [--json]', 'Group paths by package boundary, module prefix, and import relationships.'],
   'split-validate': ['split-validate [--task <id>] [--board <path>] [--strict] [--json]', 'Validate a task split for overlap, dependencies, verification, and broad paths.'],
+  'escalation-route': ['escalation-route [--task <id>] [--paths <path[,path...]>] [--reason <text>] [--json]', 'Suggest who to ask for blocked work from active owners, previous tasks, and CODEOWNERS.'],
   'github-status': ['github-status [--json] [--live]', 'Inspect GitHub remote, branch, PR, and merge queue workflow status.'],
   templates: ['templates list|show <name>|apply <config-template>|create-task <task-template> [--apply] [--json]', 'List, inspect, apply config templates, or create planned tasks from templates.'],
   'archive-completed': ['archive-completed [--older-than-days <days>] [--apply] [--json]', 'Archive old done/released tasks out of board.json.'],

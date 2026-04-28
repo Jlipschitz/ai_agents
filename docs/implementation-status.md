@@ -902,6 +902,30 @@ Main files:
 - `scripts/lib/task-split-validator.mjs`
 - `tests/task-split-validator.test.mjs`
 
+### Escalation routing
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:escalation:route -- --task task-id
+npm run agents -- escalation-route --paths app/page.tsx,api/routes/user.ts --reason "Need contract review"
+npm run agents -- escalation-route --task task-id --json
+```
+
+Current behavior:
+
+- Selects an explicit `--task`, the first blocked/waiting task, or explicit `--paths`.
+- Suggests active task owners for overlapping paths.
+- Suggests owners from previous done/released tasks that touched overlapping paths.
+- Suggests CODEOWNERS for the target paths.
+- Scores routes by source signal and explains each reason.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/escalation-routing-commands.mjs`
+- `tests/escalation-routing.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1330,7 +1354,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
-- Escalation routing.
 - Work stealing.
 - Agent reputation or history.
 - Cost/time accounting.

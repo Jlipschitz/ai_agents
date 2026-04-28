@@ -43,7 +43,7 @@ function parseCodeowners(content) {
     .map(([pattern, ...owners]) => ({ pattern, owners }));
 }
 
-function findCodeowners(root, config) {
+export function findCodeowners(root, config) {
   const files = stringArray(config.ownership?.codeownersFiles, DEFAULT_CODEOWNERS_FILES);
   for (const relativePath of files) {
     const filePath = path.resolve(root, relativePath);
@@ -54,7 +54,7 @@ function findCodeowners(root, config) {
   return { path: null, rules: [] };
 }
 
-function ownersForPath(filePath, rules) {
+export function ownersForPath(filePath, rules) {
   let owners = [];
   for (const rule of rules) {
     if (codeownersPatternMatches(filePath, rule.pattern)) owners = rule.owners;

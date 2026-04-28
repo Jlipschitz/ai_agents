@@ -565,6 +565,18 @@ npm run agents -- split-validate --board coordination/board.json --json
 
 The command is read-only. By default it reports findings and exits 0; pass `--strict` to exit non-zero when error-level findings are present.
 
+### `escalation-route`
+
+Suggests who to ask for blocked or waiting work using active overlapping ownership, previous completed work on the same paths, and CODEOWNERS.
+
+```bash
+npm run agents:escalation:route -- --task task-id
+npm run agents -- escalation-route --paths app/page.tsx,api/routes/user.ts --reason "Need contract review"
+npm run agents -- escalation-route --task task-id --json
+```
+
+Routes are scored with active owners first, then previous task owners and CODEOWNERS. The command is read-only and includes the matched paths, source signals, and reasons for each suggested target.
+
 ### `contracts`
 
 Manages contract files for shared API, schema, and cross-task interfaces under `coordination/contracts/`.
