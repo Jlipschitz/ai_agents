@@ -9,6 +9,9 @@
   },
   "scripts": {
     "ai-agents": "node ./bin/ai-agents.mjs",
+    "check": "node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs",
+    "lint": "npm run check",
+    "test": "npm run check",
     "agents": "node ./scripts/agent-coordination.mjs",
     "agents:init": "node ./scripts/agent-coordination.mjs init",
     "agents:plan": "node ./scripts/agent-coordination.mjs plan",
