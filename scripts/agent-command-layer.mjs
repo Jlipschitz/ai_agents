@@ -6,6 +6,7 @@ import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
 import { runArchiveCompleted } from './lib/archive-commands.mjs';
+import { appendAuditLog } from './lib/audit-log.mjs';
 import { runBacklogImport } from './lib/backlog-import-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
@@ -704,9 +705,16 @@ function runMigrateConfig(argv) {
   const validation = validateAgentConfig(migrated, { root: ROOT });
   const result = { ok: validation.valid, applied: false, configPath, targetVersion: CURRENT_CONFIG_VERSION, changes, validation, snapshotPath: null, workspaceSnapshotPath: null };
   if (apply && validation.valid && changes.length) {
-    result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(getCoordinationPaths(), 'migrate-config');
+    const paths = getCoordinationPaths();
+    result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'migrate-config');
     result.snapshotPath = snapshotConfig(configPath);
     writeJson(configPath, migrated);
+    appendAuditLog(paths, {
+      command: 'migrate-config',
+      applied: true,
+      summary: `Applied ${changes.length} config migration change(s).`,
+      details: { changes: changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+    });
     result.applied = true;
   }
   if (json) console.log(JSON.stringify(result, null, 2));
@@ -778,9 +786,16 @@ function runPolicyPacks(argv) {
     result.snapshotPath = null;
     result.workspaceSnapshotPath = null;
     if (apply && result.ok && result.changes.length) {
-      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(getCoordinationPaths(), `policy-packs-${packNames.join('-')}`);
+      const paths = getCoordinationPaths();
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, `policy-packs-${packNames.join('-')}`);
       result.snapshotPath = snapshotConfig(result.configPath);
       writeJson(result.configPath, result.nextConfig);
+      appendAuditLog(paths, {
+        command: 'policy-packs apply',
+        applied: true,
+        summary: `Applied policy pack(s): ${packNames.join(', ')}.`,
+        details: { packs: packNames, changes: result.changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      });
       result.applied = true;
     }
     delete result.nextConfig;

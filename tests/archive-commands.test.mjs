@@ -51,6 +51,10 @@ test('archive-completed applies archive, snapshots board, and removes archived t
   const payload = JSON.parse(result.stdout);
   const board = JSON.parse(fs.readFileSync(boardPath, 'utf8'));
   const archive = JSON.parse(fs.readFileSync(payload.archivePath, 'utf8'));
+  const audit = fs.readFileSync(path.join(coordinationRoot, 'runtime', 'audit.ndjson'), 'utf8')
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => JSON.parse(line));
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(payload.applied, true);
@@ -59,6 +63,8 @@ test('archive-completed applies archive, snapshots board, and removes archived t
   assert.match(zlib.gunzipSync(fs.readFileSync(payload.workspaceSnapshotPath)).toString('utf8'), /task-done/);
   assert.deepEqual(board.tasks.map((task) => task.id), ['task-active']);
   assert.deepEqual(archive.tasks.map((task) => task.id), ['task-done', 'task-released']);
+  assert.equal(audit.at(-1).command, 'archive-completed');
+  assert.deepEqual(audit.at(-1).details.taskIds, ['task-done', 'task-released']);
   assert.equal(fs.existsSync(path.join(coordinationRoot, 'tasks', 'task-done.md')), false);
   assert.equal(fs.existsSync(path.join(coordinationRoot, 'tasks', 'task-released.md')), false);
 });

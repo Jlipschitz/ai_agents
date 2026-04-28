@@ -73,6 +73,24 @@ Main files:
 - `scripts/lib/backlog-import-commands.mjs`
 - `tests/backlog-import-commands.test.mjs`
 
+### Command audit log
+
+Status: partially implemented for command-layer apply flows.
+
+Current behavior:
+
+- Applied command-layer mutations append JSON lines to `coordination/runtime/audit.ndjson`.
+- Audit entries include timestamp, command, applied flag, summary, and command-specific details.
+- Covered flows include completed-task archiving, board repair/rollback, config migration, policy packs, templates, and Markdown backlog import.
+
+Follow-up: extend audit logging to legacy core lifecycle mutations such as claim, progress, wait, review, done, release, resource leases, and incident commands.
+
+Main files:
+
+- `scripts/lib/audit-log.mjs`
+- `tests/archive-commands.test.mjs`
+- `tests/backlog-import-commands.test.mjs`
+
 ### Runtime and CI baseline
 
 Status: implemented.

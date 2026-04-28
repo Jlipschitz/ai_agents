@@ -39,6 +39,7 @@ coordination/
   tasks/
   runtime/
     state.lock.json
+    audit.ndjson
     watcher.status.json
     agent-heartbeats/
     snapshots/
@@ -209,6 +210,20 @@ Stale lock detection currently checks:
 - malformed JSON
 - age threshold
 - dead PID
+
+### `runtime/audit.ndjson`
+
+Machine-readable audit log for applied command-layer mutations.
+
+Each line is a JSON object with:
+
+- `at`
+- `command`
+- `applied`
+- `summary`
+- `details`
+
+Current coverage includes command-layer apply flows such as board repair/rollback, config migration, policy packs, templates, completed-task archiving, and Markdown backlog import. Legacy core lifecycle mutations are planned follow-up coverage.
 
 ### `runtime/watcher.status.json`
 

@@ -48,6 +48,10 @@ test('backlog-import creates planned tasks with source metadata when applied', (
   const result = run(root, coordinationRoot, ['backlog-import', '--from', 'BACKLOG.md', '--owner', 'agent-2', '--apply', '--json']);
   const payload = JSON.parse(result.stdout);
   const board = JSON.parse(fs.readFileSync(path.join(coordinationRoot, 'board.json'), 'utf8'));
+  const audit = fs.readFileSync(path.join(coordinationRoot, 'runtime', 'audit.ndjson'), 'utf8')
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => JSON.parse(line));
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(payload.applied, true);
@@ -57,6 +61,8 @@ test('backlog-import creates planned tasks with source metadata when applied', (
   assert.equal(board.tasks[0].suggestedOwnerId, 'agent-2');
   assert.deepEqual(board.tasks[0].claimedPaths, ['BACKLOG.md']);
   assert.equal(board.tasks[0].importSource.type, 'markdown-todo');
+  assert.equal(audit.at(-1).command, 'backlog-import');
+  assert.equal(audit.at(-1).details.taskIds.length, 2);
 
   const secondRun = run(root, coordinationRoot, ['backlog-import', '--from', 'BACKLOG.md', '--apply', '--json']);
   const secondPayload = JSON.parse(secondRun.stdout);

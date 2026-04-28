@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getFlagValue, getPositionals, hasFlag } from './args-utils.mjs';
+import { appendAuditLog } from './audit-log.mjs';
 import { fileTimestamp, nowIso, writeJson } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
@@ -168,6 +169,12 @@ export function runTemplates(argv, context) {
       result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, `template-config-${name}`);
       result.snapshotPath = snapshotFile(context.configPath, context.paths.snapshotsRoot, `config-before-template-${name}`);
       writeJson(context.configPath, nextConfig);
+      appendAuditLog(context.paths, {
+        command: 'templates apply',
+        applied: true,
+        summary: `Applied config template ${name}.`,
+        details: { template: name, changes: changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      });
       result.applied = true;
     }
     if (json) console.log(JSON.stringify(result, null, 2));
@@ -186,6 +193,12 @@ export function runTemplates(argv, context) {
       result.snapshotPath = snapshotFile(context.paths.boardPath, context.paths.snapshotsRoot, `board-before-template-task-${task.id}`);
       board.tasks.push(task);
       writeJson(context.paths.boardPath, board);
+      appendAuditLog(context.paths, {
+        command: 'templates create-task',
+        applied: true,
+        summary: `Created task ${task.id} from template ${name}.`,
+        details: { template: name, taskId: task.id, snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      });
       result.applied = true;
     }
     if (json) console.log(JSON.stringify(result, null, 2));

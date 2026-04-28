@@ -88,7 +88,7 @@ Next recommended work:
 ## Phase 5: Safety, Auditing, and Recovery
 
 - [ ] Secrets and sensitive-data guardrails
-- [ ] Command audit log
+- [~] Command audit log — command-layer apply flows append `runtime/audit.ndjson`; legacy core lifecycle mutations remain open.
 - [ ] State transactions
 - [ ] Schema migrations for board state
 - [ ] Concurrency stress tests

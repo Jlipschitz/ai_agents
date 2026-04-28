@@ -31,6 +31,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Writes compressed workspace snapshots of board, journal, messages, and runtime state.
 - Takes compressed pre-mutation snapshots before command-layer apply flows.
 - Imports Markdown TODOs into planned backlog tasks.
+- Records audit entries for command-layer apply flows.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
 - Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
@@ -206,6 +207,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `scripts/bootstrap.mjs`: installer for copying `ai_agents` into another repo.
 - `scripts/lib/update-commands.mjs`: copied-coordinator update command.
 - `scripts/lib/install-manifest.mjs`: shared install/update file manifest.
+- `scripts/lib/audit-log.mjs`: runtime audit log helper for applied command-layer mutations.
 - `scripts/validate-config.mjs`: config validator with text and JSON output.
 - `scripts/explain-config.mjs`: active config explanation, suggestions, and environment override reporting.
 - `scripts/lock-runtime.mjs`: runtime lock inspection and safe stale-lock cleanup.

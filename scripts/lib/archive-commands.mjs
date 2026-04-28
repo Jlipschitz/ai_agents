@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getNumberFlag, hasFlag } from './args-utils.mjs';
+import { appendAuditLog } from './audit-log.mjs';
 import { fileTimestamp, nowIso, parseIsoMs, readJsonSafe, writeJson } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
@@ -84,6 +85,12 @@ export function runArchiveCompleted(argv, paths) {
     plan.nextBoard.updatedAt = nowIso();
     writeJson(paths.boardPath, plan.nextBoard);
     removeTaskDocs(paths, plan.archiveTasks);
+    appendAuditLog(paths, {
+      command: 'archive-completed',
+      applied: true,
+      summary: `Archived ${plan.archiveTasks.length} completed task(s).`,
+      details: { taskIds: plan.archivedTaskIds, archivePath: plan.archivePath, workspaceSnapshotPath: plan.workspaceSnapshotPath },
+    });
     plan.applied = true;
   }
 
