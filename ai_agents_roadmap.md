@@ -1,6 +1,6 @@
 # AI Agents Roadmap
 
-This roadmap tracks planned improvements for `ai_agents`, from easier installation to safer multi-agent coordination, Git awareness, automation, and release support.
+This roadmap tracks planned improvements for `ai_agents`, from easier installation to safer multi-agent coordination, Git awareness, automation, verification, dashboards, release support, and long-term package maturity.
 
 ---
 
@@ -949,6 +949,581 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 
 ---
 
+## Phase 7: Documentation and Repo Polish
+
+- [ ] **Expand the README into a full user guide**
+
+  Expand the README with:
+
+  - What `ai_agents` does
+  - When to use it
+  - How the coordination board works
+  - Difference between `agents` and `agents2`
+  - Example workflows
+  - Common commands
+  - Troubleshooting
+  - Recommended repo setup
+
+- [ ] **Add a complete command reference**
+
+  Create:
+
+  ```text
+  docs/commands.md
+  ```
+
+  Document every command, including:
+
+  - Purpose
+  - Syntax
+  - Arguments
+  - Flags
+  - Examples
+  - JSON output behavior
+  - Mutation vs read-only behavior
+
+- [ ] **Add example workflows**
+
+  Create:
+
+  ```text
+  docs/workflows.md
+  ```
+
+  Include examples for:
+
+  - Starting a new multi-agent session
+  - Planning work
+  - Claiming work
+  - Marking work blocked
+  - Handing off work
+  - Verifying work
+  - Finishing work
+  - Recovering from stale locks
+  - Moving coordination state between machines
+
+- [ ] **Add terminal output examples**
+
+  Add sample output for:
+
+  - `doctor`
+  - `status`
+  - `plan`
+  - `summarize`
+  - `summarize --for-chat`
+  - `lock-status`
+  - `release-check`
+
+- [ ] **Add architecture documentation**
+
+  Create:
+
+  ```text
+  docs/architecture.md
+  ```
+
+  Explain:
+
+  - Core script structure
+  - Wrapper scripts
+  - Runtime state files
+  - Board format
+  - Journal format
+  - Message format
+  - Locking model
+  - Heartbeat model
+  - Watcher model
+
+- [ ] **Add state file reference**
+
+  Create:
+
+  ```text
+  docs/state-files.md
+  ```
+
+  Document:
+
+  - `board.json`
+  - `journal.md`
+  - `messages.ndjson`
+  - `runtime/state.lock.json`
+  - `runtime/watcher.status.json`
+  - `runtime/agent-heartbeats/`
+  - Artifact indexes
+  - Archive files
+
+- [ ] **Add troubleshooting guide**
+
+  Create:
+
+  ```text
+  docs/troubleshooting.md
+  ```
+
+  Cover:
+
+  - Stale locks
+  - Broken JSON
+  - Missing package scripts
+  - Missing config
+  - Wrong coordination folder
+  - Watcher not starting
+  - Heartbeat not updating
+  - Agent claiming too much scope
+  - Dirty Git state
+  - Dubious Git ownership errors
+
+---
+
+## Phase 8: CLI Packaging, Naming, and Public Distribution
+
+- [ ] **Rename package for npm compatibility**
+
+  Consider renaming the package from:
+
+  ```json
+  {
+    "name": "ai_agents"
+  }
+  ```
+
+  To:
+
+  ```json
+  {
+    "name": "ai-agents"
+  }
+  ```
+
+- [ ] **Add dedicated CLI entrypoint**
+
+  Add:
+
+  ```text
+  bin/ai-agents.mjs
+  ```
+
+  This should become the main public CLI entrypoint.
+
+- [ ] **Keep existing wrappers as compatibility aliases**
+
+  Keep:
+
+  ```text
+  scripts/agent-coordination.mjs
+  scripts/agent-coordination-two.mjs
+  ```
+
+  But treat them as compatibility wrappers around the main CLI.
+
+- [ ] **Add version command**
+
+  Add:
+
+  ```bash
+  ai-agents --version
+  ai-agents version
+  ```
+
+  Output should include:
+
+  - Package version
+  - Node version
+  - Config version
+  - Board schema version
+
+- [ ] **Add installation documentation**
+
+  Document supported install/run options:
+
+  ```bash
+  npx github:Jlipschitz/ai_agents doctor
+  npm install github:Jlipschitz/ai_agents
+  npm install -D github:Jlipschitz/ai_agents
+  npx ai-agents doctor
+  ```
+
+---
+
+## Phase 9: Watcher and Runtime Diagnostics
+
+- [ ] **Add watcher diagnostics command**
+
+  Add:
+
+  ```bash
+  ai-agents watch-diagnose
+  ```
+
+  It should report:
+
+  - Watcher process status
+  - PID
+  - Last tick time
+  - Coordination root
+  - Config path
+  - Last error
+  - Suggested fix
+
+- [ ] **Add runtime cleanup command**
+
+  Add:
+
+  ```bash
+  ai-agents cleanup-runtime
+  ```
+
+  It should safely clean up:
+
+  - Orphaned watcher status
+  - Stale heartbeat files
+  - Expired runtime locks
+  - Temporary runtime files
+
+- [ ] **Keep PowerShell watcher as legacy fallback**
+
+  After adding the Node watcher, keep the PowerShell watcher for compatibility but make Node the default.
+
+- [ ] **Add watcher failure recovery**
+
+  If the watcher crashes or stops ticking, `doctor` should detect it and suggest:
+
+  - Restart command
+  - Stale watcher cleanup
+  - Config path correction
+  - Coordination root correction
+
+---
+
+## Phase 10: Config Developer Experience
+
+- [ ] **Add config explanation command**
+
+  Add:
+
+  ```bash
+  ai-agents explain-config
+  ```
+
+  It should explain:
+
+  - What each config section does
+  - Which values are defaults
+  - Which values are invalid
+  - Which paths do not exist
+  - Which checks are configured
+  - Which agents are available
+
+- [ ] **Add config doctor suggestions**
+
+  `doctor` should recommend config improvements, not just detect invalid config.
+
+  Example warnings:
+
+  - No docs root configured
+  - No shared-risk paths configured
+  - No verification checks configured
+  - Visual paths configured but no visual checks configured
+  - Too many agents for repo size
+  - Missing templates for common repo type
+
+- [ ] **Add environment override report**
+
+  `doctor` and `explain-config` should show active overrides such as:
+
+  - `AGENT_COORDINATION_CONFIG`
+  - `AGENT_COORDINATION_ROOT`
+  - `AGENT_COORDINATION_DIR`
+  - `AGENT_COORDINATION_CLI_ENTRYPOINT`
+  - `AGENT_COORDINATION_LOCK_WAIT_MS`
+  - `AGENT_TERMINAL_ID`
+
+---
+
+## Phase 11: Command UX Improvements
+
+- [ ] **Add per-command help**
+
+  Every command should support:
+
+  ```bash
+  ai-agents <command> --help
+  ```
+
+- [ ] **Add consistent global flags**
+
+  Support:
+
+  ```bash
+  --config
+  --root
+  --coordination-dir
+  --verbose
+  --quiet
+  --no-color
+  ```
+
+  The roadmap already covers `--json` and `--dry-run`, but these additional global flags should be explicit.
+
+- [ ] **Add better error formatting**
+
+  Errors should include:
+
+  - What failed
+  - Why it failed
+  - How to fix it
+  - Example command
+
+- [ ] **Add short command aliases**
+
+  The roadmap includes repo-defined aliases, but also add built-in short aliases:
+
+  ```bash
+  ai-agents s
+  ai-agents d
+  ai-agents p
+  ```
+
+  For:
+
+  - `status`
+  - `doctor`
+  - `plan`
+
+- [ ] **Add interactive mode**
+
+  Add:
+
+  ```bash
+  ai-agents interactive
+  ```
+
+  For guided use:
+
+  - Pick an agent
+  - Pick a task
+  - Claim paths
+  - Mark status
+  - Run checks
+  - Generate handoff
+
+---
+
+## Phase 12: Board Repair, Inspection, and Rollback
+
+- [ ] **Add board repair command**
+
+  Add:
+
+  ```bash
+  ai-agents repair-board
+  ```
+
+  It should detect and optionally fix:
+
+  - Missing fields
+  - Invalid statuses
+  - Duplicate task IDs
+  - Missing timestamps
+  - Broken dependencies
+  - Invalid claimed paths
+
+- [ ] **Add rollback command**
+
+  Add:
+
+  ```bash
+  ai-agents rollback-state
+  ```
+
+  It should restore from saved workspace snapshots.
+
+- [ ] **Add board inspection command**
+
+  Add:
+
+  ```bash
+  ai-agents inspect-board
+  ```
+
+  It should show:
+
+  - Board version
+  - Task count
+  - Active tasks
+  - Stale tasks
+  - Invalid records
+  - Archive status
+  - Last mutation time
+
+---
+
+## Phase 13: Git Safety Additions
+
+- [ ] **Add branch safety policies**
+
+  Config should define whether agents may work on:
+
+  - `main`
+  - Feature branches
+  - Release branches
+  - Detached HEAD
+
+  Example:
+
+  ```json
+  {
+    "git": {
+      "allowMainBranchClaims": false,
+      "allowDetachedHead": false,
+      "allowedBranchPatterns": ["feature/*", "agent/*", "fix/*"]
+    }
+  }
+  ```
+
+- [ ] **Add Git dubious ownership troubleshooting**
+
+  Add a `doctor` check or troubleshooting note for Git errors like:
+
+  ```text
+  fatal: detected dubious ownership in repository
+  ```
+
+  Recommended fix example:
+
+  ```bash
+  git config --global --add safe.directory <repo-path>
+  ```
+
+- [ ] **Add Git operation dry-run summaries**
+
+  Before commands that depend on Git state, report what Git information was checked:
+
+  - Current branch
+  - Upstream branch
+  - Ahead/behind count
+  - Dirty files
+  - Untracked files
+  - In-progress operation state
+
+---
+
+## Phase 14: Testing Improvements
+
+- [ ] **Add fixture repos for testing**
+
+  Create:
+
+  ```text
+  tests/fixtures/node-app/
+  tests/fixtures/react-app/
+  tests/fixtures/expo-app/
+  tests/fixtures/docs-only/
+  ```
+
+- [ ] **Add command snapshot tests**
+
+  Capture expected output for:
+
+  - `doctor`
+  - `status`
+  - `plan`
+  - `summarize`
+  - `release-check`
+
+- [ ] **Add CLI argument parsing tests**
+
+  Test:
+
+  - Missing args
+  - Invalid flags
+  - Unknown commands
+  - Conflicting flags
+  - `--json`
+  - `--dry-run`
+  - Path arguments on Windows/macOS/Linux
+
+- [ ] **Add cross-platform path tests**
+
+  Test Windows and POSIX path handling for:
+
+  - Config paths
+  - Claimed paths
+  - Artifact paths
+  - Coordination roots
+  - Bootstrap targets
+  - Git safe directory suggestions
+
+---
+
+## Phase 15: Developer Experience and Repo Maintenance
+
+- [ ] **Add linting**
+
+  Add:
+
+  ```bash
+  npm run lint
+  ```
+
+- [ ] **Add formatting**
+
+  Add:
+
+  ```bash
+  npm run format
+  ```
+
+- [ ] **Add type checking or JSDoc validation**
+
+  Even if the project stays in plain JavaScript, add stronger validation using:
+
+  - JSDoc
+  - TypeScript check mode
+  - Runtime schemas
+
+- [ ] **Add contribution guide**
+
+  Create:
+
+  ```text
+  CONTRIBUTING.md
+  ```
+
+- [ ] **Add security policy**
+
+  Create:
+
+  ```text
+  SECURITY.md
+  ```
+
+- [ ] **Add license**
+
+  Create:
+
+  ```text
+  LICENSE
+  ```
+
+- [ ] **Add examples directory**
+
+  Create:
+
+  ```text
+  examples/
+  ```
+
+  Suggested examples:
+
+  - `examples/node-app`
+  - `examples/react-app`
+  - `examples/expo-app`
+  - `examples/docs-only`
+
+---
+
 ## Suggested Build Order
 
 ### Immediate Priorities
@@ -957,13 +1532,17 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 2. `doctor --fix`
 3. Config JSON schema
 4. Core tests
-5. Cross-platform watcher
+5. Cross-platform Node watcher
 6. Package bin commands
 7. Better Git awareness
 8. `summarize --for-chat`
 9. Single-command lifecycle
 10. `--json` support
 11. Visual check runner config model
+12. Expanded README
+13. Complete command reference
+14. Dedicated CLI entrypoint
+15. Per-command help
 
 ### Next Priorities
 
@@ -979,6 +1558,10 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 10. PR summary generator
 11. Visual check runner and artifact attachment
 12. Artifact retention dry-run/apply
+13. Watcher diagnostics
+14. Config explanation command
+15. Board repair command
+16. Git branch safety policies
 
 ### Later / Advanced
 
@@ -992,3 +1575,8 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 8. Policy packs
 9. Work stealing
 10. Agent reputation/history
+11. Interactive mode
+12. Rollback command
+13. Public npm release
+14. Signed releases
+15. Long-term examples and templates
