@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
-const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/validate-config.mjs';
+const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/validate-config.mjs';
 
 const DEFAULT_GITIGNORE_ENTRIES = [
   '',
@@ -29,6 +29,12 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:status': 'node ./scripts/agent-coordination.mjs status',
   'agents:validate': 'node ./scripts/agent-coordination.mjs validate',
   'agents:doctor': 'node ./scripts/agent-coordination.mjs doctor',
+  'agents:doctor:json': 'node ./scripts/agent-coordination.mjs doctor --json',
+  'agents:doctor:fix': 'node ./scripts/agent-coordination.mjs doctor --fix',
+  'agents:summarize': 'node ./scripts/agent-coordination.mjs summarize',
+  'agents:start': 'node ./scripts/agent-coordination.mjs start',
+  'agents:finish': 'node ./scripts/agent-coordination.mjs finish',
+  'agents:handoff-ready': 'node ./scripts/agent-coordination.mjs handoff-ready',
   'agents:heartbeat:start': 'node ./scripts/agent-coordination.mjs heartbeat-start',
   'agents:heartbeat:status': 'node ./scripts/agent-coordination.mjs heartbeat-status',
   'agents:heartbeat:stop': 'node ./scripts/agent-coordination.mjs heartbeat-stop',
@@ -42,6 +48,12 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:status': 'node ./scripts/agent-coordination-two.mjs status',
   'agents2:validate': 'node ./scripts/agent-coordination-two.mjs validate',
   'agents2:doctor': 'node ./scripts/agent-coordination-two.mjs doctor',
+  'agents2:doctor:json': 'node ./scripts/agent-coordination-two.mjs doctor --json',
+  'agents2:doctor:fix': 'node ./scripts/agent-coordination-two.mjs doctor --fix',
+  'agents2:summarize': 'node ./scripts/agent-coordination-two.mjs summarize',
+  'agents2:start': 'node ./scripts/agent-coordination-two.mjs start',
+  'agents2:finish': 'node ./scripts/agent-coordination-two.mjs finish',
+  'agents2:handoff-ready': 'node ./scripts/agent-coordination-two.mjs handoff-ready',
   'agents2:heartbeat:start': 'node ./scripts/agent-coordination-two.mjs heartbeat-start',
   'agents2:heartbeat:status': 'node ./scripts/agent-coordination-two.mjs heartbeat-status',
   'agents2:heartbeat:stop': 'node ./scripts/agent-coordination-two.mjs heartbeat-stop',
@@ -54,6 +66,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
 
 const FILES_TO_COPY = [
   'bin/ai-agents.mjs',
+  'scripts/agent-command-layer.mjs',
   'scripts/agent-coordination-core.mjs',
   'scripts/agent-coordination.mjs',
   'scripts/agent-coordination-two.mjs',
