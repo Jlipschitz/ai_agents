@@ -9,6 +9,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
+const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/validate-config.mjs';
+
 const DEFAULT_GITIGNORE_ENTRIES = [
   '',
   '# Local AI agent coordination runtime state',
@@ -18,6 +20,9 @@ const DEFAULT_GITIGNORE_ENTRIES = [
 
 const DEFAULT_PACKAGE_SCRIPTS = {
   'ai-agents': 'node ./bin/ai-agents.mjs',
+  'bootstrap': 'node ./scripts/bootstrap.mjs',
+  'check': CHECK_COMMAND,
+  'lint': 'npm run check',
   'agents': 'node ./scripts/agent-coordination.mjs',
   'agents:init': 'node ./scripts/agent-coordination.mjs init',
   'agents:plan': 'node ./scripts/agent-coordination.mjs plan',
@@ -55,12 +60,14 @@ const FILES_TO_COPY = [
   'scripts/agent-watch-loop.mjs',
   'scripts/agent-watch-loop.ps1',
   'scripts/agent-watch-loop-two.ps1',
+  'scripts/bootstrap.mjs',
   'scripts/validate-config.mjs',
   'agent-coordination.schema.json',
   'agent-coordination.config.json',
   'docs/agent-coordination-portability.md',
   'docs/commands.md',
   'docs/workflows.md',
+  'docs/implementation-status.md',
 ];
 
 function isCliEntrypoint() {
