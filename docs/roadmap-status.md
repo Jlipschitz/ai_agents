@@ -10,18 +10,16 @@ This file tracks the current implementation status for the larger roadmap in `ai
 
 ## Current Focus
 
-The project has completed most of the setup, bootstrap, command routing, CI, documentation, and safety-test foundation.
+The project has completed most of the setup, bootstrap, command routing, CI, documentation, config explanation, and safety-test foundation.
 
 Next recommended work:
 
-1. Add `docs/architecture.md`.
-2. Add `docs/state-files.md`.
-3. Add `docs/troubleshooting.md`.
-4. Add terminal output examples.
-5. Add `explain-config` and environment override reporting.
-6. Add `watch-diagnose` and `cleanup-runtime`.
-7. Add `release-check`.
-8. Add plugin-style `run-check` and artifact capture.
+1. Add terminal output examples.
+2. Add config doctor suggestions.
+3. Add `watch-diagnose` and `cleanup-runtime`.
+4. Add `release-check`.
+5. Add plugin-style `run-check` and artifact capture.
+6. Add board repair/inspection and state rollback.
 
 ---
 
@@ -138,9 +136,9 @@ Next recommended work:
 - [x] Add a complete command reference
 - [x] Add example workflows
 - [ ] Add terminal output examples
-- [ ] Add architecture documentation
-- [ ] Add state file reference
-- [ ] Add troubleshooting guide
+- [x] Add architecture documentation
+- [x] Add state file reference
+- [x] Add troubleshooting guide
 
 ## Phase 8: CLI Packaging, Naming, and Public Distribution
 
@@ -159,9 +157,9 @@ Next recommended work:
 
 ## Phase 10: Config Developer Experience
 
-- [ ] Add config explanation command
+- [x] Add config explanation command
 - [ ] Add config doctor suggestions
-- [ ] Add environment override report
+- [x] Add environment override report
 
 ## Phase 11: Command UX Improvements
 
@@ -198,6 +196,7 @@ Next recommended work:
 - `scripts/agent-command-layer.mjs`
 - `scripts/bootstrap.mjs`
 - `scripts/validate-config.mjs`
+- `scripts/explain-config.mjs`
 - `scripts/agent-watch-loop.mjs`
 - `scripts/lock-runtime.mjs`
 - `scripts/planner-sizing.mjs`
@@ -207,5 +206,9 @@ Next recommended work:
 - `.nvmrc`
 - `.node-version`
 - `docs/commands.md`
+- `docs/explain-config.md`
 - `docs/workflows.md`
+- `docs/architecture.md`
+- `docs/state-files.md`
+- `docs/troubleshooting.md`
 - `docs/implementation-status.md`
