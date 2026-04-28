@@ -30,7 +30,12 @@ if (!process.env.AGENT_COORDINATION_SCRIPT) {
 }
 
 if (!process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT) {
-  process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT = path.join(packageRoot, 'scripts', 'agent-watch-loop.ps1');
+  process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT = path.join(packageRoot, 'scripts', 'agent-watch-loop.mjs');
 }
 
-await import('../scripts/agent-coordination-core.mjs');
+const { runCommandLayer } = await import('../scripts/agent-command-layer.mjs');
+
+await runCommandLayer({
+  coordinatorScriptPath: __filename,
+  importCore: async () => import('../scripts/agent-coordination-core.mjs'),
+});
