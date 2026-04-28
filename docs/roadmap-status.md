@@ -67,7 +67,7 @@ Next recommended work:
 ## Phase 4: Verification, Risk, and GitHub Integration
 
 - [~] Evidence attachments - verification logs can attach artifact metadata; richer artifact root policies and pruning remain open.
-- [ ] Risk scoring
+- [x] Risk scoring
 - [ ] Critical path planning
 - [~] Merge queue awareness — `github-status` detects local merge_group workflow triggers; live queue state remains open.
 - [ ] Contract files
@@ -228,6 +228,7 @@ Next recommended work:
 - `scripts/lib/onboarding-checklist.mjs`
 - `scripts/lib/policy-enforcement.mjs`
 - `scripts/lib/prompt-commands.mjs`
+- `scripts/lib/risk-score-commands.mjs`
 - `scripts/lib/runtime-diagnostics.mjs`
 - `scripts/lib/state-transaction.mjs`
 - `scripts/lib/template-commands.mjs`
@@ -259,6 +260,7 @@ Next recommended work:
 - `tests/policy-enforcement.test.mjs`
 - `tests/prompt-commands.test.mjs`
 - `tests/read-only-commands.test.mjs`
+- `tests/risk-score-commands.test.mjs`
 - `tests/roadmap-commands.test.mjs`
 - `tests/template-commands.test.mjs`
 - `tests/task-metadata.test.mjs`

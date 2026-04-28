@@ -51,6 +51,7 @@ const TASK_COMMANDS = new Set([
   'release-check',
   'pr-summary',
   'release-bundle',
+  'risk-score',
   'app-note',
   'request-access',
 ]);
@@ -145,7 +146,7 @@ _ai_agents_complete() {
       if [[ CURRENT -eq 3 ]]; then _describe 'agent' agents; return; fi
       if [[ CURRENT -eq 4 ]]; then _describe 'task' tasks; return; fi
       ;;
-    prioritize|release-check|pr-summary|release-bundle)
+    prioritize|release-check|pr-summary|release-bundle|risk-score)
       _describe 'task' tasks ;;
   esac
   if [[ "$words[2]" == "verify" && CURRENT -eq 5 ]]; then _describe 'check' checks; return; fi
@@ -178,7 +179,7 @@ $scriptBlock = {
   elseif ($cmd -eq 'completions' -and $words.Count -le 3) { $items = $shells }
   elseif ($cmd -eq 'approvals' -and $words.Count -le 3) { $items = $approvalSubcommands }
   elseif (@('claim','start','finish','handoff-ready','pick','progress','wait','resume','blocked','review','done','release','verify','review-docs','prompt','inbox','heartbeat','heartbeat-start','heartbeat-stop','message','app-note','request-access','reserve-resource','renew-resource','release-resource') -contains $cmd -and $words.Count -le 3) { $items = $agents }
-  elseif (@('claim','start','finish','handoff-ready','progress','wait','resume','blocked','review','done','release','verify','review-docs','prioritize','prompt','release-check','pr-summary','release-bundle','app-note','request-access') -contains $cmd -and $words.Count -le 4) { $items = $tasks }
+  elseif (@('claim','start','finish','handoff-ready','progress','wait','resume','blocked','review','done','release','verify','review-docs','prioritize','prompt','release-check','pr-summary','release-bundle','risk-score','app-note','request-access') -contains $cmd -and $words.Count -le 4) { $items = $tasks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 5) { $items = $checks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 6) { $items = @('pass', 'fail') }
   $items | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {

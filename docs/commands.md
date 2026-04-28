@@ -485,6 +485,18 @@ npm run agents -- test-impact --json
 
 Selection uses `checks.<name>.requiredForPaths`, visual-impact config, and the current Git diff when `--paths` is omitted.
 
+### `risk-score`
+
+Scores task risk from ownership breadth, CODEOWNERS crossings, shared-risk paths, active path overlaps, open dependencies, verification state, visual verification, docs review, priority, severity, due dates, and blocked/waiting status.
+
+```bash
+npm run agents:risk:score
+npm run agents -- risk-score task-id
+npm run agents -- risk-score --json
+```
+
+The command is read-only and returns `none`, `low`, `medium`, `high`, or `critical` levels with point-by-point factors so coordinators can decide what needs review or sequencing before merge/release work.
+
 ### `branches`
 
 Shows local Git branches, active task branch ownership, merged/gone/stale status, and dry-run cleanup candidates.

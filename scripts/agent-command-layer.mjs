@@ -26,6 +26,7 @@ import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
 import { DEFAULT_POLICY_ENFORCEMENT, buildClaimPolicyPreflight, buildFinishPolicyPreflight, renderPolicyFindings, runPolicyCheck } from './lib/policy-enforcement.mjs';
 import { runPromptCommand } from './lib/prompt-commands.mjs';
+import { runRiskScore } from './lib/risk-score-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
 import { taskMetadataLabels } from './lib/task-metadata.mjs';
@@ -59,6 +60,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'branches',
   'ownership-review',
   'test-impact',
+  'risk-score',
   'github-status',
   'templates',
   'archive-completed',
@@ -322,6 +324,7 @@ function expectedPackageScripts() {
       'agents:branches': 'ai-agents branches',
       'agents:ownership:review': 'ai-agents ownership-review',
       'agents:test-impact': 'ai-agents test-impact',
+      'agents:risk:score': 'ai-agents risk-score',
       'agents:github:status': 'ai-agents github-status',
       'agents:templates': 'ai-agents templates',
       'agents:archive:completed': 'ai-agents archive-completed',
@@ -377,6 +380,7 @@ function expectedPackageScripts() {
     'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
     'agents:ownership:review': 'node ./scripts/agent-coordination.mjs ownership-review',
     'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
+    'agents:risk:score': 'node ./scripts/agent-coordination.mjs risk-score',
     'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
     'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
     'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
@@ -423,6 +427,7 @@ function expectedPackageScripts() {
     'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
     'agents2:ownership:review': 'node ./scripts/agent-coordination-two.mjs ownership-review',
     'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
+    'agents2:risk:score': 'node ./scripts/agent-coordination-two.mjs risk-score',
     'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
     'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
     'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
@@ -1421,6 +1426,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'branches') status = runBranchStatus(commandArgs, getBranchCommandContext());
   else if (commandName === 'ownership-review') status = runOwnershipReview(commandArgs, getImpactCommandContext());
   else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());
+  else if (commandName === 'risk-score') status = runRiskScore(commandArgs, getImpactCommandContext());
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
   else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());

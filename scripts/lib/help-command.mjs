@@ -56,6 +56,7 @@ export const COMMANDS = {
   branches: ['branches [--json] [--base <ref>] [--stale-days <days>] [--apply]', 'Report branch/task awareness and dry-run stale branch cleanup.'],
   'ownership-review': ['ownership-review [--json]', 'Review active claims for broad paths and CODEOWNERS boundary crossings.'],
   'test-impact': ['test-impact [--paths <path[,path...]>] [--json]', 'Select the smallest configured verification checks for changed paths.'],
+  'risk-score': ['risk-score [task-id...] [--json]', 'Score task risk from ownership, dependencies, verification, docs, and metadata.'],
   'github-status': ['github-status [--json] [--live]', 'Inspect GitHub remote, branch, PR, and merge queue workflow status.'],
   templates: ['templates list|show <name>|apply <config-template>|create-task <task-template> [--apply] [--json]', 'List, inspect, apply config templates, or create planned tasks from templates.'],
   'archive-completed': ['archive-completed [--older-than-days <days>] [--apply] [--json]', 'Archive old done/released tasks out of board.json.'],

@@ -735,6 +735,28 @@ Main files:
 - `scripts/lib/impact-commands.mjs`
 - `tests/command-layer.test.mjs`
 
+### Risk scoring
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:risk:score
+npm run agents -- risk-score task-id --json
+```
+
+Current behavior:
+
+- Scores planned, active-like, handoff, and done tasks.
+- Uses broad claims, CODEOWNERS boundary crossings, shared-risk paths, active path overlaps, open dependencies, missing or failing verification, visual-impact verification, docs review, priority, severity, due dates, and blocked/waiting status.
+- Emits `none`, `low`, `medium`, `high`, or `critical` levels plus point-by-point factors.
+- Supports task-id filtering and JSON output.
+- Is covered by read-only mutation tests.
+
+Main files:
+
+- `scripts/lib/risk-score-commands.mjs`
+- `tests/risk-score-commands.test.mjs`
+
 ### Branch awareness and stale branch cleanup
 
 Status: partially implemented in the command layer and claim path.
@@ -1100,7 +1122,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 ### Verification, risk, and GitHub integration
 
-- Risk scoring.
 - Critical path planning.
 - Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
 - Contract files for shared API/schema work.

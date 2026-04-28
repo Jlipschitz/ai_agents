@@ -32,6 +32,7 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('approvals'));
   assert.ok(payload.commands.includes('policy-check'));
   assert.ok(payload.commands.includes('prioritize'));
+  assert.ok(payload.commands.includes('risk-score'));
   assert.ok(payload.commands.includes('completions'));
 });
 
@@ -48,6 +49,7 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /prioritize/);
   assert.match(result.stdout, /approvals/);
   assert.match(result.stdout, /policy-check/);
+  assert.match(result.stdout, /risk-score/);
 });
 
 test('completions powershell and zsh render shell-specific registrations', () => {
