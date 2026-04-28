@@ -134,6 +134,17 @@ npm run agents:watch:stop
 
 The `agents2` scripts mirror the same commands but use the `coordination-two` workspace by default.
 
+## Documentation
+
+- [`docs/commands.md`](docs/commands.md): command reference.
+- [`docs/workflows.md`](docs/workflows.md): common workflows and copy/paste examples.
+- [`docs/architecture.md`](docs/architecture.md): command layer, core coordinator, wrappers, watcher, heartbeat, locking, and runtime architecture.
+- [`docs/state-files.md`](docs/state-files.md): reference for `board.json`, `journal.md`, `messages.ndjson`, runtime lock files, watcher state, and heartbeats.
+- [`docs/troubleshooting.md`](docs/troubleshooting.md): setup, Git, watcher, heartbeat, stale-lock, board, CI, and recovery troubleshooting.
+- [`docs/agent-coordination-portability.md`](docs/agent-coordination-portability.md): configuration and portability notes.
+- [`docs/implementation-status.md`](docs/implementation-status.md): implemented vs pending status.
+- [`docs/roadmap-status.md`](docs/roadmap-status.md): current roadmap status tracker.
+
 ## Default Files
 
 - `.nvmrc` and `.node-version`: Node 24 runtime hints.
@@ -152,11 +163,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `scripts/agent-watch-loop-two.ps1`: legacy Windows watch-loop helper for `agents2`.
 - `agent-coordination.schema.json`: JSON schema for portable config files.
 - `agent-coordination.config.json`: app-specific planning, docs, paths, and verification config.
-- `docs/agent-coordination-portability.md`: configuration and portability notes.
-- `docs/commands.md`: command reference.
-- `docs/workflows.md`: copy/paste workflow examples.
-- `docs/implementation-status.md`: implemented vs pending roadmap status.
-- `ai_agents_roadmap.md`: planned improvements.
+- `ai_agents_roadmap.md`: detailed planned improvements backlog.
 
 ## Runtime Files
 
@@ -171,6 +178,8 @@ Typical runtime files include:
 - `runtime/watcher.status.json`
 - `runtime/agent-heartbeats/`
 - `tasks/`
+
+See [`docs/state-files.md`](docs/state-files.md) for details.
 
 ## Configuration
 
@@ -216,6 +225,8 @@ npm run agents:doctor
 ```
 
 ## Troubleshooting
+
+See [`docs/troubleshooting.md`](docs/troubleshooting.md) for the full guide.
 
 ### Git says the repository has dubious ownership
 
@@ -270,4 +281,4 @@ CI runs on Node 24, installs with `npm ci`, and uses GitHub Actions npm caching 
 
 ## Roadmap
 
-See [`ai_agents_roadmap.md`](ai_agents_roadmap.md) for the long roadmap and [`docs/implementation-status.md`](docs/implementation-status.md) for the current implemented vs pending status.
+See [`ai_agents_roadmap.md`](ai_agents_roadmap.md) for the long backlog and [`docs/roadmap-status.md`](docs/roadmap-status.md) for the current status tracker.
