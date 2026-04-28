@@ -248,6 +248,30 @@ Main files:
 - `scripts/lib/command-registry.mjs`
 - `tests/command-registry.test.mjs`
 
+### End-to-end CLI smoke tests
+
+Status: partially implemented.
+
+```bash
+node tests/smoke/run-all-commands.mjs
+node tests/smoke/run-all-commands.mjs --json
+```
+
+Current behavior:
+
+- Creates a temporary target repository.
+- Runs the real bootstrap flow into that target.
+- Executes the copied target coordinator rather than the source checkout CLI.
+- Applies a healthy fixture board, then runs representative JSON/read-only commands and one dry-run mutation command.
+- Removes the temporary target by default; `--keep` preserves it for debugging.
+
+Follow-up: broaden the smoke matrix from representative commands to command-registry-driven coverage.
+
+Main files:
+
+- `tests/smoke/run-all-commands.mjs`
+- `tests/smoke/run-all-commands.test.mjs`
+
 ### JSON schema for config
 
 Status: implemented as schema plus standalone validator, and integrated into the command layer for `doctor` and `validate`.
