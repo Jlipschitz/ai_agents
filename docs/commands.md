@@ -41,7 +41,7 @@ npm run agents -- status
 
 ### `summarize`
 
-Prints a compact board handoff summary.
+Prints an enhanced board handoff summary.
 
 ```bash
 npm run agents:summarize
@@ -50,10 +50,22 @@ npm run agents -- summarize --for-chat
 npm run agents -- summarize --json
 ```
 
+Current summary output includes:
+
+- task counts by status
+- active work
+- blockers
+- review queue
+- stale active work
+- next planned work
+- next recommended actions
+- recent journal lines
+- recent messages
+
 Useful modes:
 
 - `--for-chat`: compact paste-friendly status block.
-- `--json`: machine-readable payload containing the summary and board state.
+- `--json`: machine-readable payload containing summary, board state, counts, next actions, recent journal lines, and recent messages.
 
 ### `validate`
 
@@ -100,11 +112,14 @@ npm run agents:watch:status
 
 ### `lock-status`
 
-Inspects the runtime state lock without mutating it.
+Inspects the runtime state lock without mutating it. This is routed through the main CLI, so all wrapper forms work.
 
 ```bash
 npm run agents:lock:status
 npm run agents2:lock:status
+npm run agents -- lock-status
+npm run agents -- lock-status --json
+npm run ai-agents -- lock-status --json
 node ./scripts/lock-runtime.mjs status --coordination-dir coordination --json
 ```
 
@@ -163,6 +178,8 @@ Generates a task split from a natural-language work description using configured
 npm run agents:plan -- "Build task labels and reporting"
 npm run agents -- plan "Improve mobile task modal"
 ```
+
+Planner lane sizing is covered by `scripts/planner-sizing.mjs`, which classifies likely product, data, verify, and docs lanes from the configured `planning.agentSizing` keywords. The helper is currently used as a regression-test target so planner sizing behavior can be stabilized before deeper core planner refactors.
 
 ### `claim`
 
@@ -266,6 +283,20 @@ npm run agents:finish -- agent-1 task-id "Implemented and verified."
 npm run agents -- finish agent-1 task-id "Implemented and verified."
 ```
 
+Optional safety gates:
+
+```bash
+npm run agents -- finish agent-1 task-id --require-verification "Finished and verified."
+npm run agents -- finish agent-1 task-id --require-doc-review "Finished after reviewing docs."
+npm run agents -- finish agent-1 task-id --require-verification --require-doc-review "Finished safely."
+```
+
+Gate behavior:
+
+- `--require-verification`: all checks listed in the task `verification` array must have a latest `verificationLog` outcome of `pass`.
+- `--require-doc-review`: the task must have `docsReviewedAt` recorded.
+- If a gate fails, the command exits before delegating to the core `done` command, so the board is not mutated.
+
 ### `release`
 
 Marks a done task released.
@@ -278,11 +309,14 @@ npm run agents -- release agent-1 task-id "Merged into main."
 
 ### `lock-clear`
 
-Clears stale runtime state locks safely.
+Clears stale runtime state locks safely. This is routed through the main CLI, so all wrapper forms work.
 
 ```bash
 npm run agents:lock:clear
 npm run agents2:lock:clear
+npm run agents -- lock-clear --stale-only
+npm run agents -- lock-clear --stale-only --json
+npm run ai-agents -- lock-clear --stale-only --json
 node ./scripts/lock-runtime.mjs clear --stale-only --coordination-dir coordination
 ```
 
