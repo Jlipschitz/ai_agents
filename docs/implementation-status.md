@@ -604,6 +604,29 @@ Main files:
 - `scripts/lib/changelog-commands.mjs`
 - `tests/changelog-commands.test.mjs`
 
+### Shell completions
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:completions -- powershell
+npm run agents -- completions bash
+npm run agents -- completions zsh
+npm run agents -- completions list --json
+```
+
+Current behavior:
+
+- Generates PowerShell, Bash, and Zsh completion scripts.
+- Includes command names, common flags, current agent IDs, task IDs, configured checks, and checks from verification history.
+- Supports JSON output for tooling that wants to write the generated script elsewhere.
+- Is covered by read-only mutation tests.
+
+Main files:
+
+- `scripts/lib/completion-commands.mjs`
+- `tests/completion-commands.test.mjs`
+
 ### Ownership and dependency views
 
 Status: implemented in the command layer.
@@ -1022,7 +1045,6 @@ These roadmap items still need core, command-layer, or documentation work.
 ### Safety, auditing, and recovery
 
 - Secrets and sensitive-data guardrails.
-- Shell completion generation.
 - Full policy enforcement mode with warn/block semantics across risky scopes.
 - Approval ledger.
 - Open-ended model-backed natural-language query mode.

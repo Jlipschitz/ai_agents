@@ -11,6 +11,7 @@ import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
 import { runBacklogImport } from './lib/backlog-import-commands.mjs';
 import { runChangelogCommand } from './lib/changelog-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
+import { runCompletionsCommand } from './lib/completion-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { createStarterBoard } from './lib/board-migration.mjs';
 import { runInspectBoard, runMigrateBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
@@ -64,6 +65,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'prompt',
   'ask',
   'changelog',
+  'completions',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -238,6 +240,17 @@ function getAskCommandContext() {
   };
 }
 
+function getCompletionsCommandContext() {
+  const { config } = loadConfig();
+  const paths = getCoordinationPaths();
+  return {
+    root: ROOT,
+    paths,
+    config,
+    board: readJsonSafe(paths.boardPath, { tasks: [], agents: [] }),
+  };
+}
+
 function createStarterConfig(configPath) {
   writeJson(configPath, {
     configVersion: 1,
@@ -313,6 +326,7 @@ function expectedPackageScripts() {
       'agents:prompt': 'ai-agents prompt',
       'agents:ask': 'ai-agents ask',
       'agents:changelog': 'ai-agents changelog',
+      'agents:completions': 'ai-agents completions',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -364,6 +378,7 @@ function expectedPackageScripts() {
     'agents:prompt': 'node ./scripts/agent-coordination.mjs prompt',
     'agents:ask': 'node ./scripts/agent-coordination.mjs ask',
     'agents:changelog': 'node ./scripts/agent-coordination.mjs changelog',
+    'agents:completions': 'node ./scripts/agent-coordination.mjs completions',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -406,6 +421,7 @@ function expectedPackageScripts() {
     'agents2:prompt': 'node ./scripts/agent-coordination-two.mjs prompt',
     'agents2:ask': 'node ./scripts/agent-coordination-two.mjs ask',
     'agents2:changelog': 'node ./scripts/agent-coordination-two.mjs changelog',
+    'agents2:completions': 'node ./scripts/agent-coordination-two.mjs completions',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -1321,6 +1337,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'prompt') status = runPromptCommand(commandArgs, getPromptCommandContext());
   else if (commandName === 'ask') status = runAskCommand(commandArgs, getAskCommandContext());
   else if (commandName === 'changelog') status = runChangelogCommand(commandArgs, getCoordinationPaths());
+  else if (commandName === 'completions') status = runCompletionsCommand(commandArgs, getCompletionsCommandContext());
   process.exit(status);
 }
 

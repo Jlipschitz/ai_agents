@@ -178,6 +178,7 @@ npm run agents:archive:completed
 npm run agents:update
 npm run agents:snapshot:workspace -- --apply
 npm run agents:backlog:import -- --from BACKLOG.md
+npm run agents:completions -- powershell
 npm run agents:board:inspect
 npm run agents:board:repair
 npm run agents:board:migrate

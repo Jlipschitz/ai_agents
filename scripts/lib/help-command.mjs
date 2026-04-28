@@ -1,6 +1,6 @@
 import { printCommandError } from './error-formatting.mjs';
 
-const COMMANDS = {
+export const COMMANDS = {
   help: ['help [command]', 'Show general help or command-specific help.'],
   init: ['init', 'Create the coordination board, journal, messages, and runtime folders.'],
   status: ['status', 'Show active, blocked, review, waiting, handoff, planned, and stale work.'],
@@ -59,6 +59,7 @@ const COMMANDS = {
   'update-coordinator': ['update-coordinator [--source <path>] [--include-docs] [--apply] [--json]', 'Update copied coordinator files while preserving config and runtime state.'],
   'snapshot-workspace': ['snapshot-workspace [--apply] [--json]', 'Write a compressed snapshot of board, journal, messages, and runtime state.'],
   'backlog-import': ['backlog-import [--from <path[,path...]>] [--owner <agent>] [--apply] [--json]', 'Import Markdown TODOs as planned tasks.'],
+  completions: ['completions <powershell|bash|zsh> [--json]', 'Generate shell completion scripts for this repo.'],
   'explain-config': ['explain-config [--json] [--config <path>] [--root <path>]', 'Explain active config and environment overrides.'],
   'request-access': ['request-access <agent> <task-id> <scope> <reason>', 'Request shared resource or elevated operation access.'],
   'grant-access': ['grant-access <request-id> [--by <agent>] [--note <text>]', 'Grant an access request.'],

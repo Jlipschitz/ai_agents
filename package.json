@@ -56,6 +56,7 @@
     "agents:prompt": "node ./scripts/agent-coordination.mjs prompt",
     "agents:ask": "node ./scripts/agent-coordination.mjs ask",
     "agents:changelog": "node ./scripts/agent-coordination.mjs changelog",
+    "agents:completions": "node ./scripts/agent-coordination.mjs completions",
     "agents2": "node ./scripts/agent-coordination-two.mjs",
     "agents2:init": "node ./scripts/agent-coordination-two.mjs init",
     "agents2:plan": "node ./scripts/agent-coordination-two.mjs plan",
@@ -97,7 +98,8 @@
     "agents2:backlog:import": "node ./scripts/agent-coordination-two.mjs backlog-import",
     "agents2:prompt": "node ./scripts/agent-coordination-two.mjs prompt",
     "agents2:ask": "node ./scripts/agent-coordination-two.mjs ask",
-    "agents2:changelog": "node ./scripts/agent-coordination-two.mjs changelog"
+    "agents2:changelog": "node ./scripts/agent-coordination-two.mjs changelog",
+    "agents2:completions": "node ./scripts/agent-coordination-two.mjs completions"
   },
   "engines": {
     "node": ">=24"

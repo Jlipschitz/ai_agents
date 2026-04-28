@@ -93,7 +93,7 @@ Next recommended work:
 - [~] State transactions - lock-protected core state mutations and command-layer multi-file apply flows restore prior state on write failure; external side effects such as Git branch deletion remain open.
 - [x] Schema migrations for board state
 - [x] Concurrency stress tests
-- [ ] Shell completions
+- [x] Shell completions
 - [~] Policy enforcement mode — partially covered by Git branch policy and finish gates.
 - [~] CODEOWNERS integration — `ownership-review` reads CODEOWNERS-style files; claim-time enforcement remains open.
 - [ ] Approval ledger
@@ -217,6 +217,7 @@ Next recommended work:
 - `scripts/lib/branch-commands.mjs`
 - `scripts/lib/changelog-commands.mjs`
 - `scripts/lib/claim-policy.mjs`
+- `scripts/lib/completion-commands.mjs`
 - `scripts/lib/error-formatting.mjs`
 - `scripts/lib/github-commands.mjs`
 - `scripts/lib/global-flags.mjs`
@@ -242,6 +243,7 @@ Next recommended work:
 - `tests/changelog-commands.test.mjs`
 - `tests/command-layer.test.mjs`
 - `tests/command-snapshots.test.mjs`
+- `tests/completion-commands.test.mjs`
 - `tests/config-validation.test.mjs`
 - `tests/concurrency-stress.test.mjs`
 - `tests/core-mutation-safety.test.mjs`

@@ -297,6 +297,19 @@ Flags:
 - `--root <path>`: repo root used for existence warnings.
 - `--json`: emit machine-readable validation output.
 
+### `completions`
+
+Generates shell completion scripts for the current repo.
+
+```bash
+npm run agents:completions -- powershell
+npm run agents -- completions bash
+npm run agents -- completions zsh
+npm run agents -- completions list --json
+```
+
+Generated scripts include command names plus current agent IDs, task IDs, configured checks, verification checks, and common flags.
+
 ### `migrate-config`
 
 Adds current optional config defaults such as `configVersion`, `artifacts`, and `checks`. The command is dry-run by default and snapshots the previous config before applying changes.
