@@ -1,0 +1,20 @@
+{
+  "projectName": "Fixture Basic Repo",
+  "updatedAt": "2026-01-01T00:00:00.000Z",
+  "tasks": [
+    {
+      "id": "task-broad",
+      "status": "active",
+      "ownerId": "agent-1",
+      "title": "Broad task",
+      "claimedPaths": ["src"]
+    },
+    {
+      "id": "task-cross",
+      "status": "active",
+      "ownerId": "agent-2",
+      "title": "Cross task",
+      "claimedPaths": ["app/page.js", "api/route.js"]
+    }
+  ]
+}

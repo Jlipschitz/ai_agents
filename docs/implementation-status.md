@@ -524,6 +524,8 @@ Current coverage:
 - Planner lane sizing covers simple, complex, capped, and fallback cases.
 - Verification artifacts, artifact listing/inspection, dependency graph output, ownership-map overlap detection, PR summaries, and release bundles have regression coverage.
 - Config migration, policy pack dry-run/apply behavior, artifact retention dry-runs, and artifact pruning apply behavior have regression coverage.
+- Static fixture repo coverage exists under `tests/fixtures/basic-repo`.
+- Command snapshot coverage exists for representative ownership review and test-impact JSON output.
 
 Main files:
 
@@ -535,6 +537,7 @@ Main files:
 - `tests/lock-runtime.test.mjs`
 - `tests/planner-sizing.test.mjs`
 - `tests/roadmap-commands.test.mjs`
+- `tests/command-snapshots.test.mjs`
 
 Follow-up tests still needed:
 

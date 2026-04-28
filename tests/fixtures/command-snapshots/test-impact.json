@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "gitAvailable": true,
+  "paths": [
+    "app/page.js",
+    "api/route.js"
+  ],
+  "checks": [
+    {
+      "name": "api",
+      "command": "npm run api:test",
+      "reason": "requiredForPaths",
+      "matchedPaths": [
+        "api/route.js"
+      ]
+    },
+    {
+      "name": "visual:test",
+      "command": "node --test tests/visual.test.mjs",
+      "reason": "visualImpact",
+      "matchedPaths": [
+        "app/page.js"
+      ]
+    }
+  ],
+  "warnings": []
+}

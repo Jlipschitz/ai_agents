@@ -14,8 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add broader command snapshot tests and fixture repos.
-2. Add deeper GitHub/PR integration and merge queue awareness.
+1. Add deeper GitHub/PR integration and merge queue awareness.
 
 ---
 
@@ -179,8 +178,8 @@ Next recommended work:
 
 ## Phase 14: Testing Improvements
 
-- [ ] Add fixture repos for testing
-- [ ] Add command snapshot tests
+- [x] Add fixture repos for testing
+- [~] Add command snapshot tests — snapshot coverage exists for representative commands; broader command snapshots remain useful.
 - [~] Add CLI argument parsing tests — partial coverage exists.
 - [~] Add cross-platform path tests — partial coverage exists.
 

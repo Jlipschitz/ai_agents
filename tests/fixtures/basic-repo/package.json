@@ -1,0 +1,9 @@
+{
+  "name": "fixture-basic-repo",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "api:test": "node --test tests/api.test.mjs",
+    "visual:test": "node --test tests/visual.test.mjs"
+  }
+}

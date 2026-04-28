@@ -1,0 +1,51 @@
+{
+  "ok": false,
+  "codeownersPath": ".github/CODEOWNERS",
+  "findings": [
+    "Task task-broad claims broad path(s): src.",
+    "Task task-cross crosses CODEOWNERS boundaries: app/page.js -> @frontend; api/route.js -> @backend."
+  ],
+  "reviews": [
+    {
+      "taskId": "task-broad",
+      "ownerId": "agent-1",
+      "claimedPaths": [
+        "src"
+      ],
+      "broadClaims": [
+        "src"
+      ],
+      "owners": [
+        {
+          "path": "src",
+          "owners": [
+            "@core"
+          ]
+        }
+      ]
+    },
+    {
+      "taskId": "task-cross",
+      "ownerId": "agent-2",
+      "claimedPaths": [
+        "app/page.js",
+        "api/route.js"
+      ],
+      "broadClaims": [],
+      "owners": [
+        {
+          "path": "app/page.js",
+          "owners": [
+            "@frontend"
+          ]
+        },
+        {
+          "path": "api/route.js",
+          "owners": [
+            "@backend"
+          ]
+        }
+      ]
+    }
+  ]
+}
