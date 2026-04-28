@@ -10,15 +10,26 @@ Run:
 npm run agents:doctor
 npm run agents:validate
 npm run agents:status
+npm run agents:summarize
 ```
 
-Or with the public CLI entrypoint:
+Machine-readable checks:
 
 ```bash
-npm run ai-agents -- doctor
-npm run ai-agents -- validate
-npm run ai-agents -- status
+npm run agents -- doctor --json
+npm run agents -- validate --json
+npm run agents -- summarize --json
 ```
+
+## Run Safe Fixes
+
+For missing starter files, ignored runtime folders, package scripts, starter docs, or runtime folders:
+
+```bash
+npm run agents -- doctor --fix
+```
+
+This is intentionally conservative. It should not overwrite project-specific config or runtime state that already exists.
 
 ## Git Dubious Ownership
 
@@ -39,7 +50,7 @@ git config --global --add safe.directory <repo-path>
 Windows example:
 
 ```powershell
-git config --global --add safe.directory "C:/Users/Shadow/Documents/code/todo_app/.codex-tmp/ai_agents_export"
+git config --global --add safe.directory "C:/path/to/repo"
 ```
 
 ## Missing Config
@@ -50,13 +61,16 @@ Expected file:
 agent-coordination.config.json
 ```
 
-Fix:
-
-1. Copy the config from this repo.
-2. Update the project-specific paths and docs settings.
-3. Run `doctor`.
+Fix options:
 
 ```bash
+npm run agents -- doctor --fix
+```
+
+Or copy the config from this repo, update project-specific paths, then run:
+
+```bash
+npm run validate:agents-config
 npm run agents:doctor
 ```
 
@@ -64,32 +78,36 @@ npm run agents:doctor
 
 Symptoms:
 
-- Coordinator fails before command output.
-- Error mentions JSON parsing.
+- coordinator fails before command output
+- error mentions JSON parsing
+- config validation fails
 
 Fix:
 
-1. Validate the JSON in an editor.
-2. Remove trailing commas.
-3. Make sure all strings use double quotes.
-4. Run `doctor` again.
+1. Remove trailing commas.
+2. Make sure all strings use double quotes.
+3. Validate with:
 
-A formal JSON schema is planned.
+```bash
+npm run validate:agents-config
+node ./scripts/validate-config.mjs --config ./agent-coordination.config.json --json
+```
 
 ## Wrong Coordination Folder
 
 Symptoms:
 
-- `status` shows no tasks even though you expected tasks.
+- `status` shows no tasks even though tasks exist.
 - `agents` and `agents2` show different boards.
+- `summarize` does not show the expected active work.
 
-Cause:
+Default folders:
 
-- `agents` uses `coordination/`.
-- `agents2` uses `coordination-two/`.
-- `AGENT_COORDINATION_ROOT` or `AGENT_COORDINATION_DIR` may point somewhere else.
+- `npm run agents` uses `coordination/`.
+- `npm run agents2` uses `coordination-two/`.
+- `npm run ai-agents` uses `coordination/`.
 
-Check active environment variables:
+Check overrides:
 
 ```bash
 echo $AGENT_COORDINATION_ROOT
@@ -105,33 +123,49 @@ echo $env:AGENT_COORDINATION_DIR
 
 ## Watcher Does Not Start
 
-Check watcher status:
+Check watcher status and doctor output:
 
 ```bash
 npm run agents:watch:status
 npm run agents:doctor
 ```
 
-Current note: the watcher helper is PowerShell-based. If you are on macOS/Linux, use manual commands until the planned Node watcher is implemented.
+Start watcher:
+
+```bash
+npm run agents:watch:start
+npm run agents -- watch-start --interval 30000
+```
+
+The default watcher is the Node watcher:
+
+```text
+scripts/agent-watch-loop.mjs
+```
+
+PowerShell watcher scripts remain only as legacy fallback.
 
 ## Watcher Looks Stale
 
 Symptoms:
 
-- Watcher status exists but does not update.
-- Watcher PID no longer exists.
-- `doctor` reports stale runtime state.
+- watcher status exists but does not update
+- watcher PID no longer exists
+- `watch-status` reports stale runtime state
 
 Fix:
-
-1. Stop the watcher if possible.
-2. Back up the coordination folder.
-3. Remove stale watcher status only if you are sure the watcher is not running.
-4. Restart the watcher.
 
 ```bash
 npm run agents:watch:stop
 npm run agents:watch:start
+npm run agents:watch:status
+```
+
+If runtime state still looks stuck, inspect locks:
+
+```bash
+npm run agents -- lock-status
+npm run agents -- lock-status --json
 ```
 
 Future commands planned:
@@ -152,48 +186,79 @@ npm run agents:heartbeat:status
 Restart heartbeat:
 
 ```bash
-npm run agents:heartbeat:stop
-npm run agents:heartbeat:start
+npm run agents:heartbeat:stop -- agent-1
+npm run agents:heartbeat:start -- agent-1
 ```
 
-Future heartbeat improvements will track machine name, repo path, and process/session IDs.
+If multiple terminals use the same agent ID, set:
+
+```bash
+AGENT_TERMINAL_ID=<unique-session-name>
+```
+
+PowerShell:
+
+```powershell
+$env:AGENT_TERMINAL_ID = "session-1"
+```
 
 ## Stale Lock
 
 Symptoms:
 
-- Commands wait for a long time.
-- Commands report lock contention.
-- `runtime/state.lock.json` exists after a crash.
+- commands wait for a long time
+- commands report lock contention
+- `runtime/state.lock.json` exists after a crash
 
-Recommended approach:
+Inspect first:
+
+```bash
+npm run agents -- lock-status
+npm run agents -- lock-status --json
+```
+
+Clear only stale locks:
+
+```bash
+npm run agents -- lock-clear --stale-only
+npm run agents -- lock-clear --stale-only --json
+```
+
+Use `--force` only when a human has confirmed no command is running:
+
+```bash
+npm run agents -- lock-clear --force
+```
+
+Recommended safety flow:
 
 1. Make sure no coordinator command is still running.
 2. Back up the coordination folder.
-3. Run `doctor`.
-4. Only remove a lock manually if you are sure it is stale.
-
-Future commands planned:
-
-```bash
-ai-agents lock-status
-ai-agents lock-clear --stale-only
-```
+3. Run `lock-status`.
+4. Use `lock-clear --stale-only`.
+5. Run `doctor` and `status` again.
 
 ## Broken `board.json`
 
 Symptoms:
 
-- `status` or `validate` fails.
-- JSON parse errors.
-- Missing task fields.
+- `status` or `validate` fails
+- JSON parse errors
+- missing task fields
+- impossible statuses
 
 Fix:
 
 1. Back up the coordination folder.
 2. Validate JSON formatting.
 3. Check recent changes in `journal.md`.
-4. Repair manually if needed.
+4. Repair manually only if necessary.
+5. Run:
+
+```bash
+npm run agents:validate
+npm run agents:doctor
+```
 
 Future commands planned:
 
@@ -207,16 +272,51 @@ ai-agents rollback-state
 
 Symptoms:
 
-- Claimed paths are too broad, such as `src/`, `components/`, or `lib/`.
-- Other agents are blocked by broad ownership.
+- claimed paths are too broad, such as `src/`, `components/`, or `lib/`
+- other agents are blocked by broad ownership
+- conflict warnings appear often
 
 Fix:
 
-- Narrow claimed paths to the smallest practical files/folders.
-- Split broad tasks into smaller tasks.
-- Add shared-risk paths to config.
+- narrow claimed paths to the smallest practical files/folders
+- split broad tasks into smaller tasks
+- add shared-risk paths to config
+- hand off or release paths that are no longer needed
 
 Future roadmap items include ownership reviews and task split validation.
+
+## Claim Blocked By Git Policy
+
+Symptoms:
+
+- `claim` exits before claiming the task
+- stderr mentions `git.allowMainBranchClaims`, `git.allowDetachedHead`, or `git.allowedBranchPatterns`
+
+Check the current branch:
+
+```bash
+git branch --show-current
+git status --branch --short
+```
+
+Review config:
+
+```json
+{
+  "git": {
+    "allowMainBranchClaims": false,
+    "allowDetachedHead": false,
+    "allowedBranchPatterns": ["agent/*", "feature/*", "fix/*"]
+  }
+}
+```
+
+Fix options:
+
+- create a branch that matches the policy
+- update the policy intentionally
+- avoid claiming from detached HEAD
+- avoid claiming from `main` or `master` when disabled
 
 ## Dirty Git State
 
@@ -231,14 +331,36 @@ git status --branch --short
 
 Recommended practice:
 
-- Commit or stash unrelated changes.
-- Pull latest changes.
-- Avoid claiming work from a stale branch.
-- Avoid broad path claims when there are uncommitted changes.
+- commit or stash unrelated changes
+- pull latest changes
+- avoid claiming work from stale branches
+- avoid broad path claims when there are uncommitted changes
+
+## Finish Blocked By Safety Gate
+
+Symptoms:
+
+- `finish --require-verification` fails
+- `finish --require-doc-review` fails
+- task is not marked done
+
+Reason:
+
+- `--require-verification` requires every check in the task `verification` array to have a latest passing entry in `verificationLog`.
+- `--require-doc-review` requires `docsReviewedAt` on the task.
+
+Fix:
+
+```bash
+npm run agents -- verify agent-1 task-id unit pass "npm test passed"
+npm run agents -- finish agent-1 task-id --require-verification "Finished and verified."
+```
+
+For docs review, make sure the task records docs review before using the gate.
 
 ## Runtime Files Accidentally Committed
 
-If `coordination/` or `coordination-two/` files are staged, unstage them:
+If runtime files are staged, unstage them:
 
 ```bash
 git restore --staged coordination coordination-two
@@ -254,6 +376,32 @@ playwright-report/
 test-results/
 ```
 
+`doctor --fix` and `bootstrap` can add coordination ignores automatically.
+
+## CI Fails After Adding Tests
+
+Run locally with the same basics used by CI:
+
+```bash
+npm ci
+npm run check
+npm run validate:agents-config
+npm test
+```
+
+CI uses Node 24. Check your local version:
+
+```bash
+node --version
+```
+
+Use the repo hints:
+
+```text
+.nvmrc
+.node-version
+```
+
 ## Need To Move Work To Another Machine
 
 For active coordination state:
@@ -265,3 +413,16 @@ For active coordination state:
 5. Restart heartbeats/watchers.
 
 Alternatively, set `AGENT_COORDINATION_ROOT` to a synced location before starting work.
+
+## Useful Recovery Commands
+
+```bash
+npm run agents:doctor
+npm run agents:validate
+npm run agents:status
+npm run agents:summarize
+npm run agents -- lock-status
+npm run agents -- lock-clear --stale-only
+npm run agents:watch:status
+npm run agents:heartbeat:status
+```
