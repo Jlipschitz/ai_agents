@@ -835,6 +835,18 @@ npm run agents -- github-status --live
 
 By default the command is local-only and does not contact GitHub. `--live` runs `gh pr view` for the current branch and reports failures as warnings. Set `privacy.offline: true`, `privacy.mode: "local-only"`, or `AI_AGENTS_OFFLINE=1` to skip live checks even when `--live` is passed.
 
+### `github-plan`
+
+Plans GitHub PR or issue write operations locally without contacting GitHub.
+
+```bash
+npm run agents -- github-plan pr 42 --comment "Ready for review." --label needs-review --checklist "tests pass|docs updated"
+npm run agents -- github-plan issue 7 --comment "Follow-up note." --json
+npm run agents -- github-plan https://github.com/OWNER/REPO/pull/42 --label package-d --json
+```
+
+The command supports PR/issue comments, labels, and checklist comments. It is dry-run only: `--apply` is accepted for future compatibility but is explicitly blocked and performs no writes unless a future live-write flag is added. `privacy.mode: "redacted"` or `"local-only"` redacts planned comment, label, and checklist text in output, and offline mode reports that no GitHub API or CLI writes will be attempted.
+
 ### `claim`
 
 Claims a task for an agent and records claimed paths. Claims can also set priority metadata with `--priority low|normal|high|urgent`, `--due-at <iso|YYYY-MM-DD>`, and `--severity none|low|medium|high|critical`. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, merge/rebase state, and configured branch policies. Merge/rebase-in-progress state and configured branch policy violations block the claim.
@@ -1269,13 +1281,14 @@ Lists or inspects known artifacts from verification logs and `run-check` indexes
 ```bash
 npm run agents -- artifacts list
 npm run agents -- artifacts list --task task-id --check unit --json
+npm run agents -- artifacts report --json
 npm run agents -- artifacts inspect artifacts/checks/example.log
 npm run agents -- artifacts inspect artifacts/checks/example.log --json
 npm run agents -- artifacts prune
 npm run agents -- artifacts prune --apply --json
 ```
 
-`artifacts prune` is dry-run by default. It keeps artifacts referenced by active work, honors configured protected patterns, applies separate retention for failed checks, and can prune oldest eligible files when artifact storage exceeds `artifacts.maxMb`.
+`artifacts report` checks verification-log artifact references and reports missing evidence files without mutating state. `artifacts prune` is dry-run by default. It keeps artifacts referenced by active work, honors configured protected patterns, applies separate retention for failed checks, and can prune oldest eligible files when artifact storage exceeds `artifacts.maxMb`.
 
 ## Notes and Messaging
 

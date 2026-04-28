@@ -76,7 +76,7 @@ Next recommended work:
 - [x] Human approval gates
 - [x] Incident mode
 - [~] Backlog importer — Markdown TODO import exists; GitHub issue import remains open.
-- [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; write/API integration remains open.
+- [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; `github-plan` dry-runs PR/issue comments, labels, and checklist comments. Live write/API integration remains open.
 - [x] State compaction
 - [~] Agent SLA warnings — stale active work appears in `summarize`.
 - [~] Ownership reviews — `ownership-review` flags broad claims and CODEOWNERS boundary crossings; periodic automation remains open.

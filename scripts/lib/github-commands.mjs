@@ -74,6 +74,190 @@ function getAheadBehind(root, upstream) {
   };
 }
 
+function flagValues(argv, flag) {
+  const values = [];
+  const prefix = `${flag}=`;
+  for (let index = 0; index < argv.length; index += 1) {
+    const entry = argv[index];
+    if (entry === flag) {
+      const next = argv[index + 1];
+      if (next && !next.startsWith('--')) {
+        values.push(next);
+        index += 1;
+      }
+    } else if (entry.startsWith(prefix)) {
+      values.push(entry.slice(prefix.length));
+    }
+  }
+  return values;
+}
+
+function githubPositionals(argv) {
+  const valuedFlags = new Set(['--comment', '--label', '--labels', '--checklist', '--check']);
+  const positionals = [];
+  for (let index = 0; index < argv.length; index += 1) {
+    const entry = argv[index];
+    if (!entry.startsWith('--')) {
+      positionals.push(entry);
+      continue;
+    }
+    const flag = entry.includes('=') ? entry.slice(0, entry.indexOf('=')) : entry;
+    if (!entry.includes('=') && valuedFlags.has(flag)) index += 1;
+  }
+  return positionals;
+}
+
+function splitCsv(values) {
+  return values.flatMap((value) => String(value ?? '').split(',')).map((entry) => entry.trim()).filter(Boolean);
+}
+
+function splitChecklist(values) {
+  return values.flatMap((value) => String(value ?? '').split(/\s*\|\s*|,/)).map((entry) => entry.trim()).filter(Boolean);
+}
+
+function parseGitHubTarget(positionals) {
+  const [kindOrTarget, maybeNumber] = positionals;
+  const urlMatch = String(kindOrTarget ?? '').match(/github\.com\/([^/\s]+)\/([^/\s]+)\/(pull|issues)\/(\d+)/i);
+  if (urlMatch) {
+    return {
+      targetType: urlMatch[3].toLowerCase() === 'pull' ? 'pr' : 'issue',
+      number: Number.parseInt(urlMatch[4], 10),
+      repository: { owner: urlMatch[1], repo: urlMatch[2].replace(/\.git$/i, ''), url: `https://github.com/${urlMatch[1]}/${urlMatch[2].replace(/\.git$/i, '')}` },
+      source: 'url',
+    };
+  }
+
+  const normalizedType = String(kindOrTarget ?? '').toLowerCase();
+  if ((normalizedType === 'pr' || normalizedType === 'pull' || normalizedType === 'issue') && maybeNumber) {
+    const parsed = Number.parseInt(String(maybeNumber), 10);
+    return {
+      targetType: normalizedType === 'issue' ? 'issue' : 'pr',
+      number: Number.isFinite(parsed) ? parsed : null,
+      repository: null,
+      source: 'args',
+    };
+  }
+
+  return { targetType: null, number: null, repository: null, source: 'missing' };
+}
+
+function redactedValue(value, privacy) {
+  if (!privacy?.redacted) return value;
+  return typeof value === 'string' && value.trim() ? '[redacted]' : value;
+}
+
+function redactedArray(values, privacy) {
+  if (!privacy?.redacted) return values;
+  return values.length ? ['[redacted]'] : values;
+}
+
+function buildOperations(argv, target, privacy) {
+  const comments = flagValues(argv, '--comment');
+  const labels = splitCsv([...flagValues(argv, '--label'), ...flagValues(argv, '--labels')]);
+  const checklistItems = splitChecklist([...flagValues(argv, '--checklist'), ...flagValues(argv, '--check')]);
+  const operations = [];
+
+  for (const body of comments) {
+    operations.push({
+      type: 'comment',
+      targetType: target.targetType,
+      number: target.number,
+      body: redactedValue(body, privacy),
+    });
+  }
+
+  if (labels.length) {
+    operations.push({
+      type: 'label',
+      targetType: target.targetType,
+      number: target.number,
+      labels: redactedArray(labels, privacy),
+    });
+  }
+
+  if (checklistItems.length) {
+    operations.push({
+      type: 'checklist-comment',
+      targetType: target.targetType,
+      number: target.number,
+      items: redactedArray(checklistItems, privacy),
+      body: privacy?.redacted ? '[redacted]' : checklistItems.map((item) => `- [ ] ${item}`).join('\n'),
+    });
+  }
+
+  return operations;
+}
+
+export function buildGitHubWritePlan({ root, argv = [], config = {}, env = process.env }) {
+  const privacy = getPrivacyOptions(config, env);
+  const remoteUrl = execGit(['config', '--get', 'remote.origin.url'], { root });
+  const remoteRepository = parseGitHubRemote(remoteUrl);
+  const positionals = githubPositionals(argv);
+  const target = parseGitHubTarget(positionals);
+  const repository = target.repository ?? remoteRepository;
+  const warnings = [];
+  const errors = [];
+
+  if (!target.targetType || !target.number) errors.push('Usage: github-plan <pr|issue> <number|url> [--comment <text>] [--label <label[,label...]>] [--checklist <item[|item...]>] [--json] [--apply]');
+  if (!repository) warnings.push('remote.origin.url is not a GitHub remote; plan will not include a repository URL.');
+  if (privacy.offline) warnings.push('Offline mode is enabled; no GitHub API or CLI writes will be attempted.');
+
+  const operations = target.targetType && target.number ? buildOperations(argv, target, privacy) : [];
+  if (!operations.length && !errors.length) errors.push('No GitHub operations requested. Add --comment, --label, or --checklist.');
+
+  const applyRequested = hasFlag(argv, '--apply');
+  if (applyRequested) warnings.push('Apply is blocked for GitHub write plans until a future live-write flag exists.');
+
+  const resolvedTarget = {
+    type: target.targetType,
+    number: target.number,
+    url: repository && target.targetType && target.number
+      ? `${repository.url}/${target.targetType === 'pr' ? 'pull' : 'issues'}/${target.number}`
+      : null,
+  };
+
+  return {
+    ok: errors.length === 0 && !applyRequested,
+    dryRun: true,
+    applyRequested,
+    blocked: applyRequested,
+    liveWrites: false,
+    privacy,
+    repository,
+    remoteUrl,
+    target: resolvedTarget,
+    operations,
+    summary: {
+      operationCount: operations.length,
+      comments: operations.filter((operation) => operation.type === 'comment').length,
+      labels: operations.filter((operation) => operation.type === 'label').reduce((count, operation) => count + (operation.labels?.length ?? 0), 0),
+      checklists: operations.filter((operation) => operation.type === 'checklist-comment').length,
+    },
+    warnings,
+    errors,
+  };
+}
+
+function renderGitHubWritePlan(plan) {
+  const lines = ['# GitHub Write Plan'];
+  lines.push(`Mode: dry-run${plan.applyRequested ? ' (apply blocked)' : ''}`);
+  lines.push(`Repository: ${plan.repository?.url ?? 'not detected'}`);
+  lines.push(`Target: ${plan.target.url ?? 'not resolved'}`);
+  if (plan.operations.length) {
+    lines.push('Operations:');
+    for (const operation of plan.operations) {
+      if (operation.type === 'comment') lines.push(`- comment on ${operation.targetType} #${operation.number}: ${operation.body}`);
+      else if (operation.type === 'label') lines.push(`- label ${operation.targetType} #${operation.number}: ${operation.labels.join(', ')}`);
+      else if (operation.type === 'checklist-comment') lines.push(`- checklist comment on ${operation.targetType} #${operation.number}: ${operation.items.join(', ')}`);
+    }
+  } else {
+    lines.push('Operations: none');
+  }
+  for (const warning of plan.warnings) lines.push(`- warning: ${warning}`);
+  for (const error of plan.errors) lines.push(`- error: ${error}`);
+  return lines.join('\n');
+}
+
 export function buildGitHubStatus({ root, argv = [], config = {}, env = process.env }) {
   const privacy = getPrivacyOptions(config, env);
   const remoteUrl = execGit(['config', '--get', 'remote.origin.url'], { root });
@@ -129,4 +313,14 @@ export function runGitHubStatus(argv, context) {
     console.log(result.warnings.length ? result.warnings.map((entry) => `- warning: ${entry}`).join('\n') : '- no warnings');
   }
   return 0;
+}
+
+export function runGitHubWritePlan(argv, context) {
+  const plan = buildGitHubWritePlan({ ...context, argv });
+  if (hasFlag(argv, '--json')) {
+    console.log(JSON.stringify(plan, null, 2));
+  } else {
+    console.log(renderGitHubWritePlan(plan));
+  }
+  return plan.ok ? 0 : 1;
 }

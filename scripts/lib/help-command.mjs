@@ -87,6 +87,7 @@ export const COMMANDS = {
   'escalation-route': ['escalation-route [--task <id>] [--paths <path[,path...]>] [--reason <text>] [--json]', 'Suggest who to ask for blocked work from active owners, previous tasks, and CODEOWNERS.'],
   'steal-work': ['steal-work <agent-id>|--agent <agent-id> [--task <id>] [--stale-hours <n>] [--apply] [--json]', 'Suggest or apply safe work stealing for idle agents.'],
   'github-status': ['github-status [--json] [--live]', 'Inspect GitHub remote, branch, PR, and merge queue workflow status.'],
+  'github-plan': ['github-plan <pr|issue> <number|url> [--comment <text>] [--label <label[,label...]>] [--checklist <item[|item...]>] [--apply] [--json]', 'Plan GitHub PR or issue comments, labels, and checklist comments without performing writes.'],
   templates: ['templates list|show <name>|apply <config-template>|create-task <task-template> [--apply] [--json]', 'List, inspect, apply config templates, or create planned tasks from templates.'],
   'archive-completed': ['archive-completed [--older-than-days <days>] [--apply] [--json]', 'Archive old done/released tasks out of board.json.'],
   'update-coordinator': ['update-coordinator [--source <path>] [--include-docs] [--apply --reviewed] [--json]', 'Update copied coordinator files while preserving config and runtime state.'],

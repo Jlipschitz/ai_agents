@@ -53,6 +53,7 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('steal-work'));
   assert.ok(payload.commands.includes('contracts'));
   assert.ok(payload.commands.includes('compact-state'));
+  assert.ok(payload.commands.includes('github-plan'));
   assert.ok(payload.commands.includes('prioritize'));
   assert.ok(payload.commands.includes('risk-score'));
   assert.ok(payload.commands.includes('completions'));
@@ -98,6 +99,7 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /steal-work/);
   assert.match(result.stdout, /contracts/);
   assert.match(result.stdout, /compact-state/);
+  assert.match(result.stdout, /github-plan/);
   assert.match(result.stdout, /risk-score/);
   assert.match(result.stdout, /calendar/);
   assert.match(result.stdout, /release-sign/);
@@ -107,6 +109,8 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /--out-dir/);
   assert.match(result.stdout, /--reviewed/);
   assert.match(result.stdout, /--for-chat/);
+  assert.match(result.stdout, /--comment/);
+  assert.match(result.stdout, /--checklist/);
   assert.match(result.stdout, /timeline/);
   assert.match(result.stdout, /version/);
   assert.match(result.stdout, /publish-check/);

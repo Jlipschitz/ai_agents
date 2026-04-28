@@ -30,7 +30,7 @@ import { runFormat } from './lib/format-commands.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
 import { runHandoffBundle, runNextCommand } from './lib/handoff-bundle-commands.mjs';
-import { runGitHubStatus } from './lib/github-commands.mjs';
+import { runGitHubStatus, runGitHubWritePlan } from './lib/github-commands.mjs';
 import { hasHelpFlag, runCommandHelp } from './lib/help-command.mjs';
 import { runHealthScore } from './lib/health-score-commands.mjs';
 import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
@@ -110,6 +110,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'escalation-route',
   'steal-work',
   'github-status',
+  'github-plan',
   'templates',
   'archive-completed',
   'update-coordinator',
@@ -1505,6 +1506,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'escalation-route') status = runEscalationRoutes(commandArgs, getImpactCommandContext());
   else if (commandName === 'steal-work') status = runWorkSteal(commandArgs, getImpactCommandContext());
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
+  else if (commandName === 'github-plan') status = runGitHubWritePlan(commandArgs, getGitHubCommandContext());
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
   else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());
   else if (commandName === 'update-coordinator') status = runUpdateCoordinator(commandArgs, { root: ROOT });

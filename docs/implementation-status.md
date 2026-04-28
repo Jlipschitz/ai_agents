@@ -633,6 +633,7 @@ Current behavior:
 - `verify --artifact <path[,path...]>` records artifact metadata on verification log entries.
 - `artifacts list` reads verification artifacts and `run-check` indexes.
 - `artifacts inspect` reports file metadata and known references.
+- `artifacts report` checks verification-log artifact references and reports missing evidence files with recommendations.
 
 ### PR handoff and release bundle
 
@@ -1407,6 +1408,7 @@ Status: partially implemented in the command layer.
 npm run agents:github:status
 npm run agents -- github-status --json
 npm run agents -- github-status --live
+npm run agents -- github-plan pr 42 --comment "Ready for review." --label needs-review --json
 ```
 
 Current behavior:
@@ -1417,12 +1419,16 @@ Current behavior:
 - Runs without contacting GitHub by default.
 - `--live` uses `gh pr view` when available and reports PR metadata or warning details.
 - `privacy.offline: true`, `privacy.mode: "local-only"`, or `AI_AGENTS_OFFLINE=1` skips live GitHub checks even when `--live` is passed.
+- `github-plan` plans PR/issue comment, label, and checklist-comment operations locally with JSON output.
+- `github-plan --apply` is explicitly blocked and performs no writes until a future live-write flag exists.
+- Redacted privacy mode hides planned GitHub write text in `github-plan` output, and offline mode keeps the command local-only.
 
 Main files:
 
 - `scripts/lib/github-commands.mjs`
 - `scripts/lib/privacy-utils.mjs`
 - `tests/github-status.test.mjs`
+- `tests/github-write.test.mjs`
 
 ### Config doctor suggestions and aliases
 
@@ -1816,7 +1822,7 @@ These roadmap items still need core, command-layer, or documentation work.
 ### Verification, risk, and GitHub integration
 
 - Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
-- GitHub write/API integration for issues, PR comments, labels, and checklists.
+- Live GitHub write/API integration for issues, PR comments, labels, and checklists beyond the current dry-run planner.
 - Universal JSON output for every command.
 
 ### Safety, auditing, and recovery
