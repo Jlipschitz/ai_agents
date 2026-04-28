@@ -4,6 +4,7 @@ import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
+import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = process.cwd();
@@ -16,6 +17,8 @@ const DEFAULT_GIT_POLICY = {
   allowDetachedHead: false,
   allowedBranchPatterns: [],
 };
+const DEFAULT_STALE_TASK_HOURS = 6;
+const DEFAULT_RECENT_CONTEXT_LINES = 8;
 
 function normalizePath(inputPath) {
   if (!inputPath) return '';
@@ -124,6 +127,8 @@ function expectedPackageScripts() {
     'agents:start': 'node ./scripts/agent-coordination.mjs start',
     'agents:finish': 'node ./scripts/agent-coordination.mjs finish',
     'agents:handoff-ready': 'node ./scripts/agent-coordination.mjs handoff-ready',
+    'agents:lock:status': 'node ./scripts/agent-coordination.mjs lock-status',
+    'agents:lock:clear': 'node ./scripts/agent-coordination.mjs lock-clear --stale-only',
     'agents:watch:start': 'node ./scripts/agent-coordination.mjs watch-start',
     'agents:watch:node': 'node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination.mjs',
     'agents:watch:status': 'node ./scripts/agent-coordination.mjs watch-status',
@@ -216,6 +221,16 @@ function getGitSnapshot(config = loadConfig().config) {
   return result;
 }
 
+function parseIsoMs(value) {
+  const parsed = Date.parse(String(value ?? ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hoursSince(value) {
+  const parsed = parseIsoMs(value);
+  return parsed ? Math.max(0, (Date.now() - parsed) / 36e5) : null;
+}
+
 function taskSummary(task) {
   const owner = task.ownerId || task.suggestedOwnerId || 'unowned';
   const title = task.title || task.summary || task.id;
@@ -223,18 +238,59 @@ function taskSummary(task) {
   return `- ${task.id}: ${title} [${task.status || 'unknown'} / ${owner}]${paths}`;
 }
 
-function buildBoardSummary({ forChat = false } = {}) {
-  const { boardPath, coordinationRoot } = getCoordinationPaths();
-  const board = readJsonSafe(boardPath, { tasks: [] });
+function isTaskStale(task, staleHours = DEFAULT_STALE_TASK_HOURS) {
+  if (!ACTIVE_STATUSES.has(task.status)) return false;
+  const age = hoursSince(task.updatedAt || task.lastUpdatedAt || task.createdAt);
+  return age !== null && age >= staleHours;
+}
+
+function readRecentJournalLines(journalPath, limit = DEFAULT_RECENT_CONTEXT_LINES) {
+  if (!fs.existsSync(journalPath)) return [];
+  return fs.readFileSync(journalPath, 'utf8').split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(-limit);
+}
+
+function readRecentMessages(messagesPath, limit = DEFAULT_RECENT_CONTEXT_LINES) {
+  if (!fs.existsSync(messagesPath)) return [];
+  const lines = fs.readFileSync(messagesPath, 'utf8').split(/\r?\n/).filter(Boolean).slice(-limit);
+  return lines.map((line) => {
+    try {
+      const message = JSON.parse(line);
+      const from = message.from || message.agent || message.sender || 'unknown';
+      const to = message.to ? ` -> ${message.to}` : '';
+      const body = message.body || message.message || message.text || line;
+      return `- ${from}${to}: ${body}`;
+    } catch {
+      return `- ${line}`;
+    }
+  });
+}
+
+function buildSummaryData({ staleHours = DEFAULT_STALE_TASK_HOURS } = {}) {
+  const paths = getCoordinationPaths();
+  const board = readJsonSafe(paths.boardPath, { tasks: [] });
   const tasks = Array.isArray(board.tasks) ? board.tasks : [];
   const active = tasks.filter((task) => ACTIVE_STATUSES.has(task.status));
   const blocked = tasks.filter((task) => task.status === 'blocked');
   const review = tasks.filter((task) => task.status === 'review');
   const planned = tasks.filter((task) => task.status === 'planned');
   const done = tasks.filter((task) => TERMINAL_STATUSES.has(task.status));
-  const updatedAt = board.updatedAt || board.lastUpdatedAt || 'unknown';
-  if (forChat) return [`Coordination summary for ${board.projectName || path.basename(ROOT)}`, `Updated: ${updatedAt}`, `Active: ${active.length}; Blocked: ${blocked.length}; Review: ${review.length}; Planned: ${planned.length}; Done/Released: ${done.length}`, active.length ? `Active work:\n${active.map(taskSummary).join('\n')}` : 'Active work: none', blocked.length ? `Blockers:\n${blocked.map(taskSummary).join('\n')}` : 'Blockers: none', review.length ? `Needs review:\n${review.map(taskSummary).join('\n')}` : 'Needs review: none'].join('\n');
-  return ['# Board Summary', '', `Project: ${board.projectName || path.basename(ROOT)}`, `Coordination root: ${normalizePath(coordinationRoot) || coordinationRoot}`, `Updated: ${updatedAt}`, '', '## Counts', '', `- Planned: ${planned.length}`, `- Active-like: ${active.length}`, `- Blocked: ${blocked.length}`, `- Review: ${review.length}`, `- Done/released: ${done.length}`, '', '## Active Work', '', active.length ? active.map(taskSummary).join('\n') : '- None', '', '## Blockers', '', blocked.length ? blocked.map(taskSummary).join('\n') : '- None', '', '## Review Queue', '', review.length ? review.map(taskSummary).join('\n') : '- None', '', '## Next Planned', '', planned.slice(0, 10).length ? planned.slice(0, 10).map(taskSummary).join('\n') : '- None'].join('\n');
+  const stale = active.filter((task) => isTaskStale(task, staleHours));
+  const recentJournal = readRecentJournalLines(paths.journalPath);
+  const recentMessages = readRecentMessages(paths.messagesPath);
+  const nextActions = [];
+  if (blocked.length) nextActions.push('Unblock blocked tasks before assigning more dependent work.');
+  if (review.length) nextActions.push('Review or verify tasks already in review.');
+  if (stale.length) nextActions.push('Refresh stale active tasks with progress notes or handoff them.');
+  if (!active.length && planned.length) nextActions.push('Claim the next planned task with narrow paths.');
+  if (!nextActions.length) nextActions.push('No urgent coordination action detected.');
+  return { paths, board, tasks, active, blocked, review, planned, done, stale, recentJournal, recentMessages, nextActions };
+}
+
+function buildBoardSummary({ forChat = false, staleHours = DEFAULT_STALE_TASK_HOURS } = {}) {
+  const data = buildSummaryData({ staleHours });
+  const updatedAt = data.board.updatedAt || data.board.lastUpdatedAt || 'unknown';
+  if (forChat) return [`Coordination summary for ${data.board.projectName || path.basename(ROOT)}`, `Updated: ${updatedAt}`, `Active: ${data.active.length}; Blocked: ${data.blocked.length}; Review: ${data.review.length}; Planned: ${data.planned.length}; Done/Released: ${data.done.length}; Stale: ${data.stale.length}`, data.active.length ? `Active work:\n${data.active.map(taskSummary).join('\n')}` : 'Active work: none', data.blocked.length ? `Blockers:\n${data.blocked.map(taskSummary).join('\n')}` : 'Blockers: none', data.review.length ? `Needs review:\n${data.review.map(taskSummary).join('\n')}` : 'Needs review: none', data.stale.length ? `Stale work:\n${data.stale.map(taskSummary).join('\n')}` : 'Stale work: none', `Next actions:\n${data.nextActions.map((entry) => `- ${entry}`).join('\n')}`].join('\n');
+  return ['# Board Summary', '', `Project: ${data.board.projectName || path.basename(ROOT)}`, `Coordination root: ${normalizePath(data.paths.coordinationRoot) || data.paths.coordinationRoot}`, `Updated: ${updatedAt}`, '', '## Counts', '', `- Planned: ${data.planned.length}`, `- Active-like: ${data.active.length}`, `- Blocked: ${data.blocked.length}`, `- Review: ${data.review.length}`, `- Done/released: ${data.done.length}`, `- Stale active: ${data.stale.length}`, '', '## Active Work', '', data.active.length ? data.active.map(taskSummary).join('\n') : '- None', '', '## Blockers', '', data.blocked.length ? data.blocked.map(taskSummary).join('\n') : '- None', '', '## Review Queue', '', data.review.length ? data.review.map(taskSummary).join('\n') : '- None', '', '## Stale Work', '', data.stale.length ? data.stale.map(taskSummary).join('\n') : '- None', '', '## Next Planned', '', data.planned.slice(0, 10).length ? data.planned.slice(0, 10).map(taskSummary).join('\n') : '- None', '', '## Next Actions', '', data.nextActions.map((entry) => `- ${entry}`).join('\n'), '', '## Recent Journal', '', data.recentJournal.length ? data.recentJournal.map((entry) => `- ${entry}`).join('\n') : '- None', '', '## Recent Messages', '', data.recentMessages.length ? data.recentMessages.join('\n') : '- None'].join('\n');
 }
 
 function doctorJson({ includeFixes = false } = {}) {
@@ -298,11 +354,43 @@ function runWatchStart(argv, coordinatorScriptPath) {
   return 0;
 }
 
+function getTaskById(taskId) {
+  const { boardPath } = getCoordinationPaths();
+  const board = readJsonSafe(boardPath, { tasks: [] });
+  const tasks = Array.isArray(board.tasks) ? board.tasks : [];
+  return tasks.find((task) => task.id === taskId) || null;
+}
+
+function latestVerificationByCheck(task) {
+  const map = new Map();
+  for (const entry of Array.isArray(task?.verificationLog) ? task.verificationLog : []) {
+    if (entry?.check) map.set(entry.check, entry.outcome || entry.status || null);
+  }
+  return map;
+}
+
+function assertFinishGates(taskId, argv) {
+  const requireVerification = argv.includes('--require-verification');
+  const requireDocs = argv.includes('--require-doc-review');
+  if (!requireVerification && !requireDocs) return { ok: true };
+  const task = getTaskById(taskId);
+  if (!task) return { ok: false, message: `Cannot enforce finish gates because task ${taskId} was not found.` };
+  if (requireDocs && !task.docsReviewedAt) return { ok: false, message: `Task ${taskId} has not recorded docsReviewedAt.` };
+  if (requireVerification) {
+    const requiredChecks = Array.isArray(task.verification) ? task.verification : [];
+    const latest = latestVerificationByCheck(task);
+    const missing = requiredChecks.filter((check) => latest.get(check) !== 'pass');
+    if (missing.length) return { ok: false, message: `Task ${taskId} is missing passing verification for: ${missing.join(', ')}.` };
+  }
+  return { ok: true };
+}
+
 function runLifecycle(commandName, argv, coordinatorScriptPath) {
   const [agentId, taskId, ...rest] = argv;
   if (!agentId || !taskId) { console.error(`Usage: ${commandName} <agent-id> <task-id> [message] [--paths path[,path...]]`); return 1; }
   const pathFlagIndex = rest.findIndex((entry) => entry === '--paths');
-  const message = rest.filter((entry, index) => !entry.startsWith('--') && index !== pathFlagIndex + 1).join(' ').trim();
+  const ignoredValueIndexes = new Set(pathFlagIndex >= 0 ? [pathFlagIndex + 1] : []);
+  const message = rest.filter((entry, index) => !entry.startsWith('--') && !ignoredValueIndexes.has(index)).join(' ').trim();
   const run = (args) => spawnSync(process.execPath, [coordinatorScriptPath, ...args], { cwd: ROOT, stdio: 'inherit', env: process.env }).status ?? 1;
   if (commandName === 'start') {
     const paths = pathFlagIndex >= 0 ? rest[pathFlagIndex + 1] : '';
@@ -312,9 +400,19 @@ function runLifecycle(commandName, argv, coordinatorScriptPath) {
     if (status !== 0) return status;
     return message ? run(['progress', agentId, taskId, message]) : 0;
   }
-  if (commandName === 'finish') return run(['done', agentId, taskId, message || 'Finished implementation.']);
+  if (commandName === 'finish') {
+    const gate = assertFinishGates(taskId, rest);
+    if (!gate.ok) { console.error(gate.message); return 1; }
+    return run(['done', agentId, taskId, message || 'Finished implementation.']);
+  }
   if (commandName === 'handoff-ready') return run(['handoff', agentId, taskId, message || 'Ready for handoff.']);
   return 1;
+}
+
+function runLockCommand(commandName, argv) {
+  const translated = commandName === 'lock-status' ? ['status', ...argv] : ['clear', ...argv];
+  if (!translated.includes('--coordination-root') && !translated.includes('--coordination-dir')) translated.push('--coordination-root', resolveCoordinationRoot());
+  return runLockRuntimeCli(translated);
 }
 
 function shouldHandle(commandName, argv) {
@@ -322,6 +420,7 @@ function shouldHandle(commandName, argv) {
   if (commandName === 'validate' && argv.includes('--json')) return true;
   if (commandName === 'summarize') return true;
   if (commandName === 'watch-start') return true;
+  if (commandName === 'lock-status' || commandName === 'lock-clear') return true;
   if (VALID_LIFECYCLE_COMMANDS.has(commandName)) return true;
   return false;
 }
@@ -352,11 +451,11 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'validate' && commandArgs.includes('--json')) status = runConfigValidation({ json: true });
   else if (commandName === 'summarize') {
     if (commandArgs.includes('--json')) {
-      const paths = getCoordinationPaths();
-      const board = readJsonSafe(paths.boardPath, { tasks: [] });
-      console.log(JSON.stringify({ summary: buildBoardSummary({ forChat: commandArgs.includes('--for-chat') }), board }, null, 2));
+      const data = buildSummaryData();
+      console.log(JSON.stringify({ summary: buildBoardSummary({ forChat: commandArgs.includes('--for-chat') }), board: data.board, counts: { active: data.active.length, blocked: data.blocked.length, review: data.review.length, planned: data.planned.length, done: data.done.length, stale: data.stale.length }, nextActions: data.nextActions, recentJournal: data.recentJournal, recentMessages: data.recentMessages }, null, 2));
     } else console.log(buildBoardSummary({ forChat: commandArgs.includes('--for-chat') }));
   } else if (commandName === 'watch-start') status = runWatchStart(commandArgs, normalizedCoordinatorPath);
+  else if (commandName === 'lock-status' || commandName === 'lock-clear') status = runLockCommand(commandName, commandArgs);
   else if (VALID_LIFECYCLE_COMMANDS.has(commandName)) status = runLifecycle(commandName, commandArgs, normalizedCoordinatorPath);
   process.exit(status);
 }
