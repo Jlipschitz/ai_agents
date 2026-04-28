@@ -20,6 +20,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Supports agent heartbeats and watcher status.
 - Provides `doctor`, `validate`, `status`, `plan`, and enhanced `summarize` commands.
 - Supports `doctor --fix` and `doctor --json` through the command layer.
+- Explains active config and environment overrides with `explain-config`.
 - Performs Git preflight checks before task claims.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
@@ -41,6 +42,13 @@ Validate the portable config:
 
 ```bash
 npm run validate:agents-config
+```
+
+Explain the active config:
+
+```bash
+npm run agents:explain-config
+npm run agents -- explain-config --json
 ```
 
 Initialize the default coordination workspace:
@@ -69,6 +77,7 @@ You can also use the public CLI entrypoint:
 ```bash
 npm run ai-agents -- init
 npm run ai-agents -- doctor
+npm run ai-agents -- explain-config --json
 ```
 
 After package installation or through `npx`, the CLI is intended to run as:
@@ -77,6 +86,7 @@ After package installation or through `npx`, the CLI is intended to run as:
 ai-agents init
 ai-agents doctor
 ai-agents status
+ai-agents explain-config
 ```
 
 ## Bootstrap Into Another Repo
@@ -111,6 +121,8 @@ npm run agents:init
 npm run agents:doctor
 npm run agents:doctor:json
 npm run agents:doctor:fix
+npm run agents:explain-config
+npm run agents -- explain-config --json
 npm run agents:plan
 npm run agents:status
 npm run agents:summarize
@@ -137,6 +149,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 ## Documentation
 
 - [`docs/commands.md`](docs/commands.md): command reference.
+- [`docs/explain-config.md`](docs/explain-config.md): `explain-config` usage, text output, JSON output, and environment override reporting.
 - [`docs/workflows.md`](docs/workflows.md): common workflows and copy/paste examples.
 - [`docs/architecture.md`](docs/architecture.md): command layer, core coordinator, wrappers, watcher, heartbeat, locking, and runtime architecture.
 - [`docs/state-files.md`](docs/state-files.md): reference for `board.json`, `journal.md`, `messages.ndjson`, runtime lock files, watcher state, and heartbeats.
@@ -156,6 +169,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `scripts/agent-coordination-two.mjs`: `agents2` workspace wrapper.
 - `scripts/bootstrap.mjs`: installer for copying `ai_agents` into another repo.
 - `scripts/validate-config.mjs`: config validator with text and JSON output.
+- `scripts/explain-config.mjs`: active config explanation, suggestions, and environment override reporting.
 - `scripts/lock-runtime.mjs`: runtime lock inspection and safe stale-lock cleanup.
 - `scripts/planner-sizing.mjs`: reusable planner lane sizing helper and regression-test target.
 - `scripts/agent-watch-loop.mjs`: cross-platform Node watch-loop helper.
@@ -185,12 +199,14 @@ See [`docs/state-files.md`](docs/state-files.md) for details.
 
 Edit `agent-coordination.config.json` for the target app before using the planner heavily. The included config is a working example and should be adapted for each repository.
 
-Validate config changes with:
+Validate and explain config changes with:
 
 ```bash
 npm run validate:agents-config
 node ./scripts/validate-config.mjs --config ./agent-coordination.config.json --json
 npm run agents -- validate --json
+npm run agents -- explain-config
+npm run agents -- explain-config --json
 ```
 
 Important config areas:
@@ -206,7 +222,7 @@ Important config areas:
 - `planning`
 - `domainRules`
 
-See [`docs/agent-coordination-portability.md`](docs/agent-coordination-portability.md) for details.
+See [`docs/agent-coordination-portability.md`](docs/agent-coordination-portability.md) and [`docs/explain-config.md`](docs/explain-config.md) for details.
 
 ## Using In Another Repo
 
@@ -220,6 +236,7 @@ Then open the target repo, adapt `agent-coordination.config.json`, and run:
 
 ```bash
 npm run validate:agents-config
+npm run agents:explain-config
 npm run agents:init
 npm run agents:doctor
 ```
@@ -266,6 +283,7 @@ Run:
 
 ```bash
 npm run validate:agents-config
+npm run agents:explain-config
 npm run agents:validate
 npm run agents:doctor
 ```
