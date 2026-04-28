@@ -24,6 +24,7 @@ import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
 import { buildOnboardingChecklist } from './lib/onboarding-checklist.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
+import { DEFAULT_POLICY_ENFORCEMENT, buildClaimPolicyPreflight, buildFinishPolicyPreflight, renderPolicyFindings, runPolicyCheck } from './lib/policy-enforcement.mjs';
 import { runPromptCommand } from './lib/prompt-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
@@ -54,6 +55,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'release-bundle',
   'migrate-config',
   'policy-packs',
+  'policy-check',
   'branches',
   'ownership-review',
   'test-impact',
@@ -262,6 +264,7 @@ function createStarterConfig(configPath) {
     capacity: DEFAULT_CAPACITY_POLICY,
     conflictPrediction: DEFAULT_CONFLICT_PREDICTION,
     ownership: DEFAULT_OWNERSHIP_POLICY,
+    policyEnforcement: DEFAULT_POLICY_ENFORCEMENT,
     paths: { sharedRisk: ['scripts', 'package.json', 'agent-coordination.config.json'], visualSuite: [], visualSuiteDefault: [], visualImpact: [], visualImpactFiles: [] },
     verification: { visualRequiredChecks: [], visualSuiteUpdateChecks: [] },
     artifacts: { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] },
@@ -315,6 +318,7 @@ function expectedPackageScripts() {
       'agents:board:migrate': 'ai-agents migrate-board',
       'agents:state:rollback': 'ai-agents rollback-state',
       'agents:run-check': 'ai-agents run-check',
+      'agents:policy:check': 'ai-agents policy-check',
       'agents:branches': 'ai-agents branches',
       'agents:ownership:review': 'ai-agents ownership-review',
       'agents:test-impact': 'ai-agents test-impact',
@@ -369,6 +373,7 @@ function expectedPackageScripts() {
     'agents:board:migrate': 'node ./scripts/agent-coordination.mjs migrate-board',
     'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
     'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
+    'agents:policy:check': 'node ./scripts/agent-coordination.mjs policy-check',
     'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
     'agents:ownership:review': 'node ./scripts/agent-coordination.mjs ownership-review',
     'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
@@ -414,6 +419,7 @@ function expectedPackageScripts() {
     'agents2:board:migrate': 'node ./scripts/agent-coordination-two.mjs migrate-board',
     'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
     'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
+    'agents2:policy:check': 'node ./scripts/agent-coordination-two.mjs policy-check',
     'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
     'agents2:ownership:review': 'node ./scripts/agent-coordination-two.mjs ownership-review',
     'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
@@ -747,6 +753,7 @@ function buildMigratedConfig(config) {
     capacity: DEFAULT_CAPACITY_POLICY,
     conflictPrediction: DEFAULT_CONFLICT_PREDICTION,
     ownership: DEFAULT_OWNERSHIP_POLICY,
+    policyEnforcement: DEFAULT_POLICY_ENFORCEMENT,
     artifacts: DEFAULT_ARTIFACT_POLICY,
     checks: {},
   });
@@ -1143,6 +1150,29 @@ function runGitPreflightForClaim() {
   return git.errors.length ? 1 : 0;
 }
 
+function parseClaimPolicyInput(argv) {
+  const positionals = getPositionals(argv, new Set(['--paths', '--summary', '--priority', '--due-at', '--due', '--severity', '--issue']));
+  const [agentId, taskId] = positionals;
+  const claimedPaths = getFlagValue(argv, '--paths', '')
+    .split(',')
+    .map((entry) => normalizePath(entry))
+    .filter(Boolean);
+  return { agentId, taskId, claimedPaths };
+}
+
+function runPolicyPreflightForClaim(argv) {
+  const { config } = loadConfig();
+  const input = parseClaimPolicyInput(argv);
+  if (!input.claimedPaths.length) return 0;
+  const result = buildClaimPolicyPreflight({ root: ROOT, config, ...input });
+  if (!result.findings.length) return 0;
+  if (result.blocking) {
+    return printCommandError(`Policy enforcement blocked claim:\n${renderPolicyFindings(result.findings)}`, { code: 'policy_enforcement' });
+  }
+  for (const finding of result.findings) console.warn(`policy warning: ${finding.message}`);
+  return 0;
+}
+
 function parseInterval(argv) {
   const index = argv.findIndex((entry) => entry === '--interval');
   if (index < 0) return 30000;
@@ -1196,8 +1226,8 @@ function getApprovalGateScope(argv) {
   return next && !next.startsWith('--') ? normalizeApprovalScope(next) : '';
 }
 
-function hasApprovedTaskApproval(taskId, scope = '') {
-  const board = readJsonSafe(getCoordinationPaths().boardPath, { approvals: [] });
+function hasApprovedTaskApproval(taskId, scope = '', boardOverride = null) {
+  const board = boardOverride || readJsonSafe(getCoordinationPaths().boardPath, { approvals: [] });
   const approvals = Array.isArray(board.approvals) ? board.approvals : [];
   return approvals.some((approval) =>
     approval?.taskId === taskId
@@ -1211,11 +1241,24 @@ function assertFinishGates(taskId, argv) {
   const requireDocs = argv.includes('--require-doc-review');
   const approvalScope = getApprovalGateScope(argv);
   const requireApproval = approvalScope !== null;
-  if (!requireVerification && !requireDocs && !requireApproval) return { ok: true };
-  const task = getTaskById(taskId);
+  const board = readJsonSafe(getCoordinationPaths().boardPath, { tasks: [], approvals: [] });
+  const tasks = Array.isArray(board.tasks) ? board.tasks : [];
+  const task = tasks.find((entry) => entry.id === taskId) || null;
+  const { config } = loadConfig();
+  const policyGate = buildFinishPolicyPreflight({ config, board, taskId });
+  const warnings = [];
+
+  if (policyGate.findings.length) {
+    if (!policyGate.ok) {
+      return { ok: false, message: `Policy enforcement blocked finish:\n${renderPolicyFindings(policyGate.findings)}` };
+    }
+    warnings.push(...policyGate.findings.map((finding) => `[${finding.rule}] ${finding.message}`));
+  }
+
+  if (!requireVerification && !requireDocs && !requireApproval) return { ok: true, warnings };
   if (!task) return { ok: false, message: `Cannot enforce finish gates because task ${taskId} was not found.` };
   if (requireDocs && !task.docsReviewedAt) return { ok: false, message: `Task ${taskId} has not recorded docsReviewedAt.` };
-  if (requireApproval && !hasApprovedTaskApproval(taskId, approvalScope)) {
+  if (requireApproval && !hasApprovedTaskApproval(taskId, approvalScope, board)) {
     return {
       ok: false,
       message: `Task ${taskId} is missing an approved approval-ledger entry${approvalScope ? ` for scope ${approvalScope}` : ''}.`,
@@ -1227,7 +1270,7 @@ function assertFinishGates(taskId, argv) {
     const missing = requiredChecks.filter((check) => latest.get(check) !== 'pass');
     if (missing.length) return { ok: false, message: `Task ${taskId} is missing passing verification for: ${missing.join(', ')}.` };
   }
-  return { ok: true };
+  return { ok: true, warnings };
 }
 
 function parseLifecycleRest(rest) {
@@ -1283,6 +1326,7 @@ function runLifecycle(commandName, argv, coordinatorScriptPath) {
   if (commandName === 'finish') {
     const gate = assertFinishGates(taskId, rest);
     if (!gate.ok) return printCommandError(gate.message, { json });
+    for (const warning of gate.warnings ?? []) console.warn(`policy warning: ${warning}`);
     return run(['done', agentId, taskId, message || 'Finished implementation.', ...(flags['dry-run'] ? ['--dry-run'] : [])]);
   }
   if (commandName === 'handoff-ready') return run(['handoff', agentId, taskId, message || 'Ready for handoff.', ...(flags['dry-run'] ? ['--dry-run'] : [])]);
@@ -1333,6 +1377,8 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   if (commandName === 'claim') {
     const preflightStatus = runGitPreflightForClaim();
     if (preflightStatus !== 0) process.exit(preflightStatus);
+    const policyStatus = runPolicyPreflightForClaim(commandArgs);
+    if (policyStatus !== 0) process.exit(policyStatus);
   }
 
   if (!shouldHandle(commandName, commandArgs)) {
@@ -1371,6 +1417,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'release-bundle') status = runReleaseBundle(commandArgs);
   else if (commandName === 'migrate-config') status = runMigrateConfig(commandArgs);
   else if (commandName === 'policy-packs') status = runPolicyPacks(commandArgs);
+  else if (commandName === 'policy-check') status = runPolicyCheck(commandArgs, getImpactCommandContext());
   else if (commandName === 'branches') status = runBranchStatus(commandArgs, getBranchCommandContext());
   else if (commandName === 'ownership-review') status = runOwnershipReview(commandArgs, getImpactCommandContext());
   else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());

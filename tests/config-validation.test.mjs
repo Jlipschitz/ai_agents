@@ -54,6 +54,16 @@ function validConfig() {
       codeownersFiles: ['.github/CODEOWNERS'],
       broadPathPatterns: ['src'],
     },
+    policyEnforcement: {
+      mode: 'warn',
+      rules: {
+        broadClaims: true,
+        codeownersCrossing: true,
+        finishRequiresApproval: false,
+        finishRequiresDocsReview: false,
+        finishApprovalScope: '',
+      },
+    },
     checks: {
       unit: {
         command: 'npm test',
@@ -126,6 +136,8 @@ test('validateAgentConfig reports actionable errors', () => {
   config.capacity.preferredDomainsByAgent['agent-3'] = ['app'];
   config.conflictPrediction.blockOnGitOverlap = 'yes';
   config.ownership.codeownersFiles = ['CODEOWNERS', 'CODEOWNERS'];
+  config.policyEnforcement.mode = 'strict';
+  config.policyEnforcement.rules.finishRequiresApproval = 'yes';
   config.checks.unit.timeoutMs = 500;
   config.checks.unit.requireArtifacts = 'yes';
 
@@ -143,6 +155,8 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.warnings.some((entry) => entry.includes('capacity.preferredDomainsByAgent.agent-3')));
   assert.ok(result.errors.some((entry) => entry.includes('conflictPrediction.blockOnGitOverlap')));
   assert.ok(result.errors.some((entry) => entry.includes('ownership.codeownersFiles[1]')));
+  assert.ok(result.errors.some((entry) => entry.includes('policyEnforcement.mode')));
+  assert.ok(result.errors.some((entry) => entry.includes('policyEnforcement.rules.finishRequiresApproval')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.timeoutMs')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.requireArtifacts')));
 });

@@ -179,6 +179,20 @@ export function validateAgentConfig(config, options = {}) {
     if ('broadPathPatterns' in config.ownership) validateStringArray(config.ownership.broadPathPatterns, 'ownership.broadPathPatterns', errors);
   }
 
+  if ('policyEnforcement' in config && validateObject(config.policyEnforcement, 'policyEnforcement', errors)) {
+    if ('mode' in config.policyEnforcement && !['warn', 'block'].includes(config.policyEnforcement.mode)) {
+      addIssue(errors, 'policyEnforcement.mode', 'must be "warn" or "block"');
+    }
+    if ('rules' in config.policyEnforcement && validateObject(config.policyEnforcement.rules, 'policyEnforcement.rules', errors)) {
+      for (const key of ['broadClaims', 'codeownersCrossing', 'finishRequiresApproval', 'finishRequiresDocsReview']) {
+        if (key in config.policyEnforcement.rules) validateBoolean(config.policyEnforcement.rules[key], `policyEnforcement.rules.${key}`, errors);
+      }
+      if ('finishApprovalScope' in config.policyEnforcement.rules) {
+        validateString(config.policyEnforcement.rules.finishApprovalScope, 'policyEnforcement.rules.finishApprovalScope', errors, { allowEmpty: true });
+      }
+    }
+  }
+
   if ('paths' in config) {
     validateKnownStringArrays(config.paths, 'paths', ['sharedRisk', 'visualSuite', 'visualSuiteDefault', 'visualImpact', 'visualImpactFiles'], errors);
   }

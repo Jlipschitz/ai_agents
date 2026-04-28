@@ -64,6 +64,24 @@
         "broadPathPatterns": { "$ref": "#/$defs/stringArray" }
       }
     },
+    "policyEnforcement": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "mode": { "enum": ["warn", "block"] },
+        "rules": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "broadClaims": { "type": "boolean" },
+            "codeownersCrossing": { "type": "boolean" },
+            "finishRequiresApproval": { "type": "boolean" },
+            "finishRequiresDocsReview": { "type": "boolean" },
+            "finishApprovalScope": { "type": "string" }
+          }
+        }
+      }
+    },
     "paths": {
       "type": "object",
       "additionalProperties": true,

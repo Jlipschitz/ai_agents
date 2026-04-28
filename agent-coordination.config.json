@@ -30,6 +30,16 @@
     "codeownersFiles": [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS"],
     "broadPathPatterns": ["app", "src", "components", "features", "lib", "api", "server", "packages"]
   },
+  "policyEnforcement": {
+    "mode": "warn",
+    "rules": {
+      "broadClaims": true,
+      "codeownersCrossing": true,
+      "finishRequiresApproval": false,
+      "finishRequiresDocsReview": false,
+      "finishApprovalScope": ""
+    }
+  },
   "paths": {
     "sharedRisk": ["scripts", "package.json", "agent-coordination.config.json"],
     "visualSuite": [],

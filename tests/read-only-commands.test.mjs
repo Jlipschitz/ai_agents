@@ -77,6 +77,7 @@ const commandsExpectedToSucceed = new Set([
   'migrate-config',
   'policy-packs list',
   'policy-packs apply strict-ui',
+  'policy-check',
   'rollback-state --list',
   'rollback-state --list --json',
 ]);
@@ -143,6 +144,7 @@ for (const args of [
   ['migrate-config'],
   ['policy-packs', 'list'],
   ['policy-packs', 'apply', 'strict-ui'],
+  ['policy-check'],
   ['rollback-state', '--list'],
   ['rollback-state', '--list', '--json'],
 ]) {

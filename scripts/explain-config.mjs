@@ -76,6 +76,8 @@ function explainConfig(config, configPath, root) {
   const capacity = config.capacity || {};
   const conflictPrediction = config.conflictPrediction || {};
   const ownership = config.ownership || {};
+  const policyEnforcement = config.policyEnforcement || {};
+  const policyRules = policyEnforcement.rules || {};
   const paths = config.paths || {};
   const verification = config.verification || {};
   const pathClassification = config.pathClassification || {};
@@ -135,6 +137,16 @@ function explainConfig(config, configPath, root) {
     ownership: {
       codeownersFiles: Array.isArray(ownership.codeownersFiles) ? ownership.codeownersFiles : ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS'],
       broadPathPatterns: Array.isArray(ownership.broadPathPatterns) ? ownership.broadPathPatterns : ['app', 'src', 'components', 'features', 'lib', 'api', 'server', 'packages'],
+    },
+    policyEnforcement: {
+      mode: policyEnforcement.mode === 'block' ? 'block' : 'warn',
+      rules: {
+        broadClaims: policyRules.broadClaims !== false,
+        codeownersCrossing: policyRules.codeownersCrossing !== false,
+        finishRequiresApproval: policyRules.finishRequiresApproval === true,
+        finishRequiresDocsReview: policyRules.finishRequiresDocsReview === true,
+        finishApprovalScope: typeof policyRules.finishApprovalScope === 'string' ? policyRules.finishApprovalScope : '',
+      },
     },
     paths: {
       sharedRisk: paths.sharedRisk || [],
@@ -236,6 +248,13 @@ function printText(report) {
   console.log(`- blockOnGitOverlap: ${report.conflictPrediction.blockOnGitOverlap}`);
   printList('CODEOWNERS files:', report.ownership.codeownersFiles);
   printList('Broad claim paths:', report.ownership.broadPathPatterns);
+  console.log('Policy enforcement:');
+  console.log(`- mode: ${report.policyEnforcement.mode}`);
+  console.log(`- broadClaims: ${report.policyEnforcement.rules.broadClaims}`);
+  console.log(`- codeownersCrossing: ${report.policyEnforcement.rules.codeownersCrossing}`);
+  console.log(`- finishRequiresApproval: ${report.policyEnforcement.rules.finishRequiresApproval}`);
+  console.log(`- finishRequiresDocsReview: ${report.policyEnforcement.rules.finishRequiresDocsReview}`);
+  console.log(`- finishApprovalScope: ${report.policyEnforcement.rules.finishApprovalScope || 'any'}`);
   console.log('');
   printList('Shared-risk paths:', report.paths.sharedRisk);
   printList('Visual-impact paths:', report.paths.visualImpact);

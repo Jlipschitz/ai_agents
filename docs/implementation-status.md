@@ -627,6 +627,28 @@ Main files:
 - `scripts/lib/approval-ledger-commands.mjs`
 - `tests/approval-ledger.test.mjs`
 
+### Policy enforcement mode
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:policy:check
+npm run agents -- policy-check --json
+```
+
+Current behavior:
+
+- `policyEnforcement.mode` supports `warn` and `block`.
+- Enabled `broadClaims` and `codeownersCrossing` rules are evaluated by `policy-check` and during `claim` preflight.
+- Enabled `finishRequiresApproval` and `finishRequiresDocsReview` rules are evaluated by `policy-check` and during `finish`.
+- `warn` mode reports findings without blocking; `block` mode fails `policy-check` and stops claim/finish before mutation.
+- Policy defaults are included in starter config, config migration, validation, schema, docs, completions, and read-only coverage.
+
+Main files:
+
+- `scripts/lib/policy-enforcement.mjs`
+- `tests/policy-enforcement.test.mjs`
+
 ### Human-readable changelog
 
 Status: implemented in the command layer.
@@ -1092,7 +1114,6 @@ These roadmap items still need core, command-layer, or documentation work.
 ### Safety, auditing, and recovery
 
 - Secrets and sensitive-data guardrails.
-- Full policy enforcement mode with warn/block semantics across risky scopes.
 - Open-ended model-backed natural-language query mode.
 - Local web dashboard.
 - Signed releases.

@@ -43,6 +43,7 @@ node ./scripts/explain-config.mjs --json
 - capacity policy
 - conflict prediction policy
 - ownership review policy
+- policy enforcement mode and rules
 - shared-risk paths
 - visual-impact paths
 - visual-suite paths
@@ -132,6 +133,7 @@ Returns a JSON object with these top-level fields:
   "capacity": {},
   "conflictPrediction": {},
   "ownership": {},
+  "policyEnforcement": {},
   "paths": {},
   "verification": {},
   "pathClassification": {},

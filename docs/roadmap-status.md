@@ -72,7 +72,7 @@ Next recommended work:
 - [~] Merge queue awareness — `github-status` detects local merge_group workflow triggers; live queue state remains open.
 - [ ] Contract files
 - [~] Agent checklists — partially covered by `finish` verification/docs gates.
-- [~] Human approval gates — partially covered by `finish` safety gates.
+- [x] Human approval gates
 - [ ] Incident mode
 - [~] Backlog importer — Markdown TODO import exists; GitHub issue import remains open.
 - [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; write/API integration remains open.
@@ -94,8 +94,8 @@ Next recommended work:
 - [x] Schema migrations for board state
 - [x] Concurrency stress tests
 - [x] Shell completions
-- [~] Policy enforcement mode — partially covered by Git branch policy and finish gates.
-- [~] CODEOWNERS integration — `ownership-review` reads CODEOWNERS-style files; claim-time enforcement remains open.
+- [x] Policy enforcement mode
+- [x] CODEOWNERS integration
 - [x] Approval ledger
 - [x] Release artifact bundle
 - [~] Command aliases - built-in short aliases exist; repo-defined aliases remain open.
@@ -226,6 +226,7 @@ Next recommended work:
 - `scripts/lib/impact-commands.mjs`
 - `scripts/lib/install-manifest.mjs`
 - `scripts/lib/onboarding-checklist.mjs`
+- `scripts/lib/policy-enforcement.mjs`
 - `scripts/lib/prompt-commands.mjs`
 - `scripts/lib/runtime-diagnostics.mjs`
 - `scripts/lib/state-transaction.mjs`
@@ -255,6 +256,7 @@ Next recommended work:
 - `tests/git-policy.test.mjs`
 - `tests/github-status.test.mjs`
 - `tests/lock-runtime.test.mjs`
+- `tests/policy-enforcement.test.mjs`
 - `tests/prompt-commands.test.mjs`
 - `tests/read-only-commands.test.mjs`
 - `tests/roadmap-commands.test.mjs`

@@ -87,6 +87,7 @@ export function buildOwnershipReview({ root, config, board, activeStatuses }) {
   const broadPaths = stringArray(config.ownership?.broadPathPatterns, DEFAULT_BROAD_PATHS);
   const reviews = [];
   const findings = [];
+  const findingDetails = [];
 
   for (const task of board.tasks ?? []) {
     if (!activeStatuses.has(task.status)) continue;
@@ -95,13 +96,21 @@ export function buildOwnershipReview({ root, config, board, activeStatuses }) {
     const ownerGroups = claimedPaths.map((claimedPath) => ({ path: claimedPath, owners: ownersForPath(claimedPath, codeowners.rules) }));
     const ownerKeys = new Set(ownerGroups.filter((entry) => entry.owners.length).map((entry) => entry.owners.join(' ')));
 
-    if (broadClaims.length) findings.push(`Task ${task.id} claims broad path(s): ${broadClaims.join(', ')}.`);
-    if (ownerKeys.size > 1) findings.push(`Task ${task.id} crosses CODEOWNERS boundaries: ${ownerGroups.map((entry) => `${entry.path} -> ${entry.owners.join(' ') || 'unowned'}`).join('; ')}.`);
+    if (broadClaims.length) {
+      const message = `Task ${task.id} claims broad path(s): ${broadClaims.join(', ')}.`;
+      findings.push(message);
+      findingDetails.push({ type: 'broad-claim', taskId: task.id, paths: broadClaims, message });
+    }
+    if (ownerKeys.size > 1) {
+      const message = `Task ${task.id} crosses CODEOWNERS boundaries: ${ownerGroups.map((entry) => `${entry.path} -> ${entry.owners.join(' ') || 'unowned'}`).join('; ')}.`;
+      findings.push(message);
+      findingDetails.push({ type: 'codeowners-crossing', taskId: task.id, owners: ownerGroups, message });
+    }
 
     reviews.push({ taskId: task.id, ownerId: task.ownerId ?? null, claimedPaths, broadClaims, owners: ownerGroups });
   }
 
-  return { ok: findings.length === 0, codeownersPath: codeowners.path, findings, reviews };
+  return { ok: findings.length === 0, codeownersPath: codeowners.path, findings, findingDetails, reviews };
 }
 
 function checkMatchesPaths(check, paths) {
@@ -144,7 +153,10 @@ export function buildTestImpact({ root, config, packageJson, argv }) {
 
 export function runOwnershipReview(argv, context) {
   const result = buildOwnershipReview(context);
-  if (hasFlag(argv, '--json')) console.log(JSON.stringify(result, null, 2));
+  if (hasFlag(argv, '--json')) {
+    const { findingDetails, ...publicResult } = result;
+    console.log(JSON.stringify(publicResult, null, 2));
+  }
   else {
     console.log('# Ownership Review');
     console.log(`CODEOWNERS: ${result.codeownersPath ?? 'not found'}`);

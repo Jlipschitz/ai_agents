@@ -378,6 +378,34 @@ Built-in packs:
 
 Applying packs is a dry run unless `--apply` is passed. Applied changes snapshot the previous config first.
 
+### `policy-check`
+
+Evaluates the configured policy enforcement rules against active work.
+
+```bash
+npm run agents:policy:check
+npm run agents -- policy-check --json
+```
+
+Configure policy enforcement with `policyEnforcement`:
+
+```json
+{
+  "policyEnforcement": {
+    "mode": "warn",
+    "rules": {
+      "broadClaims": true,
+      "codeownersCrossing": true,
+      "finishRequiresApproval": false,
+      "finishRequiresDocsReview": false,
+      "finishApprovalScope": ""
+    }
+  }
+}
+```
+
+`mode: "warn"` reports policy findings but does not fail `policy-check`, `claim`, or `finish`. `mode: "block"` makes enabled findings fail `policy-check`, blocks broad or CODEOWNERS-crossing claims before mutation, and blocks `finish` when configured approval or docs-review gates are missing.
+
 ## Planning and Task Commands
 
 ### `plan`
@@ -664,6 +692,7 @@ Gate behavior:
 - `--require-verification`: all checks listed in the task `verification` array must have a latest `verificationLog` outcome of `pass`.
 - `--require-doc-review`: the task must have `docsReviewedAt` recorded.
 - `--require-approval`: the task must have an `approved` or `used` approval ledger entry. Use `--approval-scope <scope>` to require a specific scope.
+- Configured `policyEnforcement.rules.finishRequiresDocsReview` and `finishRequiresApproval` can apply the same gates automatically; in `block` mode they fail before mutation, and in `warn` mode they print policy warnings.
 - If a gate fails, the command exits before delegating to the core `done` command, so the board is not mutated.
 
 ### `release`
