@@ -11,7 +11,7 @@ import { runBacklogImport } from './lib/backlog-import-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
-import { exitCodeForError, printCliError } from './lib/error-formatting.mjs';
+import { exitCodeForError, printCliError, printCommandError } from './lib/error-formatting.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
 import { runGitHubStatus } from './lib/github-commands.mjs';
@@ -502,6 +502,7 @@ function parseRunCheckArgs(argv) {
   return {
     name,
     json: hasFlag(before, '--json'),
+    dryRun: hasFlag(before, '--dry-run'),
     artifactDir: getFlagValue(before, '--artifact-dir', ''),
     command: after,
   };
@@ -513,10 +514,15 @@ function runCheckCommand(argv) {
   let command = args.command;
   if (!command.length) {
     if (!packageJson?.scripts?.[args.name]) {
-      console.error(`No command provided and package.json has no "${args.name}" script.`);
-      return 1;
+      return printCommandError(`No command provided and package.json has no "${args.name}" script.`, { json: args.json });
     }
     command = [process.platform === 'win32' ? 'npm.cmd' : 'npm', 'run', args.name];
+  }
+  if (args.dryRun) {
+    const result = { ok: true, applied: false, name: args.name, command };
+    if (args.json) console.log(JSON.stringify(result, null, 2));
+    else console.log(`Dry run: would run ${command.join(' ')} and capture check artifacts.`);
+    return 0;
   }
   const startedAt = nowIso();
   const result = spawnSync(command[0], command.slice(1), { cwd: ROOT, encoding: 'utf8', shell: false });
@@ -696,10 +702,7 @@ function runMigrateConfig(argv) {
   const apply = hasFlag(argv, '--apply');
   const { configPath, config } = loadConfig();
   if (!fs.existsSync(configPath)) {
-    const result = { ok: false, applied: false, error: `Config not found: ${configPath}` };
-    if (json) console.log(JSON.stringify(result, null, 2));
-    else console.error(result.error);
-    return 1;
+    return printCommandError(`Config not found: ${configPath}`, { json });
   }
   const migrated = buildMigratedConfig(config);
   const changes = diffConfig(config, migrated);
@@ -762,10 +765,7 @@ function runPolicyPacks(argv) {
     const name = getPositionals(argv).at(1);
     const pack = POLICY_PACKS[name];
     if (!pack) {
-      const result = { ok: false, error: `Unknown policy pack: ${name || ''}`, available: Object.keys(POLICY_PACKS) };
-      if (json) console.log(JSON.stringify(result, null, 2));
-      else console.error(result.error);
-      return 1;
+      return printCommandError(`Unknown policy pack: ${name || ''}`, { json, code: 'not_found' });
     }
     const result = { ok: true, name, ...pack };
     if (json) console.log(JSON.stringify(result, null, 2));
@@ -779,8 +779,7 @@ function runPolicyPacks(argv) {
   if (subcommand === 'apply') {
     const packNames = getPolicyPackNames(argv);
     if (!packNames.length) {
-      console.error('Usage: policy-packs apply <pack[,pack...]> [--apply] [--json]');
-      return 1;
+      return printCommandError('Usage: policy-packs apply <pack[,pack...]> [--apply] [--json]', { json });
     }
     const result = buildPolicyPackResult(packNames);
     result.applied = false;
@@ -812,8 +811,7 @@ function runPolicyPacks(argv) {
     return result.ok ? 0 : 1;
   }
 
-  console.error('Usage: policy-packs list [--json] | policy-packs inspect <pack> [--json] | policy-packs apply <pack[,pack...]> [--apply] [--json]');
-  return 1;
+  return printCommandError('Usage: policy-packs list [--json] | policy-packs inspect <pack> [--json] | policy-packs apply <pack[,pack...]> [--apply] [--json]', { json });
 }
 
 function taskDisplayTitle(task) {
@@ -1047,7 +1045,7 @@ function runConfigValidation({ json = false } = {}) {
   else {
     for (const warning of result.warnings) console.warn(`warning: ${warning}`);
     if (result.valid) console.log(`Config OK: ${normalizePath(configPath) || configPath}`);
-    else { console.error(`Config invalid: ${normalizePath(configPath) || configPath}`); for (const error of result.errors) console.error(`- ${error}`); }
+    else printCommandError(`Config invalid: ${normalizePath(configPath) || configPath}\n${result.errors.map((error) => `- ${error}`).join('\n')}`, { code: 'validation_error' });
   }
   return result.valid ? 0 : 1;
 }
@@ -1056,8 +1054,8 @@ function runGitPreflightForClaim() {
   const { config } = loadConfig();
   const git = getGitSnapshot({ root: ROOT, config });
   for (const warning of git.warnings) console.warn(`git warning: ${warning}`);
-  for (const error of git.errors) console.error(`git error: ${error}`);
   if (git.branch) console.warn(`git branch: ${git.branch}${git.upstream ? ` tracking ${git.upstream}` : ''}`);
+  if (git.errors.length) return printCommandError(`Git preflight failed:\n${git.errors.map((error) => `- ${error}`).join('\n')}`, { code: 'git_error' });
   return git.errors.length ? 1 : 0;
 }
 
@@ -1070,9 +1068,13 @@ function parseInterval(argv) {
 
 function runWatchStart(argv, coordinatorScriptPath) {
   const paths = getCoordinationPaths();
-  fs.mkdirSync(paths.runtimeRoot, { recursive: true });
   const watcherScript = resolveRepoPath(process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT, 'scripts/agent-watch-loop.mjs');
   const intervalMs = parseInterval(argv);
+  if (hasFlag(argv, '--dry-run')) {
+    console.log(`Dry run: would start Node watcher for ${normalizePath(paths.coordinationRoot) || paths.coordinationRoot}.`);
+    return 0;
+  }
+  fs.mkdirSync(paths.runtimeRoot, { recursive: true });
   const child = spawn(process.execPath, [watcherScript, '--coordinator-script', coordinatorScriptPath, '--workspace-root', ROOT, '--interval', String(intervalMs), '--coordination-root', paths.coordinationRoot], { cwd: ROOT, env: process.env, detached: true, stdio: 'ignore' });
   child.unref();
   console.log(`Started Node watcher PID ${child.pid} for ${normalizePath(paths.coordinationRoot) || paths.coordinationRoot}.`);
@@ -1142,7 +1144,8 @@ function parseLifecycleRest(rest) {
 
 function runLifecycle(commandName, argv, coordinatorScriptPath) {
   const [agentId, taskId, ...rest] = argv;
-  if (!agentId || !taskId) { console.error(`Usage: ${commandName} <agent-id> <task-id> [message] [--paths path[,path...]]`); return 1; }
+  const json = hasFlag(argv, '--json');
+  if (!agentId || !taskId) return printCommandError(`Usage: ${commandName} <agent-id> <task-id> [message] [--paths path[,path...]]`, { json });
   const { flags, message } = parseLifecycleRest(rest);
   const run = (args) => spawnSync(process.execPath, [coordinatorScriptPath, ...args], { cwd: ROOT, stdio: 'inherit', env: process.env }).status ?? 1;
   if (commandName === 'start') {
@@ -1150,16 +1153,18 @@ function runLifecycle(commandName, argv, coordinatorScriptPath) {
     const args = ['claim', agentId, taskId];
     if (paths) args.push('--paths', paths);
     if (message) args.push('--summary', message);
+    if (flags['dry-run']) args.push('--dry-run');
     const status = run(args);
     if (status !== 0) return status;
-    return message ? run(['progress', agentId, taskId, message]) : 0;
+    if (flags['dry-run']) return status;
+    return message ? run(['progress', agentId, taskId, message, ...(flags['dry-run'] ? ['--dry-run'] : [])]) : 0;
   }
   if (commandName === 'finish') {
     const gate = assertFinishGates(taskId, rest);
-    if (!gate.ok) { console.error(gate.message); return 1; }
-    return run(['done', agentId, taskId, message || 'Finished implementation.']);
+    if (!gate.ok) return printCommandError(gate.message, { json });
+    return run(['done', agentId, taskId, message || 'Finished implementation.', ...(flags['dry-run'] ? ['--dry-run'] : [])]);
   }
-  if (commandName === 'handoff-ready') return run(['handoff', agentId, taskId, message || 'Ready for handoff.']);
+  if (commandName === 'handoff-ready') return run(['handoff', agentId, taskId, message || 'Ready for handoff.', ...(flags['dry-run'] ? ['--dry-run'] : [])]);
   return 1;
 }
 

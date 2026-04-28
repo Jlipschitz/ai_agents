@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Convert inline status-return errors to the shared error formatter.
+1. Extend state transaction coverage to command-layer apply flows that touch multiple non-state files.
 
 ---
 
@@ -61,7 +61,7 @@ Next recommended work:
 - [x] Lock diagnostics
 - [ ] Multi-repo dashboard
 - [x] Config migration
-- [ ] Dry run for every mutation
+- [~] Dry run for every mutation - command-layer apply flows are dry-run by default, legacy core state mutations and process commands now support `--dry-run`; remaining follow-up is stricter coverage for external side-effect commands.
 
 ## Phase 4: Verification, Risk, and GitHub Integration
 
@@ -89,7 +89,7 @@ Next recommended work:
 
 - [ ] Secrets and sensitive-data guardrails
 - [~] Command audit log — command-layer apply flows append `runtime/audit.ndjson`; legacy core lifecycle mutations remain open.
-- [ ] State transactions
+- [~] State transactions - lock-protected core board/task/journal/message mutations restore prior state on write failure; command-layer multi-file transactions remain open.
 - [ ] Schema migrations for board state
 - [ ] Concurrency stress tests
 - [ ] Shell completions
@@ -160,7 +160,7 @@ Next recommended work:
 
 - [x] Add per-command help
 - [~] Add consistent global flags — global parser supports the requested flags; verbose/quiet behavior can become richer.
-- [~] Add better error formatting - top-level command-layer and core failures now use consistent text/JSON formatting; inline status-return paths remain open.
+- [~] Add better error formatting - top-level failures and common inline command-layer errors now use consistent text/JSON formatting; older command-specific diagnostic paths can still be normalized during future refactors.
 - [x] Add short command aliases
 - [ ] Add interactive mode
 

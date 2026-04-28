@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { printCommandError } from './error-formatting.mjs';
+
 export function createArtifactCommands(context) {
   const {
     activeStatuses,
@@ -217,15 +219,11 @@ export function createArtifactCommands(context) {
     if (subcommand === 'inspect') {
       const artifactPath = positionals[1];
       if (!artifactPath) {
-        console.error('Usage: artifacts inspect <artifact-path> [--json]');
-        return 1;
+        return printCommandError('Usage: artifacts inspect <artifact-path> [--json]', { json });
       }
       const absolutePath = path.isAbsolute(artifactPath) ? artifactPath : path.resolve(root, artifactPath);
       if (!fs.existsSync(absolutePath)) {
-        const result = { ok: false, path: artifactPath, error: 'Artifact does not exist.' };
-        if (json) console.log(JSON.stringify(result, null, 2));
-        else console.error(result.error);
-        return 1;
+        return printCommandError(`Artifact does not exist: ${artifactPath}`, { json, code: 'not_found' });
       }
       const normalizedPath = normalizePath(absolutePath) || artifactPath;
       const stats = fs.statSync(absolutePath);
@@ -246,8 +244,7 @@ export function createArtifactCommands(context) {
       return 0;
     }
 
-    console.error('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json] | artifacts prune [--apply] [--json]');
-    return 1;
+    return printCommandError('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json] | artifacts prune [--apply] [--json]', { json });
   }
 
   return {

@@ -77,6 +77,11 @@ export function createWatchCommands(context) {
       throw new Error('Usage: watch-tick --watcher-pid <pid> [--interval <ms>]');
     }
 
+    if (options['dry-run']) {
+      console.log(`Dry run: would record watcher tick for pid ${watcherPid}.`);
+      return;
+    }
+
     const existingStatus = getWatcherStatus();
     const sweep = await watcherSweep();
     const timestamp = nowIso();
@@ -102,6 +107,11 @@ export function createWatchCommands(context) {
     const existingStatus = getWatcherStatus();
     if (isWatcherAlive(existingStatus) && existingStatus.pid !== process.pid) {
       throw new Error(`Watcher already running with pid ${existingStatus.pid}. Use "watch-stop" first if you need to restart it.`);
+    }
+
+    if (options['dry-run']) {
+      console.log(`Dry run: would run watcher loop every ${intervalMs}ms.`);
+      return;
     }
 
     const startedAt = nowIso();
@@ -159,6 +169,11 @@ export function createWatchCommands(context) {
 
       if (isWatcherAlive(existingStatus)) {
         console.log(`Watcher already running with pid ${existingStatus.pid}.`);
+        return;
+      }
+
+      if (options['dry-run']) {
+        console.log(`Dry run: would start watcher for ${coordinationRoot}.`);
         return;
       }
 
@@ -234,13 +249,22 @@ export function createWatchCommands(context) {
     console.log(renderWatchStatus());
   }
 
-  async function watchStopCommand() {
+  async function watchStopCommand(options = {}) {
     await withMutationLock(async () => {
       const status = getWatcherStatus();
 
       if (!isWatcherAlive(status)) {
+        if (options['dry-run']) {
+          console.log('Dry run: would clear stopped watcher status.');
+          return;
+        }
         clearWatcherStatus();
         console.log('Watcher is not running.');
+        return;
+      }
+
+      if (options['dry-run']) {
+        console.log(`Dry run: would stop watcher ${status.pid}.`);
         return;
       }
 

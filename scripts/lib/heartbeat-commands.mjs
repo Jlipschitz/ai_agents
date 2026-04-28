@@ -103,6 +103,11 @@ export function createHeartbeatCommands(context) {
       throw new Error(`Heartbeat already running for ${agentId} with pid ${existingHeartbeat.pid}. Stop it first if you need to replace it.`);
     }
 
+    if (options['dry-run']) {
+      console.log(`Dry run: would run heartbeat for ${agentId} every ${intervalMs}ms.`);
+      return;
+    }
+
     let cleanedUp = false;
     const cleanup = () => {
       if (cleanedUp) {
@@ -151,6 +156,11 @@ export function createHeartbeatCommands(context) {
     const existingHeartbeat = readAgentHeartbeat(agentId);
     if (existingHeartbeat) {
       console.log(`Heartbeat already running for ${agentId} with pid ${existingHeartbeat.pid}.`);
+      return;
+    }
+
+    if (options['dry-run']) {
+      console.log(`Dry run: would start heartbeat for ${agentId} every ${intervalMs}ms.`);
       return;
     }
 
@@ -218,7 +228,7 @@ export function createHeartbeatCommands(context) {
     throw new Error(`Heartbeat start was requested for ${agentId}, but no heartbeat was detected within 5 seconds.`);
   }
 
-  async function heartbeatStopCommand(positionals) {
+  async function heartbeatStopCommand(positionals, options = {}) {
     const [agentId] = positionals;
 
     if (!agentId) {
@@ -229,9 +239,18 @@ export function createHeartbeatCommands(context) {
     const heartbeat = readJson(getAgentHeartbeatPath(agentId), null);
 
     if (!heartbeat || typeof heartbeat.pid !== 'number' || !isPidAlive(heartbeat.pid)) {
+      if (options['dry-run']) {
+        console.log(`Dry run: would clear stale heartbeat for ${agentId}.`);
+        return;
+      }
       clearAgentHeartbeat(agentId);
       appendJournalLine(`- ${nowIso()} | heartbeat cleared for ${agentId} because no live process was found.`);
       console.log(`Heartbeat is not running for ${agentId}.`);
+      return;
+    }
+
+    if (options['dry-run']) {
+      console.log(`Dry run: would stop heartbeat ${heartbeat.pid} for ${agentId}.`);
       return;
     }
 

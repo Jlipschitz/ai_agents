@@ -52,6 +52,16 @@ Commands that receive `--json` emit structured errors on stdout:
 
 Use `--verbose` to include stack traces on formatted top-level errors.
 
+## Mutation Dry Runs
+
+Most command-layer apply flows are dry-run by default and write only when `--apply` is passed. Legacy core mutation commands such as `claim`, `progress`, `wait`, `resume`, `blocked`, `review`, `verify`, `message`, `app-note`, `handoff`, `done`, `release`, access requests, incidents, resource leases, heartbeat, and watcher commands also accept `--dry-run` to validate inputs and report the intended action without changing coordination state or starting/stopping background processes.
+
+```bash
+npm run agents -- claim agent-1 task-ui --paths app/page.tsx --summary "UI fix" --dry-run
+npm run agents -- progress agent-1 task-ui "Investigated route state" --dry-run
+npm run agents -- run-check test --dry-run
+```
+
 Every command can show focused help:
 
 ```bash

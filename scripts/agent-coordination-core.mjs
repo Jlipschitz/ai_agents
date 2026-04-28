@@ -15,6 +15,7 @@ import { normalizePath, resolveRepoPath } from './lib/path-utils.mjs';
 import { createPlannerCommands } from './lib/planner-commands.mjs';
 import { createRecoveryCommands } from './lib/recovery-commands.mjs';
 import { createStatusCommands } from './lib/status-commands.mjs';
+import { withStateTransaction } from './lib/state-transaction.mjs';
 import { createSupportOperationCommands } from './lib/support-operation-commands.mjs';
 import { createTaskCompletionCommands } from './lib/task-completion-commands.mjs';
 import { createTaskLifecycleCommands } from './lib/task-lifecycle-commands.mjs';
@@ -642,6 +643,20 @@ function normalizeDomainRules(value, fallback = DEFAULT_DOMAIN_RULES) {
 
 let docsLibraryCache = null;
 let currentCommandName = 'unknown';
+let currentCommandOptions = {};
+
+function isDryRunOption(options = currentCommandOptions) {
+  const value = options?.['dry-run'];
+  return value === true || String(value ?? '').toLowerCase() === 'true';
+}
+
+function isDryRunMode() {
+  return isDryRunOption(currentCommandOptions);
+}
+
+function printDryRunNotice(commandName = currentCommandName) {
+  console.log(`Dry run: no state was changed for ${commandName}.`);
+}
 
 function normalizePaths(inputs) {
   return [...new Set(inputs.map(normalizePath).filter(Boolean))].sort();
@@ -1158,6 +1173,9 @@ function normalizeBoard(board) {
 }
 
 async function writeTextAtomic(filePath, content) {
+  if (isDryRunMode()) {
+    return;
+  }
   const tempPath = `${filePath}.tmp-${process.pid}`;
   try {
     await fsp.writeFile(tempPath, content, 'utf8');
@@ -1169,6 +1187,9 @@ async function writeTextAtomic(filePath, content) {
 }
 
 function writeTextAtomicSync(filePath, content) {
+  if (isDryRunMode()) {
+    return;
+  }
   const tempPath = `${filePath}.tmp-${process.pid}`;
   try {
     fs.writeFileSync(tempPath, content, 'utf8');
@@ -1218,10 +1239,16 @@ function readMessages() {
 }
 
 function appendJournalLine(line) {
+  if (isDryRunMode()) {
+    return;
+  }
   fs.appendFileSync(JOURNAL_PATH, `${line}\n`, 'utf8');
 }
 
 function appendMessage(message) {
+  if (isDryRunMode()) {
+    return;
+  }
   fs.appendFileSync(MESSAGES_PATH, `${JSON.stringify(message)}\n`, 'utf8');
 }
 
@@ -1307,6 +1334,9 @@ function writeAgentHeartbeatSync(agentId, heartbeat) {
 }
 
 function clearAgentHeartbeat(agentId, expectedPid = null) {
+  if (isDryRunMode()) {
+    return;
+  }
   const heartbeatPath = getAgentHeartbeatPath(agentId);
   if (!fileExists(heartbeatPath)) {
     return;
@@ -1362,6 +1392,9 @@ function isWatcherAlive(status = getWatcherStatus()) {
 }
 
 function ensureBaseFiles() {
+  if (isDryRunMode()) {
+    return;
+  }
   ensureDirectory(COORDINATION_ROOT);
   ensureDirectory(TASKS_ROOT);
   ensureDirectory(RUNTIME_ROOT);
@@ -1476,6 +1509,9 @@ function note(task, agentId, kind, body, extra = {}) {
 }
 
 async function syncTaskDocs(board) {
+  if (isDryRunMode()) {
+    return;
+  }
   const activeTaskFiles = new Set();
 
   for (const task of board.tasks) {
@@ -1499,16 +1535,25 @@ async function syncTaskDocs(board) {
 
 async function saveBoard(board) {
   board.updatedAt = nowIso();
+  if (isDryRunMode()) {
+    return;
+  }
   await writeJsonAtomic(BOARD_PATH, board);
   await syncTaskDocs(board);
 }
 
 async function writeWatcherStatus(status) {
+  if (isDryRunMode()) {
+    return;
+  }
   ensureBaseFiles();
   await writeJsonAtomic(WATCHER_STATUS_PATH, status);
 }
 
 function clearWatcherStatus() {
+  if (isDryRunMode()) {
+    return;
+  }
   fs.rmSync(WATCHER_STATUS_PATH, { force: true });
 }
 
@@ -1625,10 +1670,16 @@ function releaseMutationLock() {
 }
 
 async function withMutationLock(work) {
+  if (isDryRunMode()) {
+    const result = await work();
+    printDryRunNotice();
+    return result;
+  }
+
   await acquireMutationLock();
 
   try {
-    return await work();
+    return await withStateTransaction([BOARD_PATH, TASKS_ROOT, JOURNAL_PATH, MESSAGES_PATH], work);
   } finally {
     releaseMutationLock();
   }
@@ -1677,6 +1728,10 @@ function parseArgs(rawArgs) {
 }
 
 function isReadOnlyCommand(commandName, options = {}) {
+  if (isDryRunOption(options)) {
+    return true;
+  }
+
   if (ALWAYS_READ_ONLY_COMMANDS.has(commandName)) {
     return true;
   }
@@ -1842,6 +1897,7 @@ async function main() {
   const [command = 'help', ...rest] = process.argv.slice(2);
   currentCommandName = command;
   const { options, positionals } = parseArgs(rest);
+  currentCommandOptions = options;
   const autoHealResult = await autoHealIfNeeded(command, options);
 
   if (autoHealResult) {
@@ -1867,7 +1923,7 @@ async function main() {
       await heartbeatStartCommand(positionals, options);
       return;
     case 'heartbeat-stop':
-      await heartbeatStopCommand(positionals);
+      await heartbeatStopCommand(positionals, options);
       return;
     case 'heartbeat-status':
       heartbeatStatusCommand(positionals);
@@ -1882,7 +1938,7 @@ async function main() {
       await watchStartCommand(options);
       return;
     case 'watch-stop':
-      await watchStopCommand();
+      await watchStopCommand(options);
       return;
     case 'watch-status':
       watchStatusCommand();

@@ -50,3 +50,24 @@ test('core errors use JSON formatting with --json', () => {
   assert.match(payload.error, /^Usage: message <from-agent> <to-agent\|all> <message>/);
   assert.equal(payload.hint, 'Run with --help for command usage.');
 });
+
+test('inline command-layer errors use shared JSON formatting', () => {
+  const { root } = makeWorkspace({ prefix: 'ai-agents-errors-', runtime: true });
+  const result = runCli(root, ['artifacts', 'inspect', 'missing.log', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr, '');
+  assert.equal(payload.ok, false);
+  assert.equal(payload.code, 'not_found');
+  assert.equal(payload.error, 'Artifact does not exist: missing.log');
+});
+
+test('inline command-layer errors use shared text formatting', () => {
+  const { root } = makeWorkspace({ prefix: 'ai-agents-errors-', runtime: true });
+  const result = runCli(root, ['help', 'not-a-command']);
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /^error: No help entry for "not-a-command"\./);
+});

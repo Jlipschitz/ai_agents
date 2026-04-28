@@ -130,7 +130,7 @@ Wrappers using it:
 
 ### Better error formatting
 
-Status: partially implemented for top-level command failures.
+Status: partially implemented for top-level command failures and common inline command-layer errors.
 
 Current behavior:
 
@@ -138,13 +138,49 @@ Current behavior:
 - Text mode writes `error:` and optional `hint:` diagnostics to stderr.
 - Commands invoked with `--json` emit `{ ok: false, error, code, hint }` on stdout.
 - `--verbose` includes stack traces for formatted top-level errors.
+- Inline error paths for command help, artifact inspection, board repair/rollback, policy packs, config migration, run-check, lifecycle gates, Git preflight, and command-layer validation use the shared formatter.
 
-Follow-up: convert inline status-return errors that currently print directly inside individual command handlers.
+Follow-up: continue replacing any older command-specific diagnostic output when those commands are refactored.
 
 Main files:
 
 - `scripts/lib/error-formatting.mjs`
 - `tests/error-formatting.test.mjs`
+
+### Mutation dry runs
+
+Status: partially implemented across legacy core mutations and existing command-layer apply flows.
+
+Current behavior:
+
+- Existing command-layer apply flows remain dry-run by default and require `--apply` for writes.
+- Legacy core state mutations accept `--dry-run`, validate inputs, run in no-write mode, and print a dry-run notice.
+- Heartbeat and watcher commands have explicit `--dry-run` paths that do not spawn or stop background processes.
+- `run-check --dry-run` reports the command that would run without executing it or writing artifacts.
+
+Main files:
+
+- `scripts/agent-coordination-core.mjs`
+- `scripts/agent-command-layer.mjs`
+- `tests/core-mutation-safety.test.mjs`
+
+### State transactions
+
+Status: partially implemented for lock-protected core state mutations.
+
+Current behavior:
+
+- Lock-protected legacy core mutations run inside a transaction covering `board.json`, task docs, `journal.md`, and `messages.ndjson`.
+- If a write fails after partial state changes, the previous files are restored.
+- Shared JSON/text write helpers use atomic temp-file replacement.
+
+Follow-up: extend transaction coverage to command-layer apply flows that touch multiple non-state files, such as generated bundles or package script updates.
+
+Main files:
+
+- `scripts/lib/state-transaction.mjs`
+- `scripts/lib/file-utils.mjs`
+- `tests/core-mutation-safety.test.mjs`
 
 ### `doctor --fix`
 

@@ -23,6 +23,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Formats top-level CLI errors consistently in text and JSON modes.
 - Explains active config and environment overrides with `explain-config`.
 - Performs Git preflight checks before task claims.
+- Supports `--dry-run` for legacy core mutations and process commands.
 - Applies claim capacity/conflict policies and reports branch cleanup candidates.
 - Reviews broad/CODEOWNERS ownership claims and selects impacted checks.
 - Reports local GitHub remote and merge queue workflow awareness.
@@ -33,6 +34,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Takes compressed pre-mutation snapshots before command-layer apply flows.
 - Imports Markdown TODOs into planned backlog tasks.
 - Records audit entries for command-layer apply flows.
+- Restores board, task docs, journal, and messages if a lock-protected core mutation fails mid-write.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
 - Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.

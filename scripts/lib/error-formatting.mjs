@@ -61,6 +61,12 @@ export function printCliError(error, options = {}) {
   if (verbose && payload.stack) console.error(payload.stack);
 }
 
+export function printCommandError(error, options = {}) {
+  const normalizedError = typeof error === 'string' ? new CliError(error, options) : error;
+  printCliError(normalizedError, options);
+  return exitCodeForError(normalizedError);
+}
+
 export function exitCodeForError(error) {
   const exitCode = Number.parseInt(String(error?.exitCode ?? ''), 10);
   return Number.isFinite(exitCode) && exitCode > 0 ? exitCode : 1;

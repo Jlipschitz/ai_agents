@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
 import { appendAuditLog } from './audit-log.mjs';
+import { printCommandError } from './error-formatting.mjs';
 import { fileTimestamp, nowIso, readJsonDetailed, writeJson } from './file-utils.mjs';
 import { normalizePath, resolveRepoPath } from './path-utils.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
@@ -175,10 +176,7 @@ export function runRepairBoard(argv, context) {
   const json = hasFlag(argv, '--json');
   const { exists, value: board, error } = readBoardDetailed(paths);
   if (error) {
-    const result = { ok: false, applied: false, error: `Cannot repair malformed JSON automatically: ${error}` };
-    if (json) console.log(JSON.stringify(result, null, 2));
-    else console.error(result.error);
-    return 1;
+    return printCommandError(`Cannot repair malformed JSON automatically: ${error}`, { json, code: 'parse_error' });
   }
   const sourceBoard = exists ? board : createStarterBoard(context);
   const repair = repairBoardObject(sourceBoard, context);
@@ -226,17 +224,11 @@ export function runRollbackState(argv, context) {
   const target = getFlagValue(argv, '--to', '');
   const snapshotPath = target === 'latest' ? snapshots.at(-1) : resolveRepoPath(target, target);
   if (!snapshotPath || !fs.existsSync(snapshotPath)) {
-    const message = `Snapshot not found: ${target}`;
-    if (json) console.log(JSON.stringify({ ok: false, error: message }, null, 2));
-    else console.error(message);
-    return 1;
+    return printCommandError(`Snapshot not found: ${target}`, { json, code: 'not_found' });
   }
   const parsed = readJsonDetailed(snapshotPath);
   if (parsed.error) {
-    const message = `Snapshot is not valid JSON: ${parsed.error}`;
-    if (json) console.log(JSON.stringify({ ok: false, error: message }, null, 2));
-    else console.error(message);
-    return 1;
+    return printCommandError(`Snapshot is not valid JSON: ${parsed.error}`, { json, code: 'parse_error' });
   }
   const result = { ok: true, applied: apply, snapshotPath, backupPath: null, workspaceSnapshotPath: null };
   if (apply) {

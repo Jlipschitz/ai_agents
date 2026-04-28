@@ -1,3 +1,5 @@
+import { printCommandError } from './error-formatting.mjs';
+
 const COMMANDS = {
   help: ['help [command]', 'Show general help or command-specific help.'],
   init: ['init', 'Create the coordination board, journal, messages, and runtime folders.'],
@@ -32,7 +34,7 @@ const COMMANDS = {
   'cleanup-runtime': ['cleanup-runtime [--apply] [--json]', 'Clean stale runtime lock, watcher, and heartbeat files.'],
   'lock-status': ['lock-status [--json]', 'Inspect runtime lock state.'],
   'lock-clear': ['lock-clear --stale-only|--force [--json]', 'Clear a stale or forced runtime lock.'],
-  'run-check': ['run-check <script-name>|<check-name> [--task <id>] [--json] [-- <command...>]', 'Run a configured check and capture artifacts.'],
+  'run-check': ['run-check <script-name>|<check-name> [--task <id>] [--json] [--dry-run] [-- <command...>]', 'Run a configured check and capture artifacts.'],
   artifacts: ['artifacts <list|inspect|prune> [options]', 'List, inspect, or prune verification artifacts.'],
   'release-check': ['release-check [task-id...] [--json] [--require-doc-review]', 'Check whether tasks are ready for release.'],
   'release-bundle': ['release-bundle [task-id...] [--apply] [--json]', 'Generate release handoff artifacts.'],
@@ -89,8 +91,7 @@ export function runCommandHelp(commandName, argv, { cli = 'agents' } = {}) {
   const entry = COMMANDS[target];
 
   if (!entry) {
-    console.error(`No help entry for "${target}". Run "${cli} -- help" for the full command list.`);
-    return 1;
+    return printCommandError(`No help entry for "${target}". Run "${cli} -- help" for the full command list.`, { json: argv.includes('--json') });
   }
 
   const [usage, summary] = entry;

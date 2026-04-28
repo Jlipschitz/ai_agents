@@ -20,8 +20,19 @@ export function readJsonDetailed(filePath) {
 }
 
 export function writeJson(filePath, value) {
+  writeTextAtomicSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+export function writeTextAtomicSync(filePath, content) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+  const tempPath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  try {
+    fs.writeFileSync(tempPath, content);
+    fs.renameSync(tempPath, filePath);
+  } catch (error) {
+    fs.rmSync(tempPath, { force: true });
+    throw error;
+  }
 }
 
 export function ensureDirectory(dirPath) {
@@ -37,14 +48,13 @@ export function appendUniqueLines(filePath, lines) {
   const existing = new Set(current.split(/\r?\n/).map((line) => line.trim()));
   const missing = lines.filter((line) => line === '' || !existing.has(line));
   if (missing.filter(Boolean).length === 0) return false;
-  fs.writeFileSync(filePath, `${current.replace(/\s*$/, '')}\n${missing.join('\n')}\n`);
+  writeTextAtomicSync(filePath, `${current.replace(/\s*$/, '')}\n${missing.join('\n')}\n`);
   return true;
 }
 
 export function ensureFile(filePath, content) {
   if (fs.existsSync(filePath)) return false;
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content);
+  writeTextAtomicSync(filePath, content);
   return true;
 }
 
