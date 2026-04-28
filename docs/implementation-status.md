@@ -663,6 +663,29 @@ Main files:
 - `scripts/lib/task-metadata-commands.mjs`
 - `tests/task-metadata.test.mjs`
 
+### External calendar and reminder hooks
+
+Status: implemented as local iCalendar export.
+
+```bash
+npm run agents:calendar
+npm run agents -- calendar --out coordination/calendar/tasks.ics --apply
+npm run agents -- calendar export --all --reminder-minutes 1440,60 --json
+```
+
+Current behavior:
+
+- Exports due tasks to a standards-compatible `.ics` calendar file.
+- Includes planned, active, blocked, waiting, review, and handoff tasks by default; `--all` includes done and released tasks.
+- Supports `--status`, `--task`, and `--agent` filters.
+- Adds `VALARM` display reminders with configurable `--reminder-minutes`.
+- Is dry-run by default and writes only with `--apply`.
+
+Main files:
+
+- `scripts/lib/calendar-commands.mjs`
+- `tests/calendar-commands.test.mjs`
+
 ### Approval ledger
 
 Status: implemented in the core lifecycle path.
@@ -1585,6 +1608,5 @@ These roadmap items still need core, command-layer, or documentation work.
 ### Advanced coordination and scaling
 
 - Escalation metadata beyond task priority, due date, and severity.
-- External calendar or reminder hooks.
 
 ### Developer experience and repo maintenance

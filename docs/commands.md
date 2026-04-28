@@ -784,6 +784,18 @@ Supported values:
 
 Priority and due-date metadata appears in `status`, `summarize`, `prompt`, `ask`, task docs under `coordination/tasks/`, and `pick` scoring.
 
+### `calendar`
+
+Exports tasks with `dueAt` metadata to an iCalendar file with display reminders.
+
+```bash
+npm run agents:calendar
+npm run agents -- calendar --out coordination/calendar/tasks.ics --apply
+npm run agents -- calendar export --all --reminder-minutes 1440,60 --json
+```
+
+The command is a dry run unless `--apply` is passed. By default it exports planned, active, blocked, waiting, review, and handoff tasks with due dates to `coordination/calendar/tasks.ics`; `--all` includes done and released tasks. Use `--status`, `--task`, or `--agent` to filter the export, and `--reminder-minutes` to control generated `VALARM` reminders.
+
 ### `approvals`
 
 Maintains a board-backed approval ledger for task gates.

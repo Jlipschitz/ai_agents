@@ -10,6 +10,7 @@ import { runAgentHistory } from './lib/agent-history-commands.mjs';
 import { runArchiveCompleted } from './lib/archive-commands.mjs';
 import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
 import { runBacklogImport } from './lib/backlog-import-commands.mjs';
+import { runCalendarCommand } from './lib/calendar-commands.mjs';
 import { runChangelogCommand } from './lib/changelog-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runCompletionsCommand } from './lib/completion-commands.mjs';
@@ -99,6 +100,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'backlog-import',
   'prompt',
   'ask',
+  'calendar',
   'changelog',
   'completions',
 ]);
@@ -388,6 +390,7 @@ function expectedPackageScripts() {
       'agents:backlog:import': 'ai-agents backlog-import',
       'agents:prompt': 'ai-agents prompt',
       'agents:ask': 'ai-agents ask',
+      'agents:calendar': 'ai-agents calendar',
       'agents:changelog': 'ai-agents changelog',
       'agents:prioritize': 'ai-agents prioritize',
       'agents:approvals': 'ai-agents approvals',
@@ -462,6 +465,7 @@ function expectedPackageScripts() {
     'agents:backlog:import': 'node ./scripts/agent-coordination.mjs backlog-import',
     'agents:prompt': 'node ./scripts/agent-coordination.mjs prompt',
     'agents:ask': 'node ./scripts/agent-coordination.mjs ask',
+    'agents:calendar': 'node ./scripts/agent-coordination.mjs calendar',
     'agents:changelog': 'node ./scripts/agent-coordination.mjs changelog',
     'agents:prioritize': 'node ./scripts/agent-coordination.mjs prioritize',
     'agents:approvals': 'node ./scripts/agent-coordination.mjs approvals',
@@ -524,6 +528,7 @@ function expectedPackageScripts() {
     'agents2:backlog:import': 'node ./scripts/agent-coordination-two.mjs backlog-import',
     'agents2:prompt': 'node ./scripts/agent-coordination-two.mjs prompt',
     'agents2:ask': 'node ./scripts/agent-coordination-two.mjs ask',
+    'agents2:calendar': 'node ./scripts/agent-coordination-two.mjs calendar',
     'agents2:changelog': 'node ./scripts/agent-coordination-two.mjs changelog',
     'agents2:prioritize': 'node ./scripts/agent-coordination-two.mjs prioritize',
     'agents2:approvals': 'node ./scripts/agent-coordination-two.mjs approvals',
@@ -1538,6 +1543,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'backlog-import') status = runBacklogImport(commandArgs, getBacklogImportContext());
   else if (commandName === 'prompt') status = runPromptCommand(commandArgs, getPromptCommandContext());
   else if (commandName === 'ask') status = runAskCommand(commandArgs, getAskCommandContext());
+  else if (commandName === 'calendar') status = runCalendarCommand(commandArgs, getTemplateCommandContext());
   else if (commandName === 'changelog') status = runChangelogCommand(commandArgs, getCoordinationPaths());
   else if (commandName === 'completions') status = runCompletionsCommand(commandArgs, getCompletionsCommandContext());
   process.exit(status);

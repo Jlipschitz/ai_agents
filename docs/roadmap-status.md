@@ -16,7 +16,7 @@ Next recommended work:
 
 1. Add lightweight dashboard surfaces for repo state.
 2. Add signed release verification.
-3. Add external calendar/reminder hooks.
+3. Continue normalizing older command-specific diagnostics.
 
 ---
 
@@ -121,7 +121,7 @@ Next recommended work:
 - [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; deeper storage policy and reporting remain open.
 - [x] Human-readable changelog
 - [x] Task templates
-- [ ] External calendar/reminder hooks
+- [x] External calendar/reminder hooks
 - [x] Config inheritance
 - [~] Multi-branch awareness — claims record Git branch metadata and `branches` reports task ownership by branch; cross-worktree awareness remains open.
 - [x] Offline mode
@@ -220,6 +220,7 @@ Next recommended work:
 - `scripts/lib/board-maintenance.mjs`
 - `scripts/lib/board-migration.mjs`
 - `scripts/lib/branch-commands.mjs`
+- `scripts/lib/calendar-commands.mjs`
 - `scripts/lib/changelog-commands.mjs`
 - `scripts/lib/claim-policy.mjs`
 - `scripts/lib/completion-commands.mjs`
@@ -267,6 +268,7 @@ Next recommended work:
 - `tests/ask-commands.test.mjs`
 - `tests/backlog-import-commands.test.mjs`
 - `tests/bootstrap.test.mjs`
+- `tests/calendar-commands.test.mjs`
 - `tests/changelog-commands.test.mjs`
 - `tests/command-layer.test.mjs`
 - `tests/command-snapshots.test.mjs`
