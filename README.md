@@ -4,6 +4,13 @@ Portable coordination tooling for running multiple coding agents in one reposito
 
 `ai_agents` helps multiple coding agents work in the same repo without stepping on each other. It keeps a local coordination board, tracks task ownership, records notes and verification, manages heartbeats, and provides doctor/status commands for safer handoffs.
 
+## Requirements
+
+- Node.js 24 or newer.
+- npm with lockfile support.
+
+The repo includes both `.nvmrc` and `.node-version` set to `24`.
+
 ## What It Does
 
 - Creates a repo-local coordination workspace.
@@ -22,10 +29,10 @@ Portable coordination tooling for running multiple coding agents in one reposito
 
 ## Quick Start
 
-Install dependencies if needed:
+Install dependencies from the lockfile:
 
 ```bash
-npm install
+npm ci
 ```
 
 Validate the portable config:
@@ -109,6 +116,8 @@ npm run agents:validate
 npm run agents:start -- agent-1 task-id --paths src/path "Starting work."
 npm run agents:finish -- agent-1 task-id "Finished and verified."
 npm run agents:handoff-ready -- agent-1 task-id "Ready for handoff."
+npm run agents:lock:status
+npm run agents:lock:clear
 npm run agents:heartbeat:start
 npm run agents:heartbeat:status
 npm run agents:heartbeat:stop
@@ -122,6 +131,8 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 
 ## Default Files
 
+- `.nvmrc` and `.node-version`: Node 24 runtime hints.
+- `package-lock.json`: npm lockfile used by CI for reproducible `npm ci` installs and cache keys.
 - `bin/ai-agents.mjs`: public CLI entrypoint.
 - `scripts/agent-command-layer.mjs`: command-layer features such as `doctor --fix`, `doctor --json`, `summarize`, lifecycle helpers, Git preflight, and Node watcher start.
 - `scripts/agent-coordination-core.mjs`: shared coordinator implementation.
@@ -129,6 +140,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `scripts/agent-coordination-two.mjs`: `agents2` workspace wrapper.
 - `scripts/bootstrap.mjs`: installer for copying `ai_agents` into another repo.
 - `scripts/validate-config.mjs`: config validator with text and JSON output.
+- `scripts/lock-runtime.mjs`: runtime lock inspection and safe stale-lock cleanup.
 - `scripts/agent-watch-loop.mjs`: cross-platform Node watch-loop helper.
 - `scripts/agent-watch-loop.ps1`: legacy Windows watch-loop helper for `agents`.
 - `scripts/agent-watch-loop-two.ps1`: legacy Windows watch-loop helper for `agents2`.
@@ -171,6 +183,7 @@ Important config areas:
 - `projectName`
 - `agentIds`
 - `docs`
+- `git`
 - `paths.sharedRisk`
 - `paths.visualImpact`
 - `verification`
@@ -246,6 +259,8 @@ npm run agents:doctor
 npm run check
 npm test
 ```
+
+CI runs on Node 24, installs with `npm ci`, and uses GitHub Actions npm caching keyed by `package-lock.json`.
 
 ## Roadmap
 
