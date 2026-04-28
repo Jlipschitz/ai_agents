@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { BUILT_IN_COMMAND_ALIASES, parseCommandAliasTokens } from './lib/command-aliases.mjs';
+import { COMMANDS } from './lib/help-command.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -352,6 +355,35 @@ export function validateAgentConfig(config, options = {}) {
   if ('notes' in config && validateObject(config.notes, 'notes', errors)) {
     if ('categories' in config.notes) validateStringArray(config.notes.categories, 'notes.categories', errors);
     if ('sectionHeading' in config.notes) validateString(config.notes.sectionHeading, 'notes.sectionHeading', errors, { allowEmpty: true });
+  }
+
+  if ('commandAliases' in config && validateObject(config.commandAliases, 'commandAliases', errors)) {
+    for (const [name, value] of Object.entries(config.commandAliases)) {
+      const base = `commandAliases.${name}`;
+      if (!name.trim()) addIssue(errors, base, 'alias name must not be empty');
+      if (/^\s*-/.test(name)) addIssue(errors, base, 'alias name must not start with "-"');
+      if (/\s/.test(name)) addIssue(errors, base, 'alias name must not contain whitespace');
+      if (Object.hasOwn(COMMANDS, name) || BUILT_IN_COMMAND_ALIASES.has(name)) {
+        addIssue(errors, base, 'must not override a built-in command or alias');
+      }
+
+      if (typeof value !== 'string' && !Array.isArray(value)) {
+        addIssue(errors, base, 'must be a string command or string array');
+        continue;
+      }
+      if (Array.isArray(value)) validateStringArray(value, base, errors, { allowEmpty: false });
+      else validateString(value, base, errors);
+
+      const tokens = parseCommandAliasTokens(value);
+      if (!tokens.length) {
+        addIssue(errors, base, 'must expand to a command');
+        continue;
+      }
+      const targetCommand = BUILT_IN_COMMAND_ALIASES.get(tokens[0])?.[0] ?? tokens[0];
+      if (!Object.hasOwn(COMMANDS, targetCommand)) {
+        addIssue(errors, base, `targets unknown command "${tokens[0]}"`);
+      }
+    }
   }
 
   if ('onboarding' in config && validateObject(config.onboarding, 'onboarding', errors)) {

@@ -89,6 +89,10 @@ function validConfig() {
       categories: ['change', 'setup'],
       sectionHeading: 'Agent-Maintained Notes',
     },
+    commandAliases: {
+      qa: ['run-check', 'test'],
+      whoBlocked: 'ask "what is blocked?"',
+    },
     onboarding: {
       profile: 'react',
       profiles: ['backend'],
@@ -171,6 +175,10 @@ test('validateAgentConfig reports actionable errors', () => {
   config.monorepo.fallbackRoot = 1;
   config.checks.unit.timeoutMs = 500;
   config.checks.unit.requireArtifacts = 'yes';
+  config.commandAliases.status = 'summarize';
+  config.commandAliases['bad alias'] = ['status'];
+  config.commandAliases.badtarget = 'missing-command';
+  config.commandAliases.badvalue = 1;
   config.onboarding.profiles = ['react', 'react'];
   config.onboarding.checklist.push({ id: 'security-runbook', paths: ['docs/other.md'] });
   config.onboarding.checklist[0].required = 'yes';
@@ -200,10 +208,24 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('monorepo.fallbackRoot')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.timeoutMs')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.requireArtifacts')));
+  assert.ok(result.errors.some((entry) => entry.includes('commandAliases.status')));
+  assert.ok(result.errors.some((entry) => entry.includes('commandAliases.bad alias')));
+  assert.ok(result.errors.some((entry) => entry.includes('commandAliases.badtarget')));
+  assert.ok(result.errors.some((entry) => entry.includes('commandAliases.badvalue')));
   assert.ok(result.errors.some((entry) => entry.includes('onboarding.profiles[1]')));
   assert.ok(result.errors.some((entry) => entry.includes('onboarding.checklist[0].paths')));
   assert.ok(result.errors.some((entry) => entry.includes('onboarding.checklist[0].required')));
   assert.ok(result.errors.some((entry) => entry.includes('onboarding.checklist[1].id')));
+});
+
+test('schema describes command alias shape without duplicating command metadata', () => {
+  const schema = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'agent-coordination.schema.json'), 'utf8'));
+  const commandAliases = schema.properties.commandAliases;
+
+  assert.equal(commandAliases.propertyNames.pattern, '^[^-\\s][^\\s]*$');
+  assert.equal(commandAliases.additionalProperties.oneOf[0].type, 'string');
+  assert.equal(commandAliases.additionalProperties.oneOf[1].$ref, '#/$defs/nonEmptyStringArray');
+  assert.equal(schema.$defs.commandAliasTarget, undefined);
 });
 
 test('loadAgentConfigWithSources merges inherited config files', () => {

@@ -233,6 +233,58 @@ test('short command aliases route through the command layer and core', () => {
   assert.match(status.stdout, /task-one/);
 });
 
+test('repo-defined command aliases route through the command layer and core', () => {
+  const root = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.commandAliases = {
+    qsum: ['summarize', '--json'],
+    board: 'status',
+    'blocked-now': 'ask "what is blocked?" --json',
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  writeBoard(root, {
+    projectName: 'Repo Alias Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-alias', status: 'planned', ownerId: null, title: 'Alias task', claimedPaths: [] }],
+  });
+
+  const summary = run(root, ['qsum']);
+  const status = run(root, ['board']);
+  const blocked = run(root, ['blocked-now']);
+  const help = run(root, ['help', 'qsum']);
+
+  assert.equal(summary.status, 0, summary.stderr);
+  assert.equal(JSON.parse(summary.stdout).counts.planned, 1);
+  assert.equal(status.status, 0, status.stderr);
+  assert.match(status.stdout, /task-alias/);
+  assert.equal(blocked.status, 0, blocked.stderr);
+  assert.equal(JSON.parse(blocked.stdout).question, 'what is blocked?');
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /summarize/);
+});
+
+test('repo-defined command aliases cannot override built-in commands at runtime', () => {
+  const root = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.commandAliases = {
+    status: ['doctor'],
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  writeBoard(root, {
+    projectName: 'Alias Override Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-status', status: 'planned', ownerId: null, title: 'Status task', claimedPaths: [] }],
+  });
+
+  const result = run(root, ['status']);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /task-status/);
+  assert.doesNotMatch(result.stdout, /Agent coordination doctor/);
+});
+
 test('per-command help supports command flags and help aliases', () => {
   const root = makeWorkspace();
   const claim = run(root, ['claim', '--help']);

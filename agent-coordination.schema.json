@@ -281,6 +281,23 @@
         }
       }
     },
+    "commandAliases": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[^-\\s][^\\s]*$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "$ref": "#/$defs/nonEmptyStringArray"
+          }
+        ]
+      }
+    },
     "onboarding": {
       "type": "object",
       "additionalProperties": true,
@@ -452,6 +469,14 @@
     "domainRules"
   ],
   "$defs": {
+    "nonEmptyStringArray": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
     "stringArray": {
       "type": "array",
       "items": {

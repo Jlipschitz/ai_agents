@@ -99,7 +99,7 @@ Next recommended work:
 - [x] CODEOWNERS integration
 - [x] Approval ledger
 - [x] Release artifact bundle
-- [~] Command aliases - built-in short aliases exist; repo-defined aliases remain open.
+- [x] Command aliases - built-in and repo-defined command aliases are supported.
 - [~] Natural-language query — `ask` answers common deterministic board questions; open-ended model-backed querying remains open.
 - [x] Local web dashboard
 - [x] Signed releases

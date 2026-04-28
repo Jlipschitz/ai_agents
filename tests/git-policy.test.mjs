@@ -114,6 +114,25 @@ test('git snapshot reports dubious ownership remediation', () => {
   assert.ok(snapshot.errors.some((entry) => entry.includes('safe.directory')));
 });
 
+test('git snapshot preserves leading porcelain status columns', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-git-snapshot-'));
+  const snapshot = getGitSnapshot({
+    root,
+    runGit(args) {
+      const key = args.join(' ');
+      if (key === 'rev-parse --is-inside-work-tree') return 'true';
+      if (key === 'branch --show-current') return 'main';
+      if (key === 'rev-parse --abbrev-ref --symbolic-full-name @{u}') throw new Error('no upstream');
+      if (key === 'status --porcelain=v1') return ' M README.md\n?? scripts/new-file.mjs\n';
+      if (key === 'rev-parse --git-dir') return '.git';
+      throw new Error(`unexpected git call: ${key}`);
+    },
+  });
+
+  assert.deepEqual(snapshot.dirty, ['README.md']);
+  assert.deepEqual(snapshot.untracked, ['scripts/new-file.mjs']);
+});
+
 test('claim is blocked when branch does not match configured patterns', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: true,
@@ -190,4 +209,20 @@ test('branches reports active task ownership and stale cleanup candidates', () =
   assert.deepEqual(activeBranch.activeTasks, ['task-active']);
   assert.ok(payload.cleanupCandidates.some((entry) => entry.name === 'feature/old'));
   assert.ok(!payload.cleanupCandidates.some((entry) => entry.name === 'feature/active'));
+});
+
+test('test-impact preserves leading porcelain status columns', () => {
+  const { root, coordinationRoot } = makeGitWorkspace({
+    allowMainBranchClaims: true,
+    allowDetachedHead: false,
+    allowedBranchPatterns: [],
+  });
+  fs.writeFileSync(path.join(root, 'README.md'), '# Changed\n');
+
+  const result = run(root, coordinationRoot, ['test-impact', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(payload.paths.includes('README.md'));
+  assert.ok(!payload.paths.includes('EADME.md'));
 });

@@ -404,11 +404,104 @@ export function createStatusCommands(context) {
     return lines.join('\n');
   }
 
-  async function statusCommand() {
+  function taskSummary(task, liveHeartbeats = new Map(), referenceIso = nowIso()) {
+    ensureTaskDefaults(task);
+    const heartbeat = task.ownerId ? liveHeartbeats.get(task.ownerId) : null;
+    return {
+      id: task.id,
+      title: task.title ?? null,
+      status: task.status,
+      ownerId: task.ownerId ?? null,
+      lastOwnerId: task.lastOwnerId ?? null,
+      suggestedOwnerId: task.suggestedOwnerId ?? null,
+      summary: task.summary ?? '',
+      claimedPaths: [...task.claimedPaths],
+      dependencies: [...task.dependencies],
+      waitingOn: [...task.waitingOn],
+      verification: [...task.verification],
+      priority: task.priority ?? 'normal',
+      severity: task.severity ?? 'none',
+      dueAt: task.dueAt ?? null,
+      updatedAt: task.updatedAt ?? null,
+      stale: task.status === 'active' && isTaskStale(task, referenceIso) && !hasLiveAgentHeartbeat(task.ownerId, liveHeartbeats),
+      heartbeatAt: heartbeat?.lastHeartbeatAt ?? heartbeat?.startedAt ?? null,
+    };
+  }
+
+  function buildStatusPayload(board, options = {}) {
+    const referenceIso = options.referenceIso ?? nowIso();
+    const liveHeartbeats = options.liveHeartbeats ?? readAgentHeartbeats(referenceIso);
+    const staleResources = Array.isArray(options.staleResources) ? options.staleResources : [];
+    const watcherStatus = getWatcherStatus();
+    const watcherAlive = isWatcherAlive(watcherStatus);
+    const activeTasks = board.tasks.filter((task) => task.status === 'active');
+    const blockedTasks = board.tasks.filter((task) => task.status === 'blocked');
+    const reviewTasks = board.tasks.filter((task) => task.status === 'review');
+    const waitingTasks = board.tasks.filter((task) => task.status === 'waiting');
+    const plannedTasks = board.tasks.filter((task) => task.status === plannedTaskStatus);
+    const handoffTasks = board.tasks.filter((task) => task.status === 'handoff');
+    const approvals = Array.isArray(board.approvals) ? board.approvals : [];
+
+    return {
+      ok: true,
+      workspace: board.workspace,
+      projectName: board.projectName ?? null,
+      updatedAt: board.updatedAt,
+      generatedAt: referenceIso,
+      watcher: {
+        running: watcherAlive,
+        pid: watcherStatus?.pid ?? null,
+        lastSweepAt: watcherStatus?.lastSweepAt ?? null,
+        updatedAt: watcherStatus?.updatedAt ?? null,
+      },
+      agents: board.agents.map((agent) => {
+        const heartbeat = liveHeartbeats.get(agent.id);
+        return {
+          id: agent.id,
+          status: agent.status,
+          taskId: agent.taskId ?? null,
+          updatedAt: agent.updatedAt ?? null,
+          heartbeatAt: heartbeat?.lastHeartbeatAt ?? heartbeat?.startedAt ?? null,
+        };
+      }),
+      tasks: {
+        counts: {
+          active: activeTasks.length,
+          blocked: blockedTasks.length,
+          waiting: waitingTasks.length,
+          review: reviewTasks.length,
+          planned: plannedTasks.length,
+          handoff: handoffTasks.length,
+        },
+        active: activeTasks.map((task) => taskSummary(task, liveHeartbeats, referenceIso)),
+        blocked: blockedTasks.map((task) => taskSummary(task, liveHeartbeats, referenceIso)),
+        waiting: waitingTasks.map((task) => taskSummary(task, liveHeartbeats, referenceIso)),
+        review: reviewTasks.map((task) => taskSummary(task, liveHeartbeats, referenceIso)),
+        planned: plannedTasks.map((task) => taskSummary(task, liveHeartbeats, referenceIso)),
+        handoff: handoffTasks.map((task) => taskSummary(task, liveHeartbeats, referenceIso)),
+        all: board.tasks.map((task) => taskSummary(task, liveHeartbeats, referenceIso)),
+      },
+      waitingDetails: waitingTasks.flatMap((task) => buildWaitingInsights(board, task, referenceIso)),
+      resources: board.resources,
+      staleResources,
+      accessRequests: board.accessRequests,
+      approvals,
+      assistOpportunities: collectAssistOpportunityLines(board, referenceIso),
+      heartbeats: [...liveHeartbeats.values()],
+      incidents: board.incidents,
+    };
+  }
+
+  async function statusCommand(options = {}) {
     const board = getReadOnlyBoard();
     const referenceIso = nowIso();
     const liveHeartbeats = readAgentHeartbeats(referenceIso, { cleanupStale: false });
     const staleResources = getStaleResources(board, liveHeartbeats, referenceIso);
+
+    if (options.json) {
+      console.log(JSON.stringify(buildStatusPayload(board, { referenceIso, liveHeartbeats, staleResources }), null, 2));
+      return;
+    }
 
     console.log(renderStatus(board, { referenceIso, liveHeartbeats, staleResources }));
   }
@@ -416,6 +509,7 @@ export function createStatusCommands(context) {
   return {
     buildDependencyInsight,
     buildLockContentionSummary,
+    buildStatusPayload,
     buildWaitingInsights,
     maybeQueueAssistMessages,
     statusCommand,

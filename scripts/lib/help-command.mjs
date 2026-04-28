@@ -5,7 +5,7 @@ export const COMMANDS = {
   version: ['version [--json]', 'Show package, Node, config, coordination, and board schema versions.'],
   'publish-check': ['publish-check [--strict] [--json]', 'Check local package metadata and files for npm publish readiness.'],
   init: ['init', 'Create the coordination board, journal, messages, and runtime folders.'],
-  status: ['status', 'Show active, blocked, review, waiting, handoff, planned, and stale work.'],
+  status: ['status [--json]', 'Show active, blocked, review, waiting, handoff, planned, and stale work.'],
   summarize: ['summarize [--json] [--for-chat]', 'Print a transcript-friendly board summary.'],
   validate: ['validate [--json]', 'Validate the board and config.'],
   doctor: ['doctor [--json] [--fix]', 'Inspect coordination health and optionally apply safe setup fixes.'],

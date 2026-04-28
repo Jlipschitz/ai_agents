@@ -1307,6 +1307,14 @@ Current behavior:
 
 - `doctor --json` includes `configSuggestions` with actionable improvement recommendations.
 - Built-in short aliases route `s`, `d`, `p`, and `sum` to `status`, `doctor`, `plan`, and `summarize`.
+- Repos can define `commandAliases` in config as a string command or string array. Aliases expand before normal routing and `help <alias>` resolves to the target command.
+
+Main files:
+
+- `scripts/lib/command-aliases.mjs`
+- `scripts/agent-command-layer.mjs`
+- `scripts/validate-config.mjs`
+- `tests/command-layer.test.mjs`
 
 ### Per-repo onboarding checklist
 

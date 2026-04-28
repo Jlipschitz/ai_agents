@@ -14,6 +14,7 @@ import { runCalendarCommand } from './lib/calendar-commands.mjs';
 import { runChangelogCommand } from './lib/changelog-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runCompletionsCommand } from './lib/completion-commands.mjs';
+import { resolveCommandAlias } from './lib/command-aliases.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runContracts } from './lib/contract-commands.mjs';
 import { runCostTime } from './lib/cost-time-commands.mjs';
@@ -113,12 +114,6 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'timeline',
   'version',
   'publish-check',
-]);
-const COMMAND_ALIASES = new Map([
-  ['s', 'status'],
-  ['d', 'doctor'],
-  ['p', 'plan'],
-  ['sum', 'summarize'],
 ]);
 const DEFAULT_STALE_TASK_HOURS = 6;
 const DEFAULT_RECENT_CONTEXT_LINES = 8;
@@ -1627,14 +1622,15 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
     return;
   }
 
-  const commandName = COMMAND_ALIASES.get(rawCommandName) || rawCommandName;
-  if (commandName !== rawCommandName) process.argv[2] = commandName;
-  const commandArgs = argv.slice(1);
+  const { config } = loadConfig();
+  const resolved = resolveCommandAlias(rawCommandName, argv.slice(1), config);
+  const { commandName, commandArgs } = resolved;
+  if (commandName !== rawCommandName || commandArgs.length !== argv.length - 1) process.argv = [process.argv[0], process.argv[1], commandName, ...commandArgs];
   const normalizedCoordinatorPath = resolveRepoPath(coordinatorScriptPath, 'scripts/agent-coordination.mjs');
   const cli = process.env.AGENT_COORDINATION_CLI_ENTRYPOINT || 'agents';
 
   if (commandName === 'help' && commandArgs[0]) {
-    const helpTarget = COMMAND_ALIASES.get(commandArgs[0]) || commandArgs[0];
+    const helpTarget = resolveCommandAlias(commandArgs[0], [], config).commandName;
     process.exit(runCommandHelp(commandName, [helpTarget], { cli }));
   }
 

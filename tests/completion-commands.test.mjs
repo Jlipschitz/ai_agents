@@ -1,10 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { makeWorkspace, runCli, writeBoard } from './helpers/workspace.mjs';
 
 function makeCompletionWorkspace() {
   const workspace = makeWorkspace({ prefix: 'ai-agents-completions-', packageName: 'completion-test' });
+  const configPath = path.join(workspace.root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.commandAliases = { qa: ['run-check', 'test'] };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
   writeBoard(workspace.root, {
     projectName: 'Completion Test',
     agents: [
@@ -55,6 +61,8 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('timeline'));
   assert.ok(payload.commands.includes('version'));
   assert.ok(payload.commands.includes('publish-check'));
+  assert.ok(payload.commands.includes('s'));
+  assert.ok(payload.commands.includes('qa'));
 });
 
 test('completions bash includes commands and repo task context', () => {
@@ -93,6 +101,7 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /timeline/);
   assert.match(result.stdout, /version/);
   assert.match(result.stdout, /publish-check/);
+  assert.match(result.stdout, / qa /);
 });
 
 test('completions powershell and zsh render shell-specific registrations', () => {

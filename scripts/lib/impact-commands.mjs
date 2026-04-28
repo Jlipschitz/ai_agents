@@ -71,7 +71,7 @@ function parsePathsArg(argv) {
 }
 
 function gitChangedPaths(root) {
-  const output = execGit(['status', '--porcelain=v1'], { root });
+  const output = execGit(['status', '--porcelain=v1'], { root, trim: false });
   if (output === null) return { available: false, paths: [] };
   const paths = output
     .split(/\r?\n/)

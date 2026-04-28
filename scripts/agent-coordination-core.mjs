@@ -2027,7 +2027,7 @@ async function main() {
       await initCommand();
       return;
     case 'status':
-      await statusCommand();
+      await statusCommand(options);
       return;
     case 'heartbeat':
       await heartbeatCommand(positionals, options);

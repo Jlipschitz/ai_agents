@@ -1,4 +1,5 @@
 import { getPositionals, hasFlag } from './args-utils.mjs';
+import { BUILT_IN_COMMAND_ALIASES, configuredCommandAliases } from './command-aliases.mjs';
 import { printCommandError } from './error-formatting.mjs';
 import { COMMANDS } from './help-command.mjs';
 
@@ -82,12 +83,13 @@ function collectCompletionData(context) {
   const agents = Array.isArray(board.agents) ? board.agents : [];
   const configAgents = Array.isArray(context.config?.agentIds) ? context.config.agentIds : [];
   const configChecks = context.config?.checks && typeof context.config.checks === 'object' ? Object.keys(context.config.checks) : [];
+  const aliases = [...BUILT_IN_COMMAND_ALIASES.keys(), ...configuredCommandAliases(context.config).keys()];
   const verificationChecks = tasks.flatMap((task) => [
     ...(Array.isArray(task.verification) ? task.verification : []),
     ...(Array.isArray(task.verificationLog) ? task.verificationLog.map((entry) => entry?.check) : []),
   ]);
   return {
-    commands: unique(Object.keys(COMMANDS)),
+    commands: unique([...Object.keys(COMMANDS), ...aliases]),
     flags: unique(COMMON_FLAGS),
     shells: SHELLS,
     agents: unique([...configAgents, ...agents.map((agent) => agent?.id)]),

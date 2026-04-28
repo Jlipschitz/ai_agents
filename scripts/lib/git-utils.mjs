@@ -11,16 +11,17 @@ export const DEFAULT_GIT_POLICY = {
   protectedBranchPatterns: ['main', 'master', 'develop', 'dev', 'trunk', 'release/*'],
 };
 
-export function execGit(args, { root = process.cwd() } = {}) {
+export function execGit(args, { root = process.cwd(), trim = true } = {}) {
   const candidates = process.platform === 'win32' ? ['git.exe', 'git.cmd', 'git'] : ['git'];
 
   for (const candidate of candidates) {
     try {
-      return execFileSync(candidate, args, {
+      const output = execFileSync(candidate, args, {
         cwd: root,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
-      }).trim();
+      });
+      return trim ? output.trim() : output;
     } catch (error) {
       if (error?.code === 'ENOENT') {
         continue;
@@ -78,15 +79,19 @@ export function getGitSnapshot({ root = process.cwd(), config = {}, runGit = nul
   const result = { available: false, dubiousOwnership: false, safeDirectoryCommand: null, branch: null, upstream: null, ahead: null, behind: null, dirty: [], untracked: [], mergeState: false, rebaseState: false, policy: getGitPolicy(config), warnings: [], errors: [] };
   const gitCandidates = process.platform === 'win32' ? ['git.exe', 'git.cmd', 'git'] : ['git'];
   let gitCommand = null;
-  function git(args) {
-    if (runGit) return String(runGit(args) ?? '').trim();
+  function git(args, options = {}) {
+    const trim = options.trim ?? true;
+    if (runGit) {
+      const output = String(runGit(args) ?? '');
+      return trim ? output.trim() : output;
+    }
     const candidates = gitCommand ? [gitCommand] : gitCandidates;
     let lastError = null;
     for (const candidate of candidates) {
       try {
-        const output = execFileSync(candidate, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+        const output = execFileSync(candidate, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
         gitCommand = candidate;
-        return output;
+        return trim ? output.trim() : output;
       } catch (error) {
         lastError = error;
         if (error?.code === 'ENOENT') continue;
@@ -112,7 +117,7 @@ export function getGitSnapshot({ root = process.cwd(), config = {}, runGit = nul
     try { const [ahead, behind] = git(['rev-list', '--left-right', '--count', `${result.upstream}...HEAD`]).split(/\s+/).map((value) => Number.parseInt(value, 10)); result.ahead = Number.isFinite(ahead) ? ahead : null; result.behind = Number.isFinite(behind) ? behind : null; } catch {}
   }
   try {
-    const porcelain = git(['status', '--porcelain=v1']);
+    const porcelain = git(['status', '--porcelain=v1'], { trim: false });
     for (const line of porcelain.split(/\r?\n/).filter(Boolean)) {
       const filePath = line.slice(3).trim();
       if (line.startsWith('??')) result.untracked.push(filePath); else result.dirty.push(filePath);

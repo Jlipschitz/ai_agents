@@ -52,6 +52,36 @@ Commands that receive `--json` emit structured errors on stdout:
 
 Use `--verbose` to include stack traces on formatted top-level errors.
 
+## Command Aliases
+
+Built-in short aliases are always available:
+
+```bash
+npm run agents -- s
+npm run agents -- d --json
+npm run agents -- sum --for-chat
+```
+
+Repos can add local aliases in `agent-coordination.config.json`:
+
+```json
+{
+  "commandAliases": {
+    "qa": ["run-check", "test"],
+    "blocked-now": "ask \"what is blocked?\""
+  }
+}
+```
+
+Aliases expand before normal command routing, so extra CLI arguments are appended:
+
+```bash
+npm run agents -- qa --json
+npm run agents -- help blocked-now
+```
+
+Alias names cannot override built-in commands or built-in aliases.
+
 ## Mutation Dry Runs
 
 Most command-layer apply flows are dry-run by default and write only when `--apply` is passed. Legacy core mutation commands such as `claim`, `prioritize`, `approvals request|grant|deny|use`, `progress`, `wait`, `resume`, `blocked`, `review`, `verify`, `message`, `app-note`, `handoff`, `done`, `release`, access requests, incidents, resource leases, heartbeat, and watcher commands also accept `--dry-run` to validate inputs and report the intended action without changing coordination state or starting/stopping background processes.
@@ -110,6 +140,7 @@ Prints the current board state, active work, blockers, stale work, and task prio
 ```bash
 npm run agents:status
 npm run agents -- status
+npm run agents -- status --json
 ```
 
 ### `summarize`
@@ -914,12 +945,12 @@ Marks a task blocked and records the blocker.
 npm run agents -- blocked agent-1 task-id "Waiting for API contract."
 ```
 
-### `waiting`
+### `wait`
 
 Marks a task waiting on one or more dependency tasks.
 
 ```bash
-npm run agents -- waiting agent-2 task-ui --on task-api
+npm run agents -- wait agent-2 task-ui --on task-api
 ```
 
 ### `review`

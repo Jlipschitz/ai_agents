@@ -69,16 +69,17 @@ function parseGitStatusPorcelainV2(output, root) {
   return normalizePaths(paths, root);
 }
 
-function execGit(root, args) {
+function execGit(root, args, { trim = true } = {}) {
   const candidates = process.platform === 'win32' ? ['git.exe', 'git.cmd', 'git'] : ['git'];
 
   for (const candidate of candidates) {
     try {
-      return execFileSync(candidate, args, {
+      const output = execFileSync(candidate, args, {
         cwd: root,
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
-      }).trim();
+      });
+      return trim ? output.trim() : output;
     } catch (error) {
       if (error?.code === 'ENOENT') {
         continue;
@@ -111,13 +112,13 @@ export function createCorePathAnalysis(context) {
   } = context;
 
   function getGitChangedPaths() {
-    const porcelainV2Output = execGit(root, ['status', '--porcelain=v2', '-z']);
+    const porcelainV2Output = execGit(root, ['status', '--porcelain=v2', '-z'], { trim: false });
 
     if (porcelainV2Output != null) {
       return { available: true, paths: parseGitStatusPorcelainV2(porcelainV2Output, root) };
     }
 
-    const shortOutput = execGit(root, ['status', '--short']);
+    const shortOutput = execGit(root, ['status', '--short'], { trim: false });
 
     if (shortOutput == null) {
       return { available: false, paths: [] };

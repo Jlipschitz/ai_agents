@@ -129,6 +129,17 @@ npm run agents -- changelog
 
 The `agents2` shortcuts mirror `agents` but use `coordination-two/` by default.
 
+You can define repo-local shortcuts in `agent-coordination.config.json`:
+
+```json
+{
+  "commandAliases": {
+    "qa": ["run-check", "test"],
+    "blocked-now": "ask \"what is blocked?\""
+  }
+}
+```
+
 ## Runtime State
 
 Typical generated files:
