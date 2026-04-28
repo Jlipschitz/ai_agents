@@ -119,6 +119,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `docs/agent-coordination-portability.md`: configuration and portability notes.
 - `docs/commands.md`: command reference.
 - `docs/workflows.md`: copy/paste workflow examples.
+- `docs/implementation-status.md`: implemented vs pending roadmap status.
 - `ai_agents_roadmap.md`: planned improvements.
 
 ## Runtime Files
@@ -227,4 +228,4 @@ npm test
 
 ## Roadmap
 
-See [`ai_agents_roadmap.md`](ai_agents_roadmap.md).
+See [`ai_agents_roadmap.md`](ai_agents_roadmap.md) for the long roadmap and [`docs/implementation-status.md`](docs/implementation-status.md) for the current implemented vs pending status.
