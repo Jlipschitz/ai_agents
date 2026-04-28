@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Extend state transaction coverage to command-layer apply flows that touch multiple non-state files.
+1. Add board schema migrations and concurrency stress tests.
 
 ---
 
@@ -88,8 +88,8 @@ Next recommended work:
 ## Phase 5: Safety, Auditing, and Recovery
 
 - [ ] Secrets and sensitive-data guardrails
-- [~] Command audit log — command-layer apply flows append `runtime/audit.ndjson`; legacy core lifecycle mutations remain open.
-- [~] State transactions - lock-protected core board/task/journal/message mutations restore prior state on write failure; command-layer multi-file transactions remain open.
+- [~] Command audit log — command-layer apply flows and legacy core mutations append `runtime/audit.ndjson`; richer per-command details remain open.
+- [~] State transactions - lock-protected core state mutations and command-layer multi-file apply flows restore prior state on write failure; external side effects such as Git branch deletion remain open.
 - [ ] Schema migrations for board state
 - [ ] Concurrency stress tests
 - [ ] Shell completions

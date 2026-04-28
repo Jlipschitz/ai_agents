@@ -13,7 +13,7 @@
     "check": "node ./scripts/check-syntax.mjs",
     "validate:agents-config": "node ./scripts/validate-config.mjs",
     "lint": "npm run check",
-    "test": "npm run check && node --test",
+    "test": "node --test",
     "agents": "node ./scripts/agent-coordination.mjs",
     "agents:init": "node ./scripts/agent-coordination.mjs init",
     "agents:plan": "node ./scripts/agent-coordination.mjs plan",

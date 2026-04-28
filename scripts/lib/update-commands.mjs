@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { getFlagValue, hasFlag } from './args-utils.mjs';
 import { buildInstallManifest } from './install-manifest.mjs';
 import { normalizePath } from './path-utils.mjs';
+import { withStateTransactionSync } from './state-transaction.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,9 +88,11 @@ export function runUpdateCoordinator(argv, context) {
   const changed = plan.files.filter((file) => file.status === 'create' || file.status === 'update');
 
   if (apply && plan.ok) {
-    for (const change of changed) {
-      applyFileChange(change);
-    }
+    withStateTransactionSync(changed.map((change) => change.targetPath), () => {
+      for (const change of changed) {
+        applyFileChange(change);
+      }
+    });
     plan.applied = true;
   }
 

@@ -20,13 +20,33 @@ function restoreTarget(snapshot) {
   fs.cpSync(snapshot.backupPath, snapshot.targetPath, { recursive: true, force: true });
 }
 
+function uniqueTargets(targets) {
+  return [...new Set(targets.filter(Boolean).map((target) => path.resolve(target)))];
+}
+
 export async function withStateTransaction(targets, work, options = {}) {
   const transactionRoot = makeTransactionRoot(options.tempRoot);
   fs.mkdirSync(transactionRoot, { recursive: true });
-  const snapshots = targets.map((targetPath, index) => snapshotTarget(targetPath, path.join(transactionRoot, String(index))));
+  const snapshots = uniqueTargets(targets).map((targetPath, index) => snapshotTarget(targetPath, path.join(transactionRoot, String(index))));
 
   try {
     const result = await work();
+    fs.rmSync(transactionRoot, { recursive: true, force: true });
+    return result;
+  } catch (error) {
+    for (const snapshot of snapshots.reverse()) restoreTarget(snapshot);
+    fs.rmSync(transactionRoot, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+export function withStateTransactionSync(targets, work, options = {}) {
+  const transactionRoot = makeTransactionRoot(options.tempRoot);
+  fs.mkdirSync(transactionRoot, { recursive: true });
+  const snapshots = uniqueTargets(targets).map((targetPath, index) => snapshotTarget(targetPath, path.join(transactionRoot, String(index))));
+
+  try {
+    const result = work();
     fs.rmSync(transactionRoot, { recursive: true, force: true });
     return result;
   } catch (error) {

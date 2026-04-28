@@ -6,7 +6,7 @@ import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
 import { runArchiveCompleted } from './lib/archive-commands.mjs';
-import { appendAuditLog } from './lib/audit-log.mjs';
+import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
 import { runBacklogImport } from './lib/backlog-import-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
@@ -20,6 +20,7 @@ import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
+import { withStateTransactionSync } from './lib/state-transaction.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
 import { runUpdateCoordinator } from './lib/update-commands.mjs';
 import { runSnapshotWorkspace, writePreMutationWorkspaceSnapshot } from './lib/workspace-snapshot-commands.mjs';
@@ -530,26 +531,28 @@ function runCheckCommand(argv) {
   const exitCode = result.error ? 1 : result.status ?? 0;
   const paths = getCoordinationPaths();
   const artifactRoot = args.artifactDir ? resolveRepoPath(args.artifactDir, args.artifactDir) : paths.artifactsRoot;
-  fs.mkdirSync(artifactRoot, { recursive: true });
   const artifactPath = path.join(artifactRoot, `${fileTimestamp()}-${sanitizeArtifactName(args.name)}.log`);
   const stdout = result.stdout || '';
   const stderr = result.stderr || (result.error ? result.error.message : '');
-  fs.writeFileSync(artifactPath, [
-    `check: ${args.name}`,
-    `command: ${command.join(' ')}`,
-    `startedAt: ${startedAt}`,
-    `finishedAt: ${finishedAt}`,
-    `exitCode: ${exitCode}`,
-    '',
-    '--- stdout ---',
-    stdout,
-    '--- stderr ---',
-    stderr,
-  ].join('\n'));
   const artifactIndexPath = path.join(artifactRoot, 'index.ndjson');
-  fs.mkdirSync(path.dirname(artifactIndexPath), { recursive: true });
   const indexEntry = { name: args.name, command, startedAt, finishedAt, exitCode, artifactPath };
-  fs.appendFileSync(artifactIndexPath, `${JSON.stringify(indexEntry)}\n`);
+  withStateTransactionSync([artifactRoot], () => {
+    fs.mkdirSync(artifactRoot, { recursive: true });
+    fs.writeFileSync(artifactPath, [
+      `check: ${args.name}`,
+      `command: ${command.join(' ')}`,
+      `startedAt: ${startedAt}`,
+      `finishedAt: ${finishedAt}`,
+      `exitCode: ${exitCode}`,
+      '',
+      '--- stdout ---',
+      stdout,
+      '--- stderr ---',
+      stderr,
+    ].join('\n'));
+    fs.mkdirSync(path.dirname(artifactIndexPath), { recursive: true });
+    fs.appendFileSync(artifactIndexPath, `${JSON.stringify(indexEntry)}\n`);
+  });
   if (args.json) console.log(JSON.stringify(indexEntry, null, 2));
   else {
     console.log(`Check ${args.name} ${exitCode === 0 ? 'passed' : 'failed'} with exit code ${exitCode}.`);
@@ -710,14 +713,16 @@ function runMigrateConfig(argv) {
   const result = { ok: validation.valid, applied: false, configPath, targetVersion: CURRENT_CONFIG_VERSION, changes, validation, snapshotPath: null, workspaceSnapshotPath: null };
   if (apply && validation.valid && changes.length) {
     const paths = getCoordinationPaths();
-    result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'migrate-config');
-    result.snapshotPath = snapshotConfig(configPath);
-    writeJson(configPath, migrated);
-    appendAuditLog(paths, {
-      command: 'migrate-config',
-      applied: true,
-      summary: `Applied ${changes.length} config migration change(s).`,
-      details: { changes: changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+    withStateTransactionSync([configPath, paths.snapshotsRoot, auditLogPath(paths)], () => {
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'migrate-config');
+      result.snapshotPath = snapshotConfig(configPath);
+      writeJson(configPath, migrated);
+      appendAuditLog(paths, {
+        command: 'migrate-config',
+        applied: true,
+        summary: `Applied ${changes.length} config migration change(s).`,
+        details: { changes: changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      });
     });
     result.applied = true;
   }
@@ -787,14 +792,16 @@ function runPolicyPacks(argv) {
     result.workspaceSnapshotPath = null;
     if (apply && result.ok && result.changes.length) {
       const paths = getCoordinationPaths();
-      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, `policy-packs-${packNames.join('-')}`);
-      result.snapshotPath = snapshotConfig(result.configPath);
-      writeJson(result.configPath, result.nextConfig);
-      appendAuditLog(paths, {
-        command: 'policy-packs apply',
-        applied: true,
-        summary: `Applied policy pack(s): ${packNames.join(', ')}.`,
-        details: { packs: packNames, changes: result.changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      withStateTransactionSync([result.configPath, paths.snapshotsRoot, auditLogPath(paths)], () => {
+        result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, `policy-packs-${packNames.join('-')}`);
+        result.snapshotPath = snapshotConfig(result.configPath);
+        writeJson(result.configPath, result.nextConfig);
+        appendAuditLog(paths, {
+          command: 'policy-packs apply',
+          applied: true,
+          summary: `Applied policy pack(s): ${packNames.join(', ')}.`,
+          details: { packs: packNames, changes: result.changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+        });
       });
       result.applied = true;
     }
@@ -972,8 +979,10 @@ function runReleaseBundle(argv) {
     { name: 'artifacts.json', path: path.join(outputRoot, 'artifacts.json'), content: `${JSON.stringify({ items: artifactItems }, null, 2)}\n` },
   ];
   if (apply) {
-    fs.mkdirSync(outputRoot, { recursive: true });
-    for (const file of files) fs.writeFileSync(file.path, file.content);
+    withStateTransactionSync([outputRoot], () => {
+      fs.mkdirSync(outputRoot, { recursive: true });
+      for (const file of files) fs.writeFileSync(file.path, file.content);
+    });
   }
   const result = { ok: releaseCheck.ok, applied: apply, outputRoot, files: files.map((file) => ({ name: file.name, path: file.path })), releaseCheck };
   if (json) console.log(JSON.stringify(result, null, 2));
@@ -1032,7 +1041,16 @@ function runDoctorJson(argv) {
 }
 
 function runDoctorFix() {
-  const fixes = doctorFix();
+  const { configPath } = loadConfig();
+  const paths = getCoordinationPaths();
+  const { packageJsonPath } = loadPackageJson();
+  const fixes = withStateTransactionSync([
+    configPath,
+    path.join(ROOT, '.gitignore'),
+    path.join(ROOT, 'docs', 'ai-agent-app-notes.md'),
+    paths.coordinationRoot,
+    packageJsonPath,
+  ], () => doctorFix());
   if (fixes.length) { console.log('doctor --fix applied:'); for (const fix of fixes) console.log(`- ${fix}`); }
   else console.log('doctor --fix: nothing to fix');
   return 0;

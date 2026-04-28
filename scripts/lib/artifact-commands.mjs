@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { printCommandError } from './error-formatting.mjs';
+import { withStateTransactionSync } from './state-transaction.mjs';
 
 export function createArtifactCommands(context) {
   const {
@@ -184,10 +185,12 @@ export function createArtifactCommands(context) {
     const plan = buildArtifactPrunePlan(argv);
     const removed = [];
     if (apply) {
-      for (const candidate of plan.candidates) {
-        fs.rmSync(candidate.absolutePath, { force: true });
-        removed.push({ path: candidate.path, sizeBytes: candidate.sizeBytes, reasons: candidate.reasons });
-      }
+      withStateTransactionSync(plan.candidates.map((candidate) => candidate.absolutePath), () => {
+        for (const candidate of plan.candidates) {
+          fs.rmSync(candidate.absolutePath, { force: true });
+          removed.push({ path: candidate.path, sizeBytes: candidate.sizeBytes, reasons: candidate.reasons });
+        }
+      });
     }
     const result = { ok: true, applied: apply, ...plan, removed };
     if (json) console.log(JSON.stringify(result, null, 2));

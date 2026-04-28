@@ -3,6 +3,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
+import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
 import { createBoardValidation } from './lib/board-validation.mjs';
 import { createCommunicationCommands } from './lib/communication-commands.mjs';
 import { createCorePathAnalysis } from './lib/core-path-analysis.mjs';
@@ -74,6 +75,7 @@ const VALID_INCIDENT_STATUSES = new Set(['open', 'closed', 'abandoned']);
 const DOC_REVIEW_REQUIRED_STATUSES = new Set(['active', 'blocked', 'review', 'waiting']);
 const TERMINAL_ID = detectTerminalId();
 const ALWAYS_READ_ONLY_COMMANDS = new Set(['help', 'status', 'pick', 'inbox', 'validate', 'doctor', 'watch-status', 'heartbeat-status']);
+const CORE_AUDIT_EXCLUDED_COMMANDS = new Set(['heartbeat', 'heartbeat-start', 'heartbeat-stop', 'watch', 'watch-tick', 'watch-start', 'watch-stop']);
 const AUTO_HEAL_EXCLUDED_COMMANDS = new Set([
   'help',
   'init',
@@ -656,6 +658,33 @@ function isDryRunMode() {
 
 function printDryRunNotice(commandName = currentCommandName) {
   console.log(`Dry run: no state was changed for ${commandName}.`);
+}
+
+function getCoreAuditPaths() {
+  return {
+    runtimeRoot: RUNTIME_ROOT,
+  };
+}
+
+function shouldAuditCoreMutation(commandName = currentCommandName) {
+  return !CORE_AUDIT_EXCLUDED_COMMANDS.has(commandName);
+}
+
+function appendCoreMutationAudit(commandName = currentCommandName) {
+  if (!shouldAuditCoreMutation(commandName)) {
+    return;
+  }
+
+  appendAuditLog(getCoreAuditPaths(), {
+    command: commandName,
+    applied: true,
+    summary: `Core mutation command "${commandName}" completed.`,
+    details: {
+      args: process.argv.slice(2),
+      workspace: COORDINATION_LABEL,
+      terminalId: TERMINAL_ID,
+    },
+  });
 }
 
 function normalizePaths(inputs) {
@@ -1679,7 +1708,13 @@ async function withMutationLock(work) {
   await acquireMutationLock();
 
   try {
-    return await withStateTransaction([BOARD_PATH, TASKS_ROOT, JOURNAL_PATH, MESSAGES_PATH], work);
+    return await withStateTransaction([BOARD_PATH, TASKS_ROOT, JOURNAL_PATH, MESSAGES_PATH, auditLogPath(getCoreAuditPaths())], async () => {
+      const result = await work();
+      if (result !== null) {
+        appendCoreMutationAudit();
+      }
+      return result;
+    });
   } finally {
     releaseMutationLock();
   }

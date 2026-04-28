@@ -33,7 +33,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Writes compressed workspace snapshots of board, journal, messages, and runtime state.
 - Takes compressed pre-mutation snapshots before command-layer apply flows.
 - Imports Markdown TODOs into planned backlog tasks.
-- Records audit entries for command-layer apply flows.
+- Records audit entries for command-layer apply flows and legacy core mutations.
 - Restores board, task docs, journal, and messages if a lock-protected core mutation fails mid-write.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
@@ -210,7 +210,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `scripts/bootstrap.mjs`: installer for copying `ai_agents` into another repo.
 - `scripts/lib/update-commands.mjs`: copied-coordinator update command.
 - `scripts/lib/install-manifest.mjs`: shared install/update file manifest.
-- `scripts/lib/audit-log.mjs`: runtime audit log helper for applied command-layer mutations.
+- `scripts/lib/audit-log.mjs`: runtime audit log helper for applied command-layer and core mutations.
 - `scripts/validate-config.mjs`: config validator with text and JSON output.
 - `scripts/explain-config.mjs`: active config explanation, suggestions, and environment override reporting.
 - `scripts/lock-runtime.mjs`: runtime lock inspection and safe stale-lock cleanup.
@@ -344,6 +344,7 @@ npm test
 ```
 
 `npm run check` recursively syntax-checks `.mjs` files under `bin`, `scripts`, and `tests`.
+`npm test` runs the Node test suite. CI runs `npm run check` before `npm test` so syntax checking is not repeated inside the test script.
 
 CI runs on Node 24, installs with `npm ci`, and uses GitHub Actions npm caching keyed by `package-lock.json`.
 

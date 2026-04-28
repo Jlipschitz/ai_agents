@@ -2,10 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
-import { appendAuditLog } from './audit-log.mjs';
+import { appendAuditLog, auditLogPath } from './audit-log.mjs';
 import { printCommandError } from './error-formatting.mjs';
 import { fileTimestamp, nowIso, readJsonDetailed, writeJson } from './file-utils.mjs';
 import { normalizePath, resolveRepoPath } from './path-utils.mjs';
+import { withStateTransactionSync } from './state-transaction.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 function getConfiguredAgentIds(context) {
@@ -182,14 +183,16 @@ export function runRepairBoard(argv, context) {
   const repair = repairBoardObject(sourceBoard, context);
   const result = { ok: true, applied: apply, createdBoard: !exists, changes: exists ? repair.changes : ['created board'], snapshotPath: null, workspaceSnapshotPath: null };
   if (apply) {
-    result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'repair-board');
-    result.snapshotPath = snapshotBoard(paths, 'before-repair');
-    writeJson(paths.boardPath, repair.board);
-    appendAuditLog(paths, {
-      command: 'repair-board',
-      applied: true,
-      summary: `Applied ${result.changes.length} board repair(s).`,
-      details: { changes: result.changes, snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+    withStateTransactionSync([paths.boardPath, paths.snapshotsRoot, auditLogPath(paths)], () => {
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'repair-board');
+      result.snapshotPath = snapshotBoard(paths, 'before-repair');
+      writeJson(paths.boardPath, repair.board);
+      appendAuditLog(paths, {
+        command: 'repair-board',
+        applied: true,
+        summary: `Applied ${result.changes.length} board repair(s).`,
+        details: { changes: result.changes, snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      });
     });
   }
   if (json) console.log(JSON.stringify(result, null, 2));
@@ -232,14 +235,16 @@ export function runRollbackState(argv, context) {
   }
   const result = { ok: true, applied: apply, snapshotPath, backupPath: null, workspaceSnapshotPath: null };
   if (apply) {
-    result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'rollback-state');
-    result.backupPath = snapshotBoard(paths, 'before-rollback');
-    writeJson(paths.boardPath, parsed.value);
-    appendAuditLog(paths, {
-      command: 'rollback-state',
-      applied: true,
-      summary: 'Rolled back board state.',
-      details: { snapshotPath, backupPath: result.backupPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+    withStateTransactionSync([paths.boardPath, paths.snapshotsRoot, auditLogPath(paths)], () => {
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'rollback-state');
+      result.backupPath = snapshotBoard(paths, 'before-rollback');
+      writeJson(paths.boardPath, parsed.value);
+      appendAuditLog(paths, {
+        command: 'rollback-state',
+        applied: true,
+        summary: 'Rolled back board state.',
+        details: { snapshotPath, backupPath: result.backupPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      });
     });
   }
   if (json) console.log(JSON.stringify(result, null, 2));

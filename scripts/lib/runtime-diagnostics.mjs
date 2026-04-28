@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getNumberFlag, hasFlag } from './args-utils.mjs';
 import { isPidAlive, parseIsoMs, readJsonDetailed } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
+import { withStateTransactionSync } from './state-transaction.mjs';
 
 const DEFAULT_RUNTIME_STALE_MS = 300000;
 const DEFAULT_HEARTBEAT_TTL_MS = 90000;
@@ -149,10 +150,12 @@ export function runCleanupRuntime(argv, paths) {
   for (const heartbeat of report.heartbeats.filter((entry) => entry.stale)) candidates.push({ kind: 'heartbeat', path: heartbeat.path, reasons: heartbeat.staleReasons });
   const removed = [];
   if (apply) {
-    for (const candidate of candidates) {
-      fs.rmSync(candidate.path, { force: true });
-      removed.push(candidate);
-    }
+    withStateTransactionSync(candidates.map((candidate) => candidate.path), () => {
+      for (const candidate of candidates) {
+        fs.rmSync(candidate.path, { force: true });
+        removed.push(candidate);
+      }
+    });
   }
   const result = { ok: true, applied: apply, candidates, removed };
   if (json) console.log(JSON.stringify(result, null, 2));

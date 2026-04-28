@@ -331,7 +331,7 @@ npm run agents -- backlog-import --from README.md,docs --owner agent-2 --apply -
 
 The default mode is a dry run. The importer recognizes unchecked Markdown task-list items and `TODO:` lines, skips existing imports by stable source metadata, and writes a compressed pre-mutation workspace snapshot before applied board changes.
 
-Applied command-layer mutations append machine-readable audit entries to `coordination/runtime/audit.ndjson`.
+Applied command-layer mutations and lock-protected legacy core mutations append machine-readable audit entries to `coordination/runtime/audit.ndjson`.
 
 ### `policy-packs`
 

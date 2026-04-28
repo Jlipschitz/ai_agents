@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getFlagValue, getPositionals, hasFlag } from './args-utils.mjs';
-import { appendAuditLog } from './audit-log.mjs';
+import { appendAuditLog, auditLogPath } from './audit-log.mjs';
 import { fileTimestamp, nowIso, writeJson } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
+import { withStateTransactionSync } from './state-transaction.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 const CONFIG_TEMPLATES = {
@@ -166,14 +167,16 @@ export function runTemplates(argv, context) {
     const changes = diffValues(context.config, nextConfig);
     const result = { ok: true, applied: false, template: name, changes, snapshotPath: null, workspaceSnapshotPath: null };
     if (apply && changes.length) {
-      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, `template-config-${name}`);
-      result.snapshotPath = snapshotFile(context.configPath, context.paths.snapshotsRoot, `config-before-template-${name}`);
-      writeJson(context.configPath, nextConfig);
-      appendAuditLog(context.paths, {
-        command: 'templates apply',
-        applied: true,
-        summary: `Applied config template ${name}.`,
-        details: { template: name, changes: changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      withStateTransactionSync([context.configPath, context.paths.snapshotsRoot, auditLogPath(context.paths)], () => {
+        result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, `template-config-${name}`);
+        result.snapshotPath = snapshotFile(context.configPath, context.paths.snapshotsRoot, `config-before-template-${name}`);
+        writeJson(context.configPath, nextConfig);
+        appendAuditLog(context.paths, {
+          command: 'templates apply',
+          applied: true,
+          summary: `Applied config template ${name}.`,
+          details: { template: name, changes: changes.map((entry) => entry.path), snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+        });
       });
       result.applied = true;
     }
@@ -189,15 +192,17 @@ export function runTemplates(argv, context) {
     const exists = board.tasks.some((entry) => entry.id === task.id);
     const result = { ok: !exists, applied: false, task, error: exists ? `Task ${task.id} already exists.` : null, snapshotPath: null, workspaceSnapshotPath: null };
     if (!exists && apply) {
-      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, `template-task-${task.id}`);
-      result.snapshotPath = snapshotFile(context.paths.boardPath, context.paths.snapshotsRoot, `board-before-template-task-${task.id}`);
-      board.tasks.push(task);
-      writeJson(context.paths.boardPath, board);
-      appendAuditLog(context.paths, {
-        command: 'templates create-task',
-        applied: true,
-        summary: `Created task ${task.id} from template ${name}.`,
-        details: { template: name, taskId: task.id, snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      withStateTransactionSync([context.paths.boardPath, context.paths.snapshotsRoot, auditLogPath(context.paths)], () => {
+        result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, `template-task-${task.id}`);
+        result.snapshotPath = snapshotFile(context.paths.boardPath, context.paths.snapshotsRoot, `board-before-template-task-${task.id}`);
+        board.tasks.push(task);
+        writeJson(context.paths.boardPath, board);
+        appendAuditLog(context.paths, {
+          command: 'templates create-task',
+          applied: true,
+          summary: `Created task ${task.id} from template ${name}.`,
+          details: { template: name, taskId: task.id, snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+        });
       });
       result.applied = true;
     }

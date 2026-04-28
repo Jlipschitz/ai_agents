@@ -75,21 +75,24 @@ Main files:
 
 ### Command audit log
 
-Status: partially implemented for command-layer apply flows.
+Status: partially implemented for command-layer apply flows and legacy core mutations.
 
 Current behavior:
 
 - Applied command-layer mutations append JSON lines to `coordination/runtime/audit.ndjson`.
+- Lock-protected legacy core mutations append audit entries after successful writes.
 - Audit entries include timestamp, command, applied flag, summary, and command-specific details.
 - Covered flows include completed-task archiving, board repair/rollback, config migration, policy packs, templates, and Markdown backlog import.
+- Core coverage includes lifecycle and coordination commands such as claim, progress, wait/resume, done/release, access requests, incidents, resource leases, planning apply, and recovery apply.
 
-Follow-up: extend audit logging to legacy core lifecycle mutations such as claim, progress, wait, review, done, release, resource leases, and incident commands.
+Follow-up: add richer per-command audit details for legacy core commands beyond the generic command/args/workspace metadata.
 
 Main files:
 
 - `scripts/lib/audit-log.mjs`
 - `tests/archive-commands.test.mjs`
 - `tests/backlog-import-commands.test.mjs`
+- `tests/core-mutation-safety.test.mjs`
 
 ### Runtime and CI baseline
 
@@ -103,6 +106,7 @@ The repo now targets Node 24 consistently:
 - CI uses `actions/setup-node@v4` with `node-version: 24`.
 - CI installs with `npm ci`.
 - CI enables npm cache keyed by `package-lock.json`.
+- CI runs `npm run check` before `npm test`; `npm test` runs only `node --test` to avoid duplicate syntax checks.
 
 Main files:
 
@@ -166,15 +170,16 @@ Main files:
 
 ### State transactions
 
-Status: partially implemented for lock-protected core state mutations.
+Status: partially implemented for lock-protected core state mutations and command-layer apply flows.
 
 Current behavior:
 
 - Lock-protected legacy core mutations run inside a transaction covering `board.json`, task docs, `journal.md`, and `messages.ndjson`.
+- Command-layer apply flows that write multiple local files use transactions, including doctor fixes, check artifacts, config migration, policy packs, release bundles, archive completed, backlog import, board repair/rollback, templates, artifact pruning, runtime cleanup, and coordinator updates.
 - If a write fails after partial state changes, the previous files are restored.
 - Shared JSON/text write helpers use atomic temp-file replacement.
 
-Follow-up: extend transaction coverage to command-layer apply flows that touch multiple non-state files, such as generated bundles or package script updates.
+Follow-up: external side effects such as Git branch deletion are still outside transaction rollback.
 
 Main files:
 

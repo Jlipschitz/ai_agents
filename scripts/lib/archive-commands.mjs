@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getNumberFlag, hasFlag } from './args-utils.mjs';
-import { appendAuditLog } from './audit-log.mjs';
+import { appendAuditLog, auditLogPath } from './audit-log.mjs';
 import { fileTimestamp, nowIso, parseIsoMs, readJsonSafe, writeJson } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
+import { withStateTransactionSync } from './state-transaction.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 const TERMINAL_STATUSES = new Set(['done', 'released']);
@@ -78,18 +79,21 @@ export function runArchiveCompleted(argv, paths) {
   const plan = buildArchiveCompletedPlan(paths, argv);
 
   if (apply && plan.archiveTasks.length) {
-    plan.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'archive-completed');
-    plan.snapshotPath = snapshotBoard(paths);
-    const existingArchive = readJsonSafe(plan.archivePath, { version: 1, tasks: [] });
-    writeJson(plan.archivePath, mergeArchivedTasks(existingArchive, plan.archiveTasks));
-    plan.nextBoard.updatedAt = nowIso();
-    writeJson(paths.boardPath, plan.nextBoard);
-    removeTaskDocs(paths, plan.archiveTasks);
-    appendAuditLog(paths, {
-      command: 'archive-completed',
-      applied: true,
-      summary: `Archived ${plan.archiveTasks.length} completed task(s).`,
-      details: { taskIds: plan.archivedTaskIds, archivePath: plan.archivePath, workspaceSnapshotPath: plan.workspaceSnapshotPath },
+    const taskDocPaths = plan.archiveTasks.map((task) => path.join(paths.tasksRoot, `${task.id}.md`));
+    withStateTransactionSync([paths.boardPath, plan.archivePath, paths.snapshotsRoot, auditLogPath(paths), ...taskDocPaths], () => {
+      plan.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'archive-completed');
+      plan.snapshotPath = snapshotBoard(paths);
+      const existingArchive = readJsonSafe(plan.archivePath, { version: 1, tasks: [] });
+      writeJson(plan.archivePath, mergeArchivedTasks(existingArchive, plan.archiveTasks));
+      plan.nextBoard.updatedAt = nowIso();
+      writeJson(paths.boardPath, plan.nextBoard);
+      removeTaskDocs(paths, plan.archiveTasks);
+      appendAuditLog(paths, {
+        command: 'archive-completed',
+        applied: true,
+        summary: `Archived ${plan.archiveTasks.length} completed task(s).`,
+        details: { taskIds: plan.archivedTaskIds, archivePath: plan.archivePath, workspaceSnapshotPath: plan.workspaceSnapshotPath },
+      });
     });
     plan.applied = true;
   }

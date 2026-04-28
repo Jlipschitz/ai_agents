@@ -84,3 +84,46 @@ test('run-check dry-run does not execute commands or write artifacts', () => {
   assert.equal(fs.existsSync(path.join(root, 'ran.txt')), false);
   assert.equal(fs.existsSync(path.join(root, 'artifacts', 'checks')), false);
 });
+
+test('legacy core mutations append audit entries and dry-runs do not', () => {
+  const { root } = makeWorkspace({ prefix: 'ai-agents-mutation-safety-', runtime: true });
+  writeBoard(root, {
+    projectName: 'Audit Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [],
+  });
+  const auditPath = path.join(coordinationRoot(root), 'runtime', 'audit.ndjson');
+
+  const claim = runCli(root, ['claim', 'agent-1', 'task-audit', '--paths', 'src/audit', '--summary', 'Audit task']);
+  assert.equal(claim.status, 0, claim.stderr);
+
+  const entries = fs.readFileSync(auditPath, 'utf8').trim().split(/\r?\n/).map((line) => JSON.parse(line));
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].command, 'claim');
+  assert.equal(entries[0].applied, true);
+
+  const dryRun = runCli(root, ['progress', 'agent-1', 'task-audit', 'dry run note', '--dry-run']);
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  const afterDryRun = fs.readFileSync(auditPath, 'utf8').trim().split(/\r?\n/);
+  assert.equal(afterDryRun.length, 1);
+});
+
+test('command-layer release-bundle transaction restores output directory after write failure', () => {
+  const { root } = makeWorkspace({ prefix: 'ai-agents-mutation-safety-', runtime: true });
+  writeBoard(root, {
+    projectName: 'Bundle Tx Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-ready', status: 'done', ownerId: null, claimedPaths: ['src/a'], verification: [], verificationLog: [], notes: [] }],
+  });
+  const outputRoot = path.join(root, 'artifacts', 'bundle-tx');
+  const blockingPath = path.join(outputRoot, 'release-check.json');
+  fs.mkdirSync(blockingPath, { recursive: true });
+
+  const result = runCli(root, ['release-bundle', 'task-ready', '--out-dir', outputRoot, '--apply']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /^error:/);
+  assert.equal(fs.statSync(blockingPath).isDirectory(), true);
+  assert.equal(fs.existsSync(path.join(outputRoot, 'pr-summary.md')), false);
+  assert.equal(fs.existsSync(path.join(outputRoot, 'board-summary.md')), false);
+});

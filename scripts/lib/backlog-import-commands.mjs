@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
-import { appendAuditLog } from './audit-log.mjs';
+import { appendAuditLog, auditLogPath } from './audit-log.mjs';
 import { nowIso, readJsonSafe, writeJson } from './file-utils.mjs';
 import { normalizePath, resolveRepoPath } from './path-utils.mjs';
+import { withStateTransactionSync } from './state-transaction.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 const DEFAULT_SOURCES = ['README.md', 'docs'];
@@ -128,15 +129,17 @@ export function runBacklogImport(argv, context) {
   const plan = buildBacklogImportPlan(argv, context);
 
   if (apply && plan.newTasks.length) {
-    plan.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, 'backlog-import');
-    plan.board.tasks.push(...plan.newTasks);
-    plan.board.updatedAt = nowIso();
-    writeJson(context.paths.boardPath, plan.board);
-    appendAuditLog(context.paths, {
-      command: 'backlog-import',
-      applied: true,
-      summary: `Imported ${plan.newTasks.length} Markdown backlog task(s).`,
-      details: { taskIds: plan.newTasks.map((task) => task.id), sourcePaths: plan.sourcePaths, workspaceSnapshotPath: plan.workspaceSnapshotPath },
+    withStateTransactionSync([context.paths.boardPath, context.paths.snapshotsRoot, auditLogPath(context.paths)], () => {
+      plan.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, 'backlog-import');
+      plan.board.tasks.push(...plan.newTasks);
+      plan.board.updatedAt = nowIso();
+      writeJson(context.paths.boardPath, plan.board);
+      appendAuditLog(context.paths, {
+        command: 'backlog-import',
+        applied: true,
+        summary: `Imported ${plan.newTasks.length} Markdown backlog task(s).`,
+        details: { taskIds: plan.newTasks.map((task) => task.id), sourcePaths: plan.sourcePaths, workspaceSnapshotPath: plan.workspaceSnapshotPath },
+      });
     });
     plan.applied = true;
   }
