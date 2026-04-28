@@ -1,4 +1,5 @@
 {
+  "configVersion": 1,
   "projectName": "AI Agents",
   "agentIds": ["agent-1", "agent-2", "agent-3", "agent-4"],
   "docs": {
@@ -40,6 +41,14 @@
     "visualRequiredChecks": [],
     "visualSuiteUpdateChecks": []
   },
+  "artifacts": {
+    "roots": ["artifacts"],
+    "keepDays": 14,
+    "keepFailedDays": 45,
+    "maxMb": 500,
+    "protectPatterns": []
+  },
+  "checks": {},
   "notes": {
     "categories": ["error", "inconsistency", "change", "gotcha", "decision", "verification", "setup"],
     "sectionHeading": "Agent-Maintained Notes"

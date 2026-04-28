@@ -250,9 +250,14 @@ Important config areas:
 - `agentIds`
 - `docs`
 - `git`
+- `capacity`
+- `conflictPrediction`
+- `ownership`
 - `paths.sharedRisk`
 - `paths.visualImpact`
 - `verification`
+- `artifacts`
+- `checks`
 - `pathClassification`
 - `planning`
 - `domainRules`

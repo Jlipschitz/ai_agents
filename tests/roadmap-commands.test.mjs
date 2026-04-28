@@ -214,6 +214,11 @@ test('pr-summary and release-bundle generate release handoff output', () => {
 test('migrate-config dry-runs and applies versioned defaults', () => {
   const { root, coordinationRoot } = makeWorkspace();
   const configPath = path.join(root, 'agent-coordination.config.json');
+  const oldConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  delete oldConfig.configVersion;
+  delete oldConfig.artifacts;
+  delete oldConfig.checks;
+  fs.writeFileSync(configPath, `${JSON.stringify(oldConfig, null, 2)}\n`);
   const before = fs.readFileSync(configPath, 'utf8');
 
   const dryRun = run(root, coordinationRoot, ['migrate-config', '--json']);
