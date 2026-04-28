@@ -720,6 +720,27 @@ Main files:
 - `scripts/lib/dashboard-commands.mjs`
 - `tests/dashboard-commands.test.mjs`
 
+### Timeline and session replay
+
+Status: implemented as a read-only command-layer replay.
+
+```bash
+npm run agents:timeline
+npm run agents -- timeline --task task-id --json
+npm run agents -- timeline --agent agent-1 --from 2026-01-01 --limit 25
+```
+
+Current behavior:
+
+- Combines journal lines, messages, audit log entries, task notes, and verification events into one chronological timeline.
+- Supports `--task`, `--agent`, `--from`, `--to`, `--limit`, `--all`, and `--json`.
+- Keeps output read-only and participates in read-only mutation-safety coverage.
+
+Main files:
+
+- `scripts/lib/timeline-commands.mjs`
+- `tests/timeline-commands.test.mjs`
+
 ### Approval ledger
 
 Status: implemented in the core lifecycle path.
@@ -1623,7 +1644,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Visual-specific check runner behavior, including before/after artifact-root diffs and richer artifact classification.
 - Full artifact index rebuild and stricter artifact-root policies for manual `verify --artifact` attachments.
-- Dedicated `timeline` or session-replay command.
 
 ### Verification, risk, and GitHub integration
 

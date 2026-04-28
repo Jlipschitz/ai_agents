@@ -823,6 +823,18 @@ npm run agents -- dashboard web --repos ../api,../web --out artifacts/dashboards
 
 The terminal dashboard is read-only and reports task counts, agents, active work, blockers, claimed paths, and recent messages. `--repos` accepts comma-separated repo paths, and `--from` reads one repo path per line; entries can use `name=path` to override the displayed project name. `dashboard web` writes a static local HTML dashboard only with `--apply`.
 
+### `timeline`
+
+Replays coordination history from the journal, messages, audit log, task notes, and verification events.
+
+```bash
+npm run agents:timeline
+npm run agents -- timeline --task task-id --json
+npm run agents -- timeline --agent agent-1 --from 2026-01-01 --limit 25
+```
+
+The command is read-only. Use `--task`, `--agent`, `--from`, `--to`, and `--limit` to focus the replay window; `--all` disables the default recent-event limit.
+
 ### `approvals`
 
 Maintains a board-backed approval ledger for task gates.

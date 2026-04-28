@@ -139,6 +139,8 @@ for (const args of [
   ['dashboard'],
   ['dashboard', '--json'],
   ['dashboard', 'web', '--out', 'artifacts/dashboards/index.html'],
+  ['timeline'],
+  ['timeline', '--json'],
   ['changelog'],
   ['changelog', '--json'],
   ['completions', 'bash'],

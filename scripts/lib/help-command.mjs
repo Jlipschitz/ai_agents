@@ -13,6 +13,7 @@ export const COMMANDS = {
   calendar: ['calendar [export] [--out <path>] [--apply] [--json]', 'Export due task reminders as an iCalendar file.'],
   interactive: ['interactive [--select <id|number>] [--json]', 'Show an interactive command launcher with safe next actions for the current board.'],
   dashboard: ['dashboard [web] [--repos <path[,path...]>] [--from <file>] [--out <path>] [--apply] [--json]', 'Show a terminal dashboard or write a local HTML dashboard for one or more repos.'],
+  timeline: ['timeline [--task <id[,id...]>] [--agent <id[,id...]>] [--from <date>] [--to <date>] [--limit <n>] [--json]', 'Replay coordination journal, messages, audit entries, notes, and verification events.'],
   claim: ['claim <agent> <task-id> --paths <path[,path...]> [--summary <text>] [--priority <level>] [--due-at <date>] [--severity <level>] [--force]', 'Claim work for an agent with Git, capacity, conflict checks, and optional priority metadata.'],
   prioritize: ['prioritize <task-id> [--priority <level>] [--due-at <date|none>] [--severity <level>] [--by <agent>] [--json] [--dry-run]', 'Update task priority, due date, or severity metadata.'],
   start: ['start <agent> <task-id> --paths <path[,path...]> [--priority <level>] [--due-at <date>] [--severity <level>] <summary>', 'Claim work and record the starting summary as progress.'],

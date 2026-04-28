@@ -55,7 +55,7 @@ Next recommended work:
 - [x] Dependency graph output
 - [x] PR handoff generator
 - [~] Stale branch cleanup — `branches` reports dry-run cleanup candidates and can delete them with `--apply`; richer remote/PR checks remain open.
-- [~] Session replay — recent journal/message context is included in `summarize`; dedicated `timeline` remains open.
+- [x] Session replay
 - [~] Per-repo onboarding checklist — `doctor` reports repo-doc onboarding recommendations; profile-specific checklist expansion remains open.
 - [x] Agent prompt generator
 - [x] Safe release gate
@@ -253,6 +253,7 @@ Next recommended work:
 - `scripts/lib/task-metadata.mjs`
 - `scripts/lib/task-metadata-commands.mjs`
 - `scripts/lib/task-split-validator.mjs`
+- `scripts/lib/timeline-commands.mjs`
 - `scripts/lib/update-commands.mjs`
 - `scripts/lib/workspace-snapshot-commands.mjs`
 - `agent-coordination.schema.json`
@@ -304,6 +305,7 @@ Next recommended work:
 - `tests/state-compaction-commands.test.mjs`
 - `tests/template-commands.test.mjs`
 - `tests/task-metadata.test.mjs`
+- `tests/timeline-commands.test.mjs`
 - `tests/update-commands.test.mjs`
 - `tests/workspace-snapshot-commands.test.mjs`
 - `docs/commands.md`
