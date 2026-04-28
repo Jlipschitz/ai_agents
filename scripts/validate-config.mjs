@@ -8,6 +8,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
 
+function isCliEntrypoint() {
+  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === __filename;
+}
+
 export function readJsonFile(filePath) {
   try {
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -254,7 +258,7 @@ export function runCli(argv = process.argv.slice(2)) {
   return result.valid ? 0 : 1;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isCliEntrypoint()) {
   try {
     process.exitCode = runCli();
   } catch (error) {
