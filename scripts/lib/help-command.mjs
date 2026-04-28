@@ -63,6 +63,7 @@ export const COMMANDS = {
   'agent-history': ['agent-history [agent-id...] [--limit <count>] [--stale-hours <hours>] [--json]', 'Summarize per-agent history, reputation, verification, docs review, handoff, and stale-work signals.'],
   'cost-time': ['cost-time [task-id...] [--agent <id[,id...]>] [--task <id[,id...]>] [--from <date>] [--to <date>] [--rate <number>] [--currency <code>] [--json]', 'Report task and per-agent estimated hours, observed activity spans, open age, and optional cost.'],
   'review-queue': ['review-queue [list|claim <task-id>|complete <task-id>] [--agent <id>] [--outcome approve|changes-requested|commented] [--apply] [--json]', 'List, claim, and complete task review queue entries with review metadata and audit logs.'],
+  'secrets-scan': ['secrets-scan [--paths <path[,path...]>] [--staged] [--strict] [--json]', 'Scan tracked, staged, or selected files for likely secrets and sensitive tokens.'],
   contracts: ['contracts list|show <id>|create <id>|check [options]', 'Manage contract files for shared API, schema, and cross-task interfaces.'],
   runbooks: ['runbooks list|show <id>|suggest|create <id> [options]', 'List, suggest, or create reusable coordination runbooks.'],
   'path-groups': ['path-groups [--paths <path[,path...]>] [--json]', 'Group paths by package boundary, module prefix, and import relationships.'],

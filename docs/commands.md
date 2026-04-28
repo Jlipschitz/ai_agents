@@ -564,6 +564,18 @@ npm run agents -- review-queue complete task-id --agent agent-2 --outcome approv
 
 The default `list` mode is read-only and shows open `review` tasks that are queued or claimed. `claim` and `complete` are dry runs unless `--apply` is passed. Completion outcomes are `approved`, `changes-requested`, or `commented`; they update `reviewQueue`, `reviewedBy`, `reviewCompletedAt`, and `reviewOutcome` without bypassing any release or finish gate.
 
+### `secrets-scan`
+
+Scans tracked, staged, or selected files for likely secrets and sensitive tokens before handing work off or committing.
+
+```bash
+npm run agents:secrets:scan
+npm run agents -- secrets-scan --paths src,server --json
+npm run agents -- secrets-scan --staged --strict
+```
+
+The scanner skips common generated/runtime folders and large or binary files. Findings include redacted previews only. `--strict` exits non-zero when any finding is present, so it can be used as a local or CI guardrail.
+
 ### `runbooks`
 
 Lists built-in runbooks, suggests matching runbooks for a task or path set, and creates custom runbooks under `coordination/runbooks/`.

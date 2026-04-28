@@ -1023,6 +1023,30 @@ Main files:
 - `scripts/lib/review-queue-commands.mjs`
 - `tests/review-queue-commands.test.mjs`
 
+### Secrets and sensitive-data guardrails
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:secrets:scan
+npm run agents -- secrets-scan --paths src,server --json
+npm run agents -- secrets-scan --staged --strict
+```
+
+Current behavior:
+
+- Scans tracked files by default, staged files with `--staged`, or selected files/directories with `--paths`.
+- Detects private key blocks, OpenAI keys, GitHub tokens, AWS access keys, Slack tokens, and generic secret/password/token assignments.
+- Skips common generated/runtime folders, large files, and binary extensions.
+- Redacts previews in output and suppresses obvious placeholder/sample values.
+- Supports JSON output and `--strict` non-zero exits for local or CI guardrail use.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/secrets-scan-commands.mjs`
+- `tests/secrets-scan-commands.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1441,7 +1465,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 ### Safety, auditing, and recovery
 
-- Secrets and sensitive-data guardrails.
 - Open-ended model-backed natural-language query mode.
 - Local web dashboard.
 - Signed releases.

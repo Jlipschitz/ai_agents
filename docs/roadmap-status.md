@@ -88,7 +88,7 @@ Next recommended work:
 
 ## Phase 5: Safety, Auditing, and Recovery
 
-- [ ] Secrets and sensitive-data guardrails
+- [x] Secrets and sensitive-data guardrails
 - [~] Command audit log — command-layer apply flows and legacy core mutations append `runtime/audit.ndjson`; richer per-command details remain open.
 - [~] State transactions - lock-protected core state mutations and command-layer multi-file apply flows restore prior state on write failure; external side effects such as Git branch deletion remain open.
 - [x] Schema migrations for board state
@@ -234,6 +234,7 @@ Next recommended work:
 - `scripts/lib/prompt-commands.mjs`
 - `scripts/lib/review-queue-commands.mjs`
 - `scripts/lib/risk-score-commands.mjs`
+- `scripts/lib/secrets-scan-commands.mjs`
 - `scripts/lib/runtime-diagnostics.mjs`
 - `scripts/lib/state-compaction-commands.mjs`
 - `scripts/lib/state-transaction.mjs`
@@ -273,6 +274,7 @@ Next recommended work:
 - `tests/read-only-commands.test.mjs`
 - `tests/review-queue-commands.test.mjs`
 - `tests/risk-score-commands.test.mjs`
+- `tests/secrets-scan-commands.test.mjs`
 - `tests/roadmap-commands.test.mjs`
 - `tests/state-compaction-commands.test.mjs`
 - `tests/template-commands.test.mjs`
