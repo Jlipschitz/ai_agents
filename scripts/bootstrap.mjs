@@ -13,6 +13,7 @@ const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
 const CHECK_COMMAND = 'node ./scripts/check-syntax.mjs';
 const LINT_COMMAND = 'node ./scripts/lint.mjs';
+const JSDOC_CHECK_COMMAND = 'node ./scripts/jsdoc-check.mjs';
 
 const DEFAULT_GITIGNORE_ENTRIES = [
   '',
@@ -27,6 +28,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'bootstrap': 'node ./scripts/bootstrap.mjs',
   'check': CHECK_COMMAND,
   'lint': LINT_COMMAND,
+  'jsdoc:check': JSDOC_CHECK_COMMAND,
   'format': 'node ./scripts/agent-coordination.mjs format --apply',
   'format:check': 'node ./scripts/agent-coordination.mjs format --check',
   'agents': 'node ./scripts/agent-coordination.mjs',

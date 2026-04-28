@@ -12,6 +12,7 @@ test('package check script runs recursive syntax checker', () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
   assert.equal(packageJson.scripts.check, 'node ./scripts/check-syntax.mjs');
   assert.equal(packageJson.scripts.lint, 'node ./scripts/lint.mjs');
+  assert.equal(packageJson.scripts['jsdoc:check'], 'node ./scripts/jsdoc-check.mjs');
   assert.equal(packageJson.scripts.test, 'node --test');
 
   const result = spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'check-syntax.mjs')], {

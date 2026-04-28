@@ -188,7 +188,7 @@ Next recommended work:
 
 - [x] Add linting
 - [x] Add formatting
-- [~] Add type checking or JSDoc validation — syntax and schema validation exist; type/JSDoc validation remains open.
+- [x] Add type checking or JSDoc validation
 - [x] Add contribution guide
 - [x] Add security policy
 - [ ] Add license
@@ -206,6 +206,7 @@ Next recommended work:
 - `scripts/explain-config.mjs`
 - `scripts/agent-watch-loop.mjs`
 - `scripts/lock-runtime.mjs`
+- `scripts/jsdoc-check.mjs`
 - `scripts/lint.mjs`
 - `scripts/planner-sizing.mjs`
 - `scripts/lib/archive-commands.mjs`
@@ -276,6 +277,7 @@ Next recommended work:
 - `tests/github-status.test.mjs`
 - `tests/incident-commands.test.mjs`
 - `tests/lock-runtime.test.mjs`
+- `tests/jsdoc-check.test.mjs`
 - `tests/lint.test.mjs`
 - `tests/policy-enforcement.test.mjs`
 - `tests/prompt-commands.test.mjs`

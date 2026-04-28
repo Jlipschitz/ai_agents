@@ -9,6 +9,8 @@ Use Node 24 or newer.
 ```bash
 npm ci
 npm run check
+npm run lint
+npm run jsdoc:check
 npm test
 ```
 

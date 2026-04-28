@@ -13,6 +13,7 @@ export const COORDINATOR_FILES = [
   'scripts/bootstrap.mjs',
   'scripts/check-syntax.mjs',
   'scripts/explain-config.mjs',
+  'scripts/jsdoc-check.mjs',
   'scripts/lint.mjs',
   'scripts/lock-runtime.mjs',
   'scripts/planner-sizing.mjs',
