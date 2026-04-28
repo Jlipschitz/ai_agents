@@ -22,11 +22,13 @@ function makeWorkspace() {
     projectName: 'Read Only Test',
     updatedAt: '2026-01-01T00:00:00.000Z',
     tasks: [
-      { id: 'task-active', status: 'active', ownerId: 'agent-1', title: 'Active task', claimedPaths: ['src/a'] },
+      { id: 'task-active', status: 'active', ownerId: 'agent-1', title: 'Active task', claimedPaths: ['src/a'], updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'task-planned', status: 'planned', ownerId: null, title: 'Planned task', claimedPaths: [], updatedAt: '2026-01-01T00:00:00.000Z' },
     ],
   }, null, 2));
   fs.writeFileSync(path.join(coordinationRoot, 'journal.md'), '# Journal\n\n');
   fs.writeFileSync(path.join(coordinationRoot, 'messages.ndjson'), '');
+  fs.writeFileSync(path.join(coordinationRoot, 'runtime', 'watcher.status.json'), JSON.stringify({ pid: 99999999, updatedAt: '2000-01-01T00:00:00.000Z' }, null, 2));
   return { root, coordinationRoot };
 }
 
@@ -52,6 +54,13 @@ for (const args of [
   ['summarize', '--json'],
   ['validate', '--json'],
   ['doctor', '--json'],
+  ['status'],
+  ['pick'],
+  ['inbox'],
+  ['heartbeat-status'],
+  ['watch-status'],
+  ['lock-status'],
+  ['lock-status', '--json'],
 ]) {
   test(`${args.join(' ')} does not mutate coordination state`, () => {
     const { root, coordinationRoot } = makeWorkspace();
@@ -59,6 +68,7 @@ for (const args of [
       path.join(coordinationRoot, 'board.json'),
       path.join(coordinationRoot, 'journal.md'),
       path.join(coordinationRoot, 'messages.ndjson'),
+      path.join(coordinationRoot, 'runtime', 'watcher.status.json'),
     ];
     const before = snapshotFiles(files);
     const result = run(root, coordinationRoot, args);
