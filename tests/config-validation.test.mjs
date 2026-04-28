@@ -33,6 +33,7 @@ function validConfig() {
       visualImpactFiles: [],
     },
     verification: {
+      requiredChecks: [],
       visualRequiredChecks: [],
       visualSuiteUpdateChecks: [],
     },
@@ -170,6 +171,7 @@ test('validateAgentConfig reports actionable errors', () => {
   config.policyEnforcement.rules.finishRequiresApproval = 'yes';
   config.privacy.mode = 'public';
   config.privacy.offline = 'yes';
+  config.verification.requiredChecks = [''];
   config.monorepo.workspaceRoots = ['packages/*', 'packages/*', 'packages/**'];
   config.monorepo.partialCheckout = 'yes';
   config.monorepo.fallbackRoot = 1;
@@ -202,6 +204,7 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('policyEnforcement.rules.finishRequiresApproval')));
   assert.ok(result.errors.some((entry) => entry.includes('privacy.mode')));
   assert.ok(result.errors.some((entry) => entry.includes('privacy.offline')));
+  assert.ok(result.errors.some((entry) => entry.includes('verification.requiredChecks[0]')));
   assert.ok(result.errors.some((entry) => entry.includes('monorepo.workspaceRoots[1]')));
   assert.ok(result.errors.some((entry) => entry.includes('monorepo.workspaceRoots[2]')));
   assert.ok(result.errors.some((entry) => entry.includes('monorepo.partialCheckout')));
@@ -225,6 +228,10 @@ test('schema describes command alias shape without duplicating command metadata'
   assert.equal(commandAliases.propertyNames.pattern, '^[^-\\s][^\\s]*$');
   assert.equal(commandAliases.additionalProperties.oneOf[0].type, 'string');
   assert.equal(commandAliases.additionalProperties.oneOf[1].$ref, '#/$defs/nonEmptyStringArray');
+  assert.equal(schema.properties.verification.properties.requiredChecks.$ref, '#/$defs/stringArray');
+  assert.equal(schema.properties.onboarding.properties.checklist.items.properties.paths.$ref, '#/$defs/nonEmptyStringArray');
+  assert.equal(schema.properties.domainRules.items.properties.keywords.$ref, '#/$defs/nonEmptyStringArray');
+  assert.equal(schema.$defs.stringArray.items.minLength, 1);
   assert.equal(schema.$defs.commandAliasTarget, undefined);
 });
 

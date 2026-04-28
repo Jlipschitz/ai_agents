@@ -57,9 +57,18 @@ function shouldSkipFile(filePath) {
   return BINARY_EXTENSIONS.has(extension);
 }
 
+function isInsideRoot(root, absolutePath) {
+  const relativePath = path.relative(root, absolutePath);
+  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+}
+
 function enumeratePath(root, inputPath, files, skipped) {
   const absolutePath = path.isAbsolute(inputPath) ? inputPath : path.resolve(root, inputPath);
   const relativePath = normalizePath(absolutePath, root);
+  if (!isInsideRoot(root, absolutePath)) {
+    skipped.push({ path: relativePath || inputPath, reason: 'outside-root' });
+    return;
+  }
   if (!fs.existsSync(absolutePath)) {
     skipped.push({ path: relativePath || inputPath, reason: 'missing' });
     return;

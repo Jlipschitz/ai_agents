@@ -145,11 +145,12 @@ function buildVerificationIssues({ config, riskReport }) {
 
 function buildRuntimeIssues({ paths }) {
   const issues = [];
+  const runtimeTimestamp = (record) => record?.lastHeartbeatAt || record?.lastSweepAt || record?.updatedAt || record?.timestamp || record?.startedAt || record?.createdAt || record?.at;
   const watcher = readJsonSafe(paths?.watcherStatusPath);
   if (watcher?.malformed) {
     issues.push(issue('runtime', 'malformedWatcherStatus', 6, `Watcher status is malformed: ${watcher.error}.`));
   } else if (watcher) {
-    const age = hoursSince(watcher.updatedAt || watcher.startedAt);
+    const age = hoursSince(runtimeTimestamp(watcher));
     if (age !== null && age >= STALE_WATCHER_HOURS) {
       issues.push(issue('runtime', 'staleWatcher', 4, `Watcher status has not updated in ${STALE_WATCHER_HOURS}+ hours.`, { path: paths.watcherStatusPath }));
     }
@@ -172,7 +173,7 @@ function buildRuntimeIssues({ paths }) {
       .map((entry) => path.join(paths.heartbeatsRoot, entry.name))
       .filter((filePath) => {
         const heartbeat = readJsonSafe(filePath);
-        const age = hoursSince(heartbeat?.updatedAt || heartbeat?.timestamp || heartbeat?.at);
+        const age = hoursSince(runtimeTimestamp(heartbeat));
         return age !== null && age >= STALE_HEARTBEAT_HOURS;
       });
     if (staleHeartbeats.length) {

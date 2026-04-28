@@ -76,3 +76,32 @@ test('health-score can fail under a configured threshold', () => {
   assert.match(result.stdout, /Score:/);
   assert.match(result.stdout, /Fail under: 101/);
 });
+
+test('health-score uses current runtime heartbeat fields for staleness', () => {
+  const { root, coordinationRoot } = makeWorkspace({ prefix: 'ai-agents-health-runtime-', packageName: 'health-runtime-test', runtime: true });
+  fs.writeFileSync(path.join(coordinationRoot, 'runtime', 'watcher.status.json'), `${JSON.stringify({
+    pid: 999999,
+    updatedAt: '2000-01-01T00:00:00.000Z',
+    lastSweepAt: new Date().toISOString(),
+  }, null, 2)}\n`);
+  const heartbeatsRoot = path.join(coordinationRoot, 'runtime', 'agent-heartbeats');
+  fs.mkdirSync(heartbeatsRoot, { recursive: true });
+  fs.writeFileSync(path.join(heartbeatsRoot, 'agent-1.json'), `${JSON.stringify({
+    agentId: 'agent-1',
+    updatedAt: '2000-01-01T00:00:00.000Z',
+    lastHeartbeatAt: new Date().toISOString(),
+  }, null, 2)}\n`);
+  writeBoard(root, {
+    projectName: 'Health Runtime Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [],
+  });
+
+  const result = runCli(root, ['health-score', '--json'], { coordinationRoot });
+  const payload = JSON.parse(result.stdout);
+  const issueCodes = payload.issues.map((entry) => entry.code);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(issueCodes.includes('staleWatcher'), false);
+  assert.equal(issueCodes.includes('staleHeartbeats'), false);
+});

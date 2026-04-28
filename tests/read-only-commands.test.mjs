@@ -15,6 +15,10 @@ function makeWorkspace() {
       { id: 'task-active', status: 'active', ownerId: 'agent-1', title: 'Active task', claimedPaths: ['src/a'], updatedAt: '2026-01-01T00:00:00.000Z' },
       { id: 'task-planned', status: 'planned', ownerId: null, title: 'Planned task', claimedPaths: [], updatedAt: '2026-01-01T00:00:00.000Z' },
     ],
+    agents: [
+      { id: 'agent-1', status: 'active', taskId: 'task-active', updatedAt: '2026-01-01T00:00:00.000Z' },
+      { id: 'agent-2', status: 'idle', taskId: null, updatedAt: '2026-01-01T00:00:00.000Z' },
+    ],
   }, null, 2));
   fs.writeFileSync(path.join(coordinationRoot, 'journal.md'), '# Journal\n\n');
   fs.writeFileSync(path.join(coordinationRoot, 'messages.ndjson'), '');

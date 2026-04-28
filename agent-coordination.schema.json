@@ -212,6 +212,9 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
+        "requiredChecks": {
+          "$ref": "#/$defs/stringArray"
+        },
         "visualRequiredChecks": {
           "$ref": "#/$defs/stringArray"
         },
@@ -326,7 +329,7 @@
                 "type": "string"
               },
               "paths": {
-                "$ref": "#/$defs/stringArray"
+                "$ref": "#/$defs/nonEmptyStringArray"
               },
               "required": {
                 "type": "boolean"
@@ -434,7 +437,7 @@
             "minLength": 1
           },
           "keywords": {
-            "$ref": "#/$defs/stringArray"
+            "$ref": "#/$defs/nonEmptyStringArray"
           },
           "scopes": {
             "type": "object",
@@ -480,7 +483,8 @@
     "stringArray": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "uniqueItems": true
     }

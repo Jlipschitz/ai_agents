@@ -64,6 +64,7 @@ const APPROVAL_SUBCOMMANDS = ['list', 'check', 'request', 'grant', 'deny', 'use'
 const CONTRACT_SUBCOMMANDS = ['list', 'show', 'create', 'check'];
 const RUNBOOK_SUBCOMMANDS = ['list', 'show', 'suggest', 'create'];
 const REVIEW_QUEUE_SUBCOMMANDS = ['list', 'claim', 'complete'];
+const POLICY_PACK_SUBCOMMANDS = ['list', 'inspect', 'apply'];
 const CALENDAR_SUBCOMMANDS = ['export'];
 const DASHBOARD_SUBCOMMANDS = ['web'];
 
@@ -102,6 +103,7 @@ function collectCompletionData(context) {
     contractSubcommands: CONTRACT_SUBCOMMANDS,
     runbookSubcommands: RUNBOOK_SUBCOMMANDS,
     reviewQueueSubcommands: REVIEW_QUEUE_SUBCOMMANDS,
+    policyPackSubcommands: POLICY_PACK_SUBCOMMANDS,
     calendarSubcommands: CALENDAR_SUBCOMMANDS,
     dashboardSubcommands: DASHBOARD_SUBCOMMANDS,
     agentCommands: [...AGENT_COMMANDS].sort(),
@@ -126,6 +128,7 @@ _ai_agents_complete() {
   local contract_subcommands="${data.contractSubcommands.join(' ')}"
   local runbook_subcommands="${data.runbookSubcommands.join(' ')}"
   local review_queue_subcommands="${data.reviewQueueSubcommands.join(' ')}"
+  local policy_pack_subcommands="${data.policyPackSubcommands.join(' ')}"
   local calendar_subcommands="${data.calendarSubcommands.join(' ')}"
   local dashboard_subcommands="${data.dashboardSubcommands.join(' ')}"
   local shells="${data.shells.join(' ')}"
@@ -138,6 +141,7 @@ _ai_agents_complete() {
   if [[ "$cmd" == "contracts" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$contract_subcommands" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "runbooks" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$runbook_subcommands" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "review-queue" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$review_queue_subcommands" -- "$cur") ); return 0; fi
+  if [[ "$cmd" == "policy-packs" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$policy_pack_subcommands" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "calendar" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$calendar_subcommands" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "dashboard" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$dashboard_subcommands" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "prioritize" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$tasks" -- "$cur") ); return 0; fi
@@ -156,7 +160,7 @@ function renderZsh(data) {
   return `#compdef ai-agents agents agents2
 # ai-agents zsh completion
 _ai_agents_complete() {
-  local -a commands flags agents tasks checks shells approval_subcommands contract_subcommands runbook_subcommands review_queue_subcommands calendar_subcommands dashboard_subcommands
+  local -a commands flags agents tasks checks shells approval_subcommands contract_subcommands runbook_subcommands review_queue_subcommands policy_pack_subcommands calendar_subcommands dashboard_subcommands
   commands=(${data.commands.map(shellQuote).join(' ')})
   flags=(${data.flags.map(shellQuote).join(' ')})
   agents=(${data.agents.map(shellQuote).join(' ')})
@@ -167,6 +171,7 @@ _ai_agents_complete() {
   contract_subcommands=(${data.contractSubcommands.map(shellQuote).join(' ')})
   runbook_subcommands=(${data.runbookSubcommands.map(shellQuote).join(' ')})
   review_queue_subcommands=(${data.reviewQueueSubcommands.map(shellQuote).join(' ')})
+  policy_pack_subcommands=(${data.policyPackSubcommands.map(shellQuote).join(' ')})
   calendar_subcommands=(${data.calendarSubcommands.map(shellQuote).join(' ')})
   dashboard_subcommands=(${data.dashboardSubcommands.map(shellQuote).join(' ')})
   if [[ CURRENT -eq 2 ]]; then _describe 'command' commands; return; fi
@@ -176,6 +181,7 @@ _ai_agents_complete() {
     contracts) _describe 'contract command' contract_subcommands ;;
     runbooks) _describe 'runbook command' runbook_subcommands ;;
     review-queue) _describe 'review queue command' review_queue_subcommands ;;
+    policy-packs) _describe 'policy pack command' policy_pack_subcommands ;;
     calendar) _describe 'calendar command' calendar_subcommands ;;
     dashboard) _describe 'dashboard command' dashboard_subcommands ;;
     claim|start|finish|handoff|handoff-ready|pick|progress|wait|resume|blocked|review|done|release|verify|review-docs|prompt|agent-history|inbox|heartbeat|heartbeat-start|heartbeat-stop|message|app-note|request-access|reserve-resource|renew-resource|release-resource)
@@ -205,6 +211,7 @@ function renderPowerShell(data) {
     `$contractSubcommands = @(${data.contractSubcommands.map(powershellQuote).join(', ')})`,
     `$runbookSubcommands = @(${data.runbookSubcommands.map(powershellQuote).join(', ')})`,
     `$reviewQueueSubcommands = @(${data.reviewQueueSubcommands.map(powershellQuote).join(', ')})`,
+    `$policyPackSubcommands = @(${data.policyPackSubcommands.map(powershellQuote).join(', ')})`,
     `$calendarSubcommands = @(${data.calendarSubcommands.map(powershellQuote).join(', ')})`,
     `$dashboardSubcommands = @(${data.dashboardSubcommands.map(powershellQuote).join(', ')})`,
   ].join('\n  ');
@@ -222,6 +229,7 @@ $scriptBlock = {
   elseif ($cmd -eq 'contracts' -and $words.Count -le 3) { $items = $contractSubcommands }
   elseif ($cmd -eq 'runbooks' -and $words.Count -le 3) { $items = $runbookSubcommands }
   elseif ($cmd -eq 'review-queue' -and $words.Count -le 3) { $items = $reviewQueueSubcommands }
+  elseif ($cmd -eq 'policy-packs' -and $words.Count -le 3) { $items = $policyPackSubcommands }
   elseif ($cmd -eq 'calendar' -and $words.Count -le 3) { $items = $calendarSubcommands }
   elseif ($cmd -eq 'dashboard' -and $words.Count -le 3) { $items = $dashboardSubcommands }
   elseif (@('claim','start','finish','handoff','handoff-ready','pick','progress','wait','resume','blocked','review','done','release','verify','review-docs','prompt','agent-history','inbox','heartbeat','heartbeat-start','heartbeat-stop','message','app-note','request-access','reserve-resource','renew-resource','release-resource') -contains $cmd -and $words.Count -le 3) { $items = $agents }

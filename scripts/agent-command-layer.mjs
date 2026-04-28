@@ -1366,7 +1366,9 @@ function doctorJson({ includeFixes = false } = {}) {
   const onboardingChecklist = buildOnboardingChecklist({ root: ROOT, config, packageJson });
   const paths = getCoordinationPaths();
   const git = getGitSnapshot({ root: ROOT, config });
-  const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, configSuggestions, onboardingChecklist, git, files: { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) } };
+  const board = inspectBoard(getBoardMaintenanceContext());
+  const files = { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) };
+  const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, configSuggestions, onboardingChecklist, git, board, files };
   if (includeFixes) result.fixes = fixes;
   return result;
 }
@@ -1401,8 +1403,7 @@ function runConfigValidation({ json = false } = {}) {
     const valid = result.valid && board.ok;
     console.log(JSON.stringify({ ...result, valid, configSources, board }, null, 2));
     return valid ? 0 : 1;
-  }
-  else {
+  } else {
     for (const warning of result.warnings) console.warn(`warning: ${warning}`);
     if (result.valid) console.log(`Config OK: ${normalizePath(configPath) || configPath}`);
     else printCommandError(`Config invalid: ${normalizePath(configPath) || configPath}\n${result.errors.map((error) => `- ${error}`).join('\n')}`, { code: 'validation_error' });

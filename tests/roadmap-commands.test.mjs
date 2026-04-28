@@ -66,6 +66,30 @@ test('inspect-board and repair-board handle safe board normalization', () => {
   assert.equal(Array.isArray(board.tasks[0].claimedPaths), true);
 });
 
+test('inspect-board reports nested active path overlaps', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Overlap Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    agents: [
+      { id: 'agent-1', status: 'active', taskId: 'task-parent' },
+      { id: 'agent-2', status: 'active', taskId: 'task-child' },
+    ],
+    tasks: [
+      { id: 'task-parent', status: 'active', ownerId: 'agent-1', title: 'Parent claim', claimedPaths: ['src'] },
+      { id: 'task-child', status: 'active', ownerId: 'agent-2', title: 'Child claim', claimedPaths: ['src/file.js'] },
+    ],
+    resources: [],
+    incidents: [],
+  });
+
+  const result = run(root, coordinationRoot, ['inspect-board', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.ok(payload.findings.some((entry) => entry.includes('Active path overlap')));
+});
+
 test('migrate-board dry-runs and applies board schema migrations', () => {
   const { root, coordinationRoot } = makeWorkspace();
   writeBoard(root, {

@@ -289,12 +289,21 @@ test('per-command help supports command flags and help aliases', () => {
   const root = makeWorkspace();
   const claim = run(root, ['claim', '--help']);
   const summary = run(root, ['help', 'sum']);
+  const handoff = run(root, ['handoff', '--help']);
+  const policyPacks = run(root, ['policy-packs', '--help']);
+  const completions = run(root, ['completions', '--help']);
 
   assert.equal(claim.status, 0, claim.stderr);
   assert.match(claim.stdout, /Usage:/);
   assert.match(claim.stdout, /claim <agent>/);
   assert.equal(summary.status, 0, summary.stderr);
   assert.match(summary.stdout, /summarize/);
+  assert.equal(handoff.status, 0, handoff.stderr);
+  assert.match(handoff.stdout, /handoff <agent>/);
+  assert.equal(policyPacks.status, 0, policyPacks.stderr);
+  assert.match(policyPacks.stdout, /list\|inspect\|apply/);
+  assert.equal(completions.status, 0, completions.stderr);
+  assert.match(completions.stdout, /list\|powershell\|bash\|zsh/);
 });
 
 test('global coordination-dir flag overrides default coordination root', () => {
@@ -450,11 +459,38 @@ test('test-impact reports impacted monorepo workspaces', () => {
 
 test('validate --json returns machine-readable config validation', () => {
   const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Valid Board Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    agents: [
+      { id: 'agent-1', status: 'idle', taskId: null },
+      { id: 'agent-2', status: 'idle', taskId: null },
+    ],
+    tasks: [],
+  });
   const result = run(root, ['validate', '--json']);
 
   assert.equal(result.status, 0, result.stderr);
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.valid, true);
+  assert.equal(payload.board.ok, true);
+});
+
+test('validate --json includes board inspection failures', () => {
+  const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Invalid Board Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-active', status: 'active', ownerId: null, title: 'Unowned active task', claimedPaths: ['src'] }],
+  });
+
+  const result = run(root, ['validate', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(payload.valid, false);
+  assert.equal(payload.board.ok, false);
+  assert.ok(payload.board.findings.some((entry) => entry.includes('has no owner')));
 });
 
 test('lock-status is routed through the main CLI', () => {

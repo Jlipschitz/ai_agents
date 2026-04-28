@@ -43,3 +43,13 @@ test('secrets-scan strict mode fails when findings exist', () => {
   assert.equal(result.status, 1);
   assert.match(result.stdout, /openai-key/);
 });
+
+test('secrets-scan rejects paths outside the repo root', () => {
+  const { root, coordinationRoot } = makeSecretsWorkspace();
+  const result = runCli(root, ['secrets-scan', '--paths', '..', '--json'], { coordinationRoot });
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(payload.summary.scannedFiles, 0);
+  assert.ok(payload.skipped.some((entry) => entry.reason === 'outside-root'));
+});

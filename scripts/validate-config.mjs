@@ -329,7 +329,7 @@ export function validateAgentConfig(config, options = {}) {
   }
 
   if ('verification' in config) {
-    validateKnownStringArrays(config.verification, 'verification', ['visualRequiredChecks', 'visualSuiteUpdateChecks'], errors);
+    validateKnownStringArrays(config.verification, 'verification', ['requiredChecks', 'visualRequiredChecks', 'visualSuiteUpdateChecks'], errors);
   }
 
   if ('artifacts' in config && validateObject(config.artifacts, 'artifacts', errors)) {
