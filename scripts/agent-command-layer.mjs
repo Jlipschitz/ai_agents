@@ -6,6 +6,7 @@ import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
 import { runAskCommand } from './lib/ask-commands.mjs';
+import { runAgentHistory } from './lib/agent-history-commands.mjs';
 import { runArchiveCompleted } from './lib/archive-commands.mjs';
 import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
 import { runBacklogImport } from './lib/backlog-import-commands.mjs';
@@ -73,6 +74,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'risk-score',
   'critical-path',
   'health-score',
+  'agent-history',
   'contracts',
   'runbooks',
   'path-groups',
@@ -348,6 +350,7 @@ function expectedPackageScripts() {
       'agents:risk:score': 'ai-agents risk-score',
       'agents:critical:path': 'ai-agents critical-path',
       'agents:health:score': 'ai-agents health-score',
+      'agents:agent:history': 'ai-agents agent-history',
       'agents:contracts': 'ai-agents contracts',
       'agents:runbooks': 'ai-agents runbooks',
       'agents:path:groups': 'ai-agents path-groups',
@@ -413,6 +416,7 @@ function expectedPackageScripts() {
     'agents:risk:score': 'node ./scripts/agent-coordination.mjs risk-score',
     'agents:critical:path': 'node ./scripts/agent-coordination.mjs critical-path',
     'agents:health:score': 'node ./scripts/agent-coordination.mjs health-score',
+    'agents:agent:history': 'node ./scripts/agent-coordination.mjs agent-history',
     'agents:contracts': 'node ./scripts/agent-coordination.mjs contracts',
     'agents:runbooks': 'node ./scripts/agent-coordination.mjs runbooks',
     'agents:path:groups': 'node ./scripts/agent-coordination.mjs path-groups',
@@ -469,6 +473,7 @@ function expectedPackageScripts() {
     'agents2:risk:score': 'node ./scripts/agent-coordination-two.mjs risk-score',
     'agents2:critical:path': 'node ./scripts/agent-coordination-two.mjs critical-path',
     'agents2:health:score': 'node ./scripts/agent-coordination-two.mjs health-score',
+    'agents2:agent:history': 'node ./scripts/agent-coordination-two.mjs agent-history',
     'agents2:contracts': 'node ./scripts/agent-coordination-two.mjs contracts',
     'agents2:runbooks': 'node ./scripts/agent-coordination-two.mjs runbooks',
     'agents2:path:groups': 'node ./scripts/agent-coordination-two.mjs path-groups',
@@ -1477,6 +1482,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'risk-score') status = runRiskScore(commandArgs, getImpactCommandContext());
   else if (commandName === 'critical-path') status = runCriticalPath(commandArgs, getImpactCommandContext());
   else if (commandName === 'health-score') status = runHealthScore(commandArgs, getImpactCommandContext());
+  else if (commandName === 'agent-history') status = runAgentHistory(commandArgs, getImpactCommandContext());
   else if (commandName === 'contracts') status = runContracts(commandArgs, getTemplateCommandContext());
   else if (commandName === 'runbooks') status = runRunbooks(commandArgs, getTemplateCommandContext());
   else if (commandName === 'path-groups') status = runPathGroups(commandArgs, getTemplateCommandContext());

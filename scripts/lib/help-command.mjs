@@ -60,6 +60,7 @@ export const COMMANDS = {
   'risk-score': ['risk-score [task-id...] [--json]', 'Score task risk from ownership, dependencies, verification, docs, and metadata.'],
   'critical-path': ['critical-path [--json]', 'Find the longest remaining dependency chain and ready critical work.'],
   'health-score': ['health-score [--fail-under <score>] [--json]', 'Score workspace health from setup, work risk, verification, and runtime state.'],
+  'agent-history': ['agent-history [agent-id...] [--limit <count>] [--stale-hours <hours>] [--json]', 'Summarize per-agent history, reputation, verification, docs review, handoff, and stale-work signals.'],
   contracts: ['contracts list|show <id>|create <id>|check [options]', 'Manage contract files for shared API, schema, and cross-task interfaces.'],
   runbooks: ['runbooks list|show <id>|suggest|create <id> [options]', 'List, suggest, or create reusable coordination runbooks.'],
   'path-groups': ['path-groups [--paths <path[,path...]>] [--json]', 'Group paths by package boundary, module prefix, and import relationships.'],

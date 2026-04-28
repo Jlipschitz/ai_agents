@@ -114,7 +114,7 @@ Next recommended work:
 - [x] Semantic path grouping
 - [x] Task split validator
 - [x] Work stealing
-- [ ] Agent reputation/history
+- [x] Agent reputation/history
 - [ ] Cost/time accounting
 - [ ] Review queue
 - [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; deeper storage policy and reporting remain open.
@@ -212,6 +212,7 @@ Next recommended work:
 - `scripts/lib/ask-commands.mjs`
 - `scripts/lib/artifact-commands.mjs`
 - `scripts/lib/audit-log.mjs`
+- `scripts/lib/agent-history-commands.mjs`
 - `scripts/lib/backlog-import-commands.mjs`
 - `scripts/lib/board-maintenance.mjs`
 - `scripts/lib/board-migration.mjs`
@@ -245,6 +246,7 @@ Next recommended work:
 - `.nvmrc`
 - `.node-version`
 - `tests/archive-commands.test.mjs`
+- `tests/agent-history-commands.test.mjs`
 - `tests/approval-ledger.test.mjs`
 - `tests/ask-commands.test.mjs`
 - `tests/backlog-import-commands.test.mjs`

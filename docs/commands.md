@@ -527,6 +527,18 @@ npm run agents -- health-score --fail-under 80
 
 The command is read-only. It returns a 0-100 score, `healthy`/`watch`/`degraded`/`critical` level, section scores, top issues, and critical-path signals. `--fail-under <score>` makes the command exit non-zero when the score is below a CI threshold.
 
+### `agent-history`
+
+Summarizes per-agent reputation and recent history from current and completed tasks, notes, verification entries, docs reviews, handoffs, stale owned work, and audit log entries.
+
+```bash
+npm run agents:agent:history
+npm run agents -- agent-history agent-1 --limit 5
+npm run agents -- agent-history agent-1 agent-2 --stale-hours 12 --json
+```
+
+The command is read-only. Scores are bounded from 0 to 100 and include positive signals for completed work, passing verification, docs review, handoffs, progress notes, and audit-trail participation, with penalties for failing verification and stale, blocked, or waiting owned work.
+
 ### `runbooks`
 
 Lists built-in runbooks, suggests matching runbooks for a task or path set, and creates custom runbooks under `coordination/runbooks/`.

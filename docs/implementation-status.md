@@ -950,6 +950,30 @@ Main files:
 - `scripts/lib/work-stealing-commands.mjs`
 - `tests/work-stealing.test.mjs`
 
+### Agent reputation/history
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:agent:history
+npm run agents -- agent-history agent-1 --limit 5
+npm run agents -- agent-history agent-1 agent-2 --stale-hours 12 --json
+```
+
+Current behavior:
+
+- Summarizes per-agent task history from current ownership, last owners, notes, verification logs, docs review metadata, handoffs, and runtime audit entries.
+- Computes a bounded 0-100 reputation score with `excellent`, `strong`, `steady`, `watch`, and `at-risk` levels.
+- Rewards completed/released work, passing verification, docs reviews, handoffs, progress notes, and audit-trail participation.
+- Penalizes failing verification plus stale, blocked, and waiting owned work.
+- Supports filtering to one or more agents, limiting recent events, custom stale thresholds, and JSON output.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/agent-history-commands.mjs`
+- `tests/agent-history-commands.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1378,7 +1402,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
-- Agent reputation or history.
 - Cost/time accounting.
 - Dedicated review queue lifecycle.
 - External calendar or reminder hooks.

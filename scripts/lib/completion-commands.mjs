@@ -4,7 +4,7 @@ import { COMMANDS } from './help-command.mjs';
 
 const SHELLS = ['powershell', 'bash', 'zsh'];
 const STATUSES = ['planned', 'active', 'blocked', 'waiting', 'review', 'handoff', 'done', 'released'];
-const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--apply', '--force', '--strict', '--keep-journal-lines', '--keep-message-lines', '--stale-hours', '--fail-under', '--priority', '--due-at', '--due', '--severity', '--approval-scope', '--scope', '--status', '--task', '--agent', '--board', '--by', '--owner', '--producer', '--consumer', '--consumers', '--summary', '--reason', '--note', '--title', '--keywords', '--paths', '--steps', '--checks', '--docs'];
+const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--apply', '--force', '--strict', '--keep-journal-lines', '--keep-message-lines', '--limit', '--stale-hours', '--fail-under', '--priority', '--due-at', '--due', '--severity', '--approval-scope', '--scope', '--status', '--task', '--agent', '--board', '--by', '--owner', '--producer', '--consumer', '--consumers', '--summary', '--reason', '--note', '--title', '--keywords', '--paths', '--steps', '--checks', '--docs'];
 const AGENT_COMMANDS = new Set([
   'claim',
   'start',
@@ -21,6 +21,7 @@ const AGENT_COMMANDS = new Set([
   'verify',
   'review-docs',
   'prompt',
+  'agent-history',
   'inbox',
   'heartbeat',
   'heartbeat-start',
@@ -154,7 +155,7 @@ _ai_agents_complete() {
     approvals) _describe 'approval command' approval_subcommands ;;
     contracts) _describe 'contract command' contract_subcommands ;;
     runbooks) _describe 'runbook command' runbook_subcommands ;;
-    claim|start|finish|handoff-ready|pick|progress|wait|resume|blocked|review|done|release|verify|review-docs|prompt|inbox|heartbeat|heartbeat-start|heartbeat-stop|message|app-note|request-access|reserve-resource|renew-resource|release-resource)
+    claim|start|finish|handoff-ready|pick|progress|wait|resume|blocked|review|done|release|verify|review-docs|prompt|agent-history|inbox|heartbeat|heartbeat-start|heartbeat-stop|message|app-note|request-access|reserve-resource|renew-resource|release-resource)
       if [[ CURRENT -eq 3 ]]; then _describe 'agent' agents; return; fi
       if [[ CURRENT -eq 4 ]]; then _describe 'task' tasks; return; fi
       ;;
@@ -194,7 +195,7 @@ $scriptBlock = {
   elseif ($cmd -eq 'approvals' -and $words.Count -le 3) { $items = $approvalSubcommands }
   elseif ($cmd -eq 'contracts' -and $words.Count -le 3) { $items = $contractSubcommands }
   elseif ($cmd -eq 'runbooks' -and $words.Count -le 3) { $items = $runbookSubcommands }
-  elseif (@('claim','start','finish','handoff-ready','pick','progress','wait','resume','blocked','review','done','release','verify','review-docs','prompt','inbox','heartbeat','heartbeat-start','heartbeat-stop','message','app-note','request-access','reserve-resource','renew-resource','release-resource') -contains $cmd -and $words.Count -le 3) { $items = $agents }
+  elseif (@('claim','start','finish','handoff-ready','pick','progress','wait','resume','blocked','review','done','release','verify','review-docs','prompt','agent-history','inbox','heartbeat','heartbeat-start','heartbeat-stop','message','app-note','request-access','reserve-resource','renew-resource','release-resource') -contains $cmd -and $words.Count -le 3) { $items = $agents }
   elseif (@('claim','start','finish','handoff-ready','progress','wait','resume','blocked','review','done','release','verify','review-docs','prioritize','prompt','release-check','pr-summary','release-bundle','risk-score','app-note','request-access') -contains $cmd -and $words.Count -le 4) { $items = $tasks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 5) { $items = $checks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 6) { $items = @('pass', 'fail') }
