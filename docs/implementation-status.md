@@ -377,6 +377,30 @@ Main files:
 - `scripts/lib/support-operation-commands.mjs`
 - `tests/resource-leases.test.mjs`
 
+### Incident mode
+
+Status: implemented in the core support-operation commands.
+
+```bash
+npm run agents -- start-incident agent-1 server-down "Investigating outage" --resource dev-server --task task-api
+npm run agents -- join-incident agent-2 server-down
+npm run agents -- close-incident agent-1 server-down "Recovered after config fix"
+```
+
+Current behavior:
+
+- `start-incident` opens a unique incident with owner, participants, optional task, optional resource, summary, and timestamps.
+- Incident resources are reserved with the same lease metadata used by resource reservations.
+- `join-incident` records additional participants.
+- Only the incident owner can close an open incident.
+- Closing an incident stores the resolution and releases the incident-held resource.
+- Incident lifecycle commands support `--dry-run`.
+
+Main files:
+
+- `scripts/lib/support-operation-commands.mjs`
+- `tests/incident-commands.test.mjs`
+
 ### Runtime lock diagnostics
 
 Status: implemented as a standalone utility, npm scripts, and routed main CLI commands.
@@ -1169,7 +1193,6 @@ These roadmap items still need core, command-layer, or documentation work.
 ### Verification, risk, and GitHub integration
 
 - Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
-- Incident mode.
 - GitHub write/API integration for issues, PR comments, labels, and checklists.
 - State compaction.
 - Repo bootstrap profiles.

@@ -73,7 +73,7 @@ Next recommended work:
 - [x] Contract files
 - [~] Agent checklists — partially covered by `finish` verification/docs gates.
 - [x] Human approval gates
-- [ ] Incident mode
+- [x] Incident mode
 - [~] Backlog importer — Markdown TODO import exists; GitHub issue import remains open.
 - [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; write/API integration remains open.
 - [ ] State compaction
@@ -260,6 +260,7 @@ Next recommended work:
 - `tests/error-formatting.test.mjs`
 - `tests/git-policy.test.mjs`
 - `tests/github-status.test.mjs`
+- `tests/incident-commands.test.mjs`
 - `tests/lock-runtime.test.mjs`
 - `tests/policy-enforcement.test.mjs`
 - `tests/prompt-commands.test.mjs`

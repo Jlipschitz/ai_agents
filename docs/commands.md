@@ -758,6 +758,18 @@ npm run agents -- release-resource agent-1 dev-server
 
 Resource leases record owner agent, machine, process, terminal/session, TTL, and expiration time. Another agent cannot reserve the same resource until it is released or the lease has expired.
 
+### Incident Mode
+
+Coordinate urgent shared failures, optionally binding the incident to a task and reserving a shared resource while the incident is open.
+
+```bash
+npm run agents -- start-incident agent-1 server-down "Investigating server outage" --resource dev-server --task task-api
+npm run agents -- join-incident agent-2 server-down
+npm run agents -- close-incident agent-1 server-down "Recovered after config fix"
+```
+
+Open incidents are stored on `board.json` under `incidents`, appear in `status`, and participate in stale-session recovery. If `start-incident` reserves a resource, `close-incident` releases that incident-held resource when the owner closes the incident.
+
 ## Runtime Lock Commands
 
 ### `lock-clear`
