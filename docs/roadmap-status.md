@@ -50,7 +50,7 @@ Next recommended work:
 
 - [~] Plugin-style checks - `run-check` can run package scripts or explicit commands; configurable check plugins remain open.
 - [x] Visual check runner and artifact capture
-- [~] Artifact index and manual attachments - `run-check` writes `artifacts/checks/index.ndjson`; `verify --artifact` and `artifacts list/inspect` exist; retention/pruning remains open.
+- [~] Artifact index and manual attachments - `run-check` writes `artifacts/checks/index.ndjson`; `verify --artifact`, `artifacts list/inspect`, and missing-reference reports exist; deeper index rebuild remains open.
 - [x] Path ownership map
 - [x] Dependency graph output
 - [x] PR handoff generator
@@ -118,7 +118,7 @@ Next recommended work:
 - [x] Agent reputation/history
 - [x] Cost/time accounting
 - [x] Review queue
-- [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; deeper storage policy and reporting remain open.
+- [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; missing verification artifact reporting exists; deeper storage policy remains open.
 - [x] Human-readable changelog
 - [x] Task templates
 - [x] External calendar/reminder hooks

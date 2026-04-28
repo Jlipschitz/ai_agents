@@ -83,6 +83,47 @@ export function createArtifactCommands(context) {
     return [...taskArtifacts, ...readRunCheckArtifactIndex()];
   }
 
+  function resolveArtifactPath(artifactPath) {
+    return path.isAbsolute(artifactPath) ? artifactPath : path.resolve(root, artifactPath);
+  }
+
+  function buildMissingArtifactReferences(items = buildArtifactItems()) {
+    return items
+      .filter((item) => item.source === 'verification' && item.path)
+      .map((item) => {
+        const absolutePath = resolveArtifactPath(item.path);
+        return {
+          source: item.source,
+          path: normalizePath(absolutePath) || item.path,
+          absolutePath,
+          taskId: item.taskId ?? null,
+          check: item.check ?? null,
+          outcome: item.outcome ?? null,
+          kind: item.kind ?? null,
+          recommendation: 'Regenerate the artifact or update the verification log to reference an existing evidence file.',
+        };
+      })
+      .filter((item) => !fs.existsSync(item.absolutePath))
+      .map(({ absolutePath, ...item }) => item);
+  }
+
+  function buildArtifactReferenceReport(items = buildArtifactItems()) {
+    const missingReferences = buildMissingArtifactReferences(items);
+    const warnings = missingReferences.map((item) =>
+      `Missing artifact referenced by verification log: ${item.path}${item.taskId ? ` (${item.taskId}` : ''}${item.check ? `${item.taskId ? ', ' : ' ('}${item.check}` : ''}${item.taskId || item.check ? ')' : ''}`
+    );
+    const recommendations = missingReferences.length
+      ? ['Regenerate missing evidence artifacts or update verification logs so artifact references point to files that exist.']
+      : [];
+    return {
+      ok: missingReferences.length === 0,
+      checkedReferences: items.filter((item) => item.source === 'verification' && item.path).length,
+      missingReferences,
+      warnings,
+      recommendations,
+    };
+  }
+
   function getArtifactPolicy(argv = []) {
     const { config } = loadConfig();
     const configured = config.artifacts && typeof config.artifacts === 'object' && !Array.isArray(config.artifacts) ? config.artifacts : {};
@@ -233,8 +274,30 @@ export function createArtifactCommands(context) {
       const taskFilter = getFlagValue(argv, '--task', '');
       const checkFilter = getFlagValue(argv, '--check', '');
       const filtered = items.filter((item) => (!taskFilter || item.taskId === taskFilter) && (!checkFilter || item.check === checkFilter));
-      if (json) console.log(JSON.stringify({ items: filtered }, null, 2));
-      else console.log(filtered.length ? filtered.map((item) => `- ${item.path}${item.taskId ? ` (${item.taskId}` : ''}${item.check ? `${item.taskId ? ', ' : ' ('}${item.check}` : ''}${item.taskId || item.check ? ')' : ''}`).join('\n') : 'No artifacts found.');
+      const report = buildArtifactReferenceReport(filtered);
+      if (json) console.log(JSON.stringify({ items: filtered, warnings: report.warnings, recommendations: report.recommendations }, null, 2));
+      else {
+        console.log(filtered.length ? filtered.map((item) => `- ${item.path}${item.taskId ? ` (${item.taskId}` : ''}${item.check ? `${item.taskId ? ', ' : ' ('}${item.check}` : ''}${item.taskId || item.check ? ')' : ''}`).join('\n') : 'No artifacts found.');
+        if (report.warnings.length) {
+          console.log('Warnings:');
+          console.log(report.warnings.map((warning) => `- ${warning}`).join('\n'));
+          console.log('Recommendation: regenerate missing evidence artifacts or update verification logs to reference existing files.');
+        }
+      }
+      return 0;
+    }
+
+    if (subcommand === 'report') {
+      const report = buildArtifactReferenceReport(items);
+      if (json) console.log(JSON.stringify(report, null, 2));
+      else {
+        console.log(`Artifact references checked: ${report.checkedReferences}`);
+        console.log(report.warnings.length ? report.warnings.map((warning) => `- ${warning}`).join('\n') : 'No missing verification artifacts found.');
+        if (report.recommendations.length) {
+          console.log('Recommendations:');
+          console.log(report.recommendations.map((recommendation) => `- ${recommendation}`).join('\n'));
+        }
+      }
       return 0;
     }
 
@@ -266,10 +329,11 @@ export function createArtifactCommands(context) {
       return 0;
     }
 
-    return printCommandError('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json] | artifacts prune [--apply] [--json]', { json });
+    return printCommandError('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json] | artifacts report [--json] | artifacts prune [--apply] [--json]', { json });
   }
 
   return {
+    buildArtifactReferenceReport,
     buildArtifactItems,
     collectTaskArtifacts,
     runArtifactsCommand,
