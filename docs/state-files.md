@@ -57,6 +57,21 @@ Top-level fields commonly include:
 - `incidents`
 - `updatedAt`
 
+Resource fields commonly include:
+
+- `name`
+- `ownerId`
+- `ownerMachine`
+- `ownerPid`
+- `ownerSessionId`
+- `taskId`
+- `reason`
+- `ttlMinutes`
+- `expiresAt`
+- `renewedAt`
+- `createdAt`
+- `updatedAt`
+
 Task fields commonly include:
 
 - `id`

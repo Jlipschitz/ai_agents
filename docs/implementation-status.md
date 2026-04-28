@@ -253,6 +253,29 @@ Gate behavior:
 - `--require-doc-review`: the task must have `docsReviewedAt` recorded.
 - If a gate fails, the command exits before delegating to core `done`, so the board is not mutated.
 
+### Conflict-safe resource leases
+
+Status: partially implemented in the core support-operation commands.
+
+```bash
+npm run agents -- reserve-resource agent-1 dev-server "Running local server" --ttl-minutes 60
+npm run agents -- renew-resource agent-1 dev-server --ttl-minutes 60 --reason "Still validating"
+npm run agents -- release-resource agent-1 dev-server
+```
+
+Current behavior:
+
+- Resource reservations include owner agent, machine, process ID, terminal/session ID, TTL, renewal time, and expiration time.
+- Same-owner reservation renews the lease.
+- `renew-resource` refreshes a held lease and can update its reason.
+- Other agents are blocked while a lease is active.
+- Expired leases can be taken over by another agent.
+
+Main files:
+
+- `scripts/lib/support-operation-commands.mjs`
+- `tests/resource-leases.test.mjs`
+
 ### Runtime lock diagnostics
 
 Status: implemented as a standalone utility, npm scripts, and routed main CLI commands.

@@ -323,6 +323,7 @@ const {
   grantAccessCommand,
   joinIncidentCommand,
   releaseResourceCommand,
+  renewResourceCommand,
   requestAccessCommand,
   reserveResourceCommand,
   startIncidentCommand,
@@ -1392,6 +1393,11 @@ function hasLiveAgentHeartbeat(agentId, liveHeartbeats = readAgentHeartbeats()) 
 }
 
 function isResourceStale(resource, referenceIso = nowIso()) {
+  const expiresMs = Date.parse(resource.expiresAt ?? '');
+  const referenceMs = Date.parse(referenceIso);
+  if (Number.isFinite(expiresMs) && Number.isFinite(referenceMs) && expiresMs <= referenceMs) {
+    return true;
+  }
   return hoursBetween(resource.updatedAt ?? resource.createdAt ?? referenceIso, referenceIso) >= RESOURCE_STALE_HOURS;
 }
 
@@ -1758,7 +1764,8 @@ Commands:
   start-incident <agent> <incident-key> <summary> [--resource <name>] [--task <task-id>]
   join-incident <agent> <incident-key> [--task <task-id>]
   close-incident <agent> <incident-key> <resolution>
-  reserve-resource <agent> <resource> <reason> [--task <task-id>]
+  reserve-resource <agent> <resource> <reason> [--task <task-id>] [--ttl-minutes <minutes>]
+  renew-resource <agent> <resource> [--ttl-minutes <minutes>] [--reason <text>]
   release-resource <agent> <resource>
   message <from-agent> <to-agent|all> <message> [--task <task-id>]
   app-note <agent> <category> <note> [--task <task-id>] [--paths <path[,path...]>]
@@ -1932,6 +1939,9 @@ async function main() {
       return;
     case 'reserve-resource':
       await reserveResourceCommand(positionals, options);
+      return;
+    case 'renew-resource':
+      await renewResourceCommand(positionals, options);
       return;
     case 'release-resource':
       await releaseResourceCommand(positionals);

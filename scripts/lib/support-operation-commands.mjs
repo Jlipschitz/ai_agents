@@ -1,4 +1,35 @@
+import os from 'node:os';
+
 import { nowIso } from './file-utils.mjs';
+
+const DEFAULT_RESOURCE_TTL_MINUTES = 120;
+
+function parseTtlMinutes(options = {}) {
+  const raw = options['ttl-minutes'] ?? options.ttl ?? '';
+  const parsed = Number.parseInt(String(raw), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_RESOURCE_TTL_MINUTES;
+}
+
+function expiresAt(timestamp, ttlMinutes) {
+  return new Date(Date.parse(timestamp) + ttlMinutes * 60000).toISOString();
+}
+
+function isResourceLeaseExpired(resource, referenceIso = nowIso()) {
+  const expiresMs = Date.parse(resource.expiresAt ?? '');
+  const referenceMs = Date.parse(referenceIso);
+  return Number.isFinite(expiresMs) && Number.isFinite(referenceMs) && expiresMs <= referenceMs;
+}
+
+function applyResourceLease(resource, agentId, timestamp, ttlMinutes) {
+  resource.ownerId = agentId;
+  resource.ownerMachine = os.hostname();
+  resource.ownerPid = process.pid;
+  resource.ownerSessionId = process.env.AGENT_TERMINAL_ID || null;
+  resource.ttlMinutes = ttlMinutes;
+  resource.expiresAt = expiresAt(timestamp, ttlMinutes);
+  resource.renewedAt = timestamp;
+  resource.updatedAt = timestamp;
+}
 
 export function createSupportOperationCommands(context) {
   const {
@@ -16,13 +47,14 @@ export function createSupportOperationCommands(context) {
     withMutationLock,
   } = context;
 
-  async function reserveResourceCommand(positionals, options) {
+  async function reserveResourceCommand(positionals, options = {}) {
     const [agentId, resourceName, ...reasonParts] = positionals;
     const reason = reasonParts.join(' ').trim();
     const taskId = typeof options.task === 'string' ? options.task : null;
+    const ttlMinutes = parseTtlMinutes(options);
 
     if (!agentId || !resourceName || !reason) {
-      throw new Error('Usage: reserve-resource <agent> <resource> <reason> [--task <task-id>]');
+      throw new Error('Usage: reserve-resource <agent> <resource> <reason> [--task <task-id>] [--ttl-minutes <minutes>]');
     }
 
     await withMutationLock(async () => {
@@ -34,30 +66,68 @@ export function createSupportOperationCommands(context) {
       }
 
       const normalizedResource = slugify(resourceName);
+      const timestamp = nowIso();
       const existing = board.resources.find((resource) => resource.name === normalizedResource);
-      if (existing && existing.ownerId !== agentId) {
+      const existingExpired = existing && isResourceLeaseExpired(existing, timestamp);
+      if (existing && existing.ownerId !== agentId && !existingExpired) {
         throw new Error(`Resource "${normalizedResource}" is already reserved by ${existing.ownerId}.`);
       }
 
-      const timestamp = nowIso();
       if (existing) {
+        if (existing.ownerId !== agentId) {
+          existing.previousOwnerId = existing.ownerId;
+          existing.createdAt = timestamp;
+        }
         existing.reason = reason;
         existing.taskId = taskId;
-        existing.updatedAt = timestamp;
+        applyResourceLease(existing, agentId, timestamp, ttlMinutes);
       } else {
-        board.resources.push({
+        const resource = {
           name: normalizedResource,
           ownerId: agentId,
           taskId,
           reason,
           createdAt: timestamp,
-          updatedAt: timestamp,
-        });
+        };
+        applyResourceLease(resource, agentId, timestamp, ttlMinutes);
+        board.resources.push(resource);
       }
 
-      appendJournalLine(`- ${timestamp} | ${agentId} reserved resource \`${normalizedResource}\`${taskId ? ` for ${taskId}` : ''}: ${reason}`);
+      appendJournalLine(`- ${timestamp} | ${agentId} reserved resource \`${normalizedResource}\`${taskId ? ` for ${taskId}` : ''} until ${expiresAt(timestamp, ttlMinutes)}: ${reason}`);
       await saveBoard(board);
       console.log(`Reserved resource ${normalizedResource}.`);
+    });
+  }
+
+  async function renewResourceCommand(positionals, options = {}) {
+    const [agentId, resourceName] = positionals;
+
+    if (!agentId || !resourceName) {
+      throw new Error('Usage: renew-resource <agent> <resource> [--ttl-minutes <minutes>] [--reason <text>]');
+    }
+
+    await withMutationLock(async () => {
+      const board = getBoard();
+      getCommandAgent(board, agentId);
+      const normalizedResource = slugify(resourceName);
+      const resource = board.resources.find((entry) => entry.name === normalizedResource);
+
+      if (!resource) {
+        throw new Error(`Resource "${normalizedResource}" is not reserved.`);
+      }
+      if (resource.ownerId !== agentId) {
+        throw new Error(`${agentId} does not hold resource "${normalizedResource}".`);
+      }
+
+      const timestamp = nowIso();
+      const ttlMinutes = parseTtlMinutes(options);
+      const reason = typeof options.reason === 'string' ? options.reason.trim() : '';
+      if (reason) resource.reason = reason;
+      applyResourceLease(resource, agentId, timestamp, ttlMinutes);
+
+      appendJournalLine(`- ${timestamp} | ${agentId} renewed resource \`${normalizedResource}\` until ${resource.expiresAt}.`);
+      await saveBoard(board);
+      console.log(`Renewed resource ${normalizedResource}.`);
     });
   }
 
@@ -240,16 +310,17 @@ export function createSupportOperationCommands(context) {
         if (existingResource) {
           existingResource.reason = `Incident ${incidentKey}: ${summary}`;
           existingResource.taskId = taskId;
-          existingResource.updatedAt = timestamp;
+          applyResourceLease(existingResource, agentId, timestamp, parseTtlMinutes(options));
         } else {
-          board.resources.push({
+          const resourceEntry = {
             name: resource,
             ownerId: agentId,
             taskId,
             reason: `Incident ${incidentKey}: ${summary}`,
             createdAt: timestamp,
-            updatedAt: timestamp,
-          });
+          };
+          applyResourceLease(resourceEntry, agentId, timestamp, parseTtlMinutes(options));
+          board.resources.push(resourceEntry);
         }
       }
 
@@ -337,6 +408,7 @@ export function createSupportOperationCommands(context) {
     grantAccessCommand,
     joinIncidentCommand,
     releaseResourceCommand,
+    renewResourceCommand,
     requestAccessCommand,
     reserveResourceCommand,
     startIncidentCommand,

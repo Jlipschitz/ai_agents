@@ -537,6 +537,18 @@ Marks a done task released.
 npm run agents -- release agent-1 task-id "Merged into main."
 ```
 
+### Resource Leases
+
+Reserve, renew, and release shared resources such as local servers, devices, or deployment slots.
+
+```bash
+npm run agents -- reserve-resource agent-1 dev-server "Running the local server" --task task-ui --ttl-minutes 60
+npm run agents -- renew-resource agent-1 dev-server --ttl-minutes 60 --reason "Still validating"
+npm run agents -- release-resource agent-1 dev-server
+```
+
+Resource leases record owner agent, machine, process, terminal/session, TTL, and expiration time. Another agent cannot reserve the same resource until it is released or the lease has expired.
+
 ## Runtime Lock Commands
 
 ### `lock-clear`

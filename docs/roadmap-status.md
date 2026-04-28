@@ -40,7 +40,7 @@ Next recommended work:
 - [x] CI workflow
 - [~] Templates — config templates and task templates are available through `templates`; external/custom templates remain open.
 - [x] Import/update command
-- [ ] Conflict-safe resource leases
+- [~] Conflict-safe resource leases — resource reservations now include TTL, owner machine/process/session metadata, renewal, and expired lease takeover; deeper policy/config controls remain open.
 - [x] Transcript-friendly summaries
 - [x] Archive completed work
 

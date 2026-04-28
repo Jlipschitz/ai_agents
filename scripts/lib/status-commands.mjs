@@ -340,7 +340,7 @@ export function createStatusCommands(context) {
     lines.push(
       board.resources.length
         ? board.resources
-            .map((resource) => `- ${resource.name}: ${resource.ownerId}${resource.taskId ? ` (${resource.taskId})` : ''} | ${resource.reason}`)
+            .map((resource) => `- ${resource.name}: ${resource.ownerId}${resource.taskId ? ` (${resource.taskId})` : ''}${resource.expiresAt ? ` | expires ${resource.expiresAt}` : ''} | ${resource.reason}`)
             .join('\n')
         : '- none'
     );
