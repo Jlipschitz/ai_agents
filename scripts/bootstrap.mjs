@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
-const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/validate-config.mjs';
+const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/validate-config.mjs';
 
 const DEFAULT_GITIGNORE_ENTRIES = [
   '',
@@ -35,6 +35,8 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:start': 'node ./scripts/agent-coordination.mjs start',
   'agents:finish': 'node ./scripts/agent-coordination.mjs finish',
   'agents:handoff-ready': 'node ./scripts/agent-coordination.mjs handoff-ready',
+  'agents:lock:status': 'node ./scripts/lock-runtime.mjs status --coordination-dir coordination',
+  'agents:lock:clear': 'node ./scripts/lock-runtime.mjs clear --stale-only --coordination-dir coordination',
   'agents:heartbeat:start': 'node ./scripts/agent-coordination.mjs heartbeat-start',
   'agents:heartbeat:status': 'node ./scripts/agent-coordination.mjs heartbeat-status',
   'agents:heartbeat:stop': 'node ./scripts/agent-coordination.mjs heartbeat-stop',
@@ -54,6 +56,8 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:start': 'node ./scripts/agent-coordination-two.mjs start',
   'agents2:finish': 'node ./scripts/agent-coordination-two.mjs finish',
   'agents2:handoff-ready': 'node ./scripts/agent-coordination-two.mjs handoff-ready',
+  'agents2:lock:status': 'node ./scripts/lock-runtime.mjs status --coordination-dir coordination-two',
+  'agents2:lock:clear': 'node ./scripts/lock-runtime.mjs clear --stale-only --coordination-dir coordination-two',
   'agents2:heartbeat:start': 'node ./scripts/agent-coordination-two.mjs heartbeat-start',
   'agents2:heartbeat:status': 'node ./scripts/agent-coordination-two.mjs heartbeat-status',
   'agents2:heartbeat:stop': 'node ./scripts/agent-coordination-two.mjs heartbeat-stop',
@@ -74,6 +78,7 @@ const FILES_TO_COPY = [
   'scripts/agent-watch-loop.ps1',
   'scripts/agent-watch-loop-two.ps1',
   'scripts/bootstrap.mjs',
+  'scripts/lock-runtime.mjs',
   'scripts/validate-config.mjs',
   'agent-coordination.schema.json',
   'agent-coordination.config.json',
