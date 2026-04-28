@@ -7,6 +7,11 @@
     "visualWorkflow": "",
     "apiPrefixes": ["docs/api"]
   },
+  "git": {
+    "allowMainBranchClaims": true,
+    "allowDetachedHead": false,
+    "allowedBranchPatterns": []
+  },
   "paths": {
     "sharedRisk": ["scripts", "package.json", "agent-coordination.config.json"],
     "visualSuite": [],
