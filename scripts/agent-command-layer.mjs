@@ -18,6 +18,7 @@ import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runContracts } from './lib/contract-commands.mjs';
 import { runCostTime } from './lib/cost-time-commands.mjs';
 import { runCriticalPath } from './lib/critical-path-commands.mjs';
+import { runDashboard } from './lib/dashboard-commands.mjs';
 import { runEscalationRoutes } from './lib/escalation-routing-commands.mjs';
 import { createStarterBoard } from './lib/board-migration.mjs';
 import { runInspectBoard, runMigrateBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
@@ -105,6 +106,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'calendar',
   'changelog',
   'completions',
+  'dashboard',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -378,6 +380,7 @@ function expectedPackageScripts() {
       'agents:agent:history': 'ai-agents agent-history',
       'agents:cost:time': 'ai-agents cost-time',
       'agents:review:queue': 'ai-agents review-queue',
+      'agents:dashboard': 'ai-agents dashboard',
       'agents:secrets:scan': 'ai-agents secrets-scan',
       'agents:contracts': 'ai-agents contracts',
       'agents:runbooks': 'ai-agents runbooks',
@@ -454,6 +457,7 @@ function expectedPackageScripts() {
     'agents:agent:history': 'node ./scripts/agent-coordination.mjs agent-history',
     'agents:cost:time': 'node ./scripts/agent-coordination.mjs cost-time',
     'agents:review:queue': 'node ./scripts/agent-coordination.mjs review-queue',
+    'agents:dashboard': 'node ./scripts/agent-coordination.mjs dashboard',
     'agents:secrets:scan': 'node ./scripts/agent-coordination.mjs secrets-scan',
     'agents:contracts': 'node ./scripts/agent-coordination.mjs contracts',
     'agents:runbooks': 'node ./scripts/agent-coordination.mjs runbooks',
@@ -518,6 +522,7 @@ function expectedPackageScripts() {
     'agents2:agent:history': 'node ./scripts/agent-coordination-two.mjs agent-history',
     'agents2:cost:time': 'node ./scripts/agent-coordination-two.mjs cost-time',
     'agents2:review:queue': 'node ./scripts/agent-coordination-two.mjs review-queue',
+    'agents2:dashboard': 'node ./scripts/agent-coordination-two.mjs dashboard',
     'agents2:secrets:scan': 'node ./scripts/agent-coordination-two.mjs secrets-scan',
     'agents2:contracts': 'node ./scripts/agent-coordination-two.mjs contracts',
     'agents2:runbooks': 'node ./scripts/agent-coordination-two.mjs runbooks',
@@ -1569,6 +1574,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'calendar') status = runCalendarCommand(commandArgs, getTemplateCommandContext());
   else if (commandName === 'changelog') status = runChangelogCommand(commandArgs, getCoordinationPaths());
   else if (commandName === 'completions') status = runCompletionsCommand(commandArgs, getCompletionsCommandContext());
+  else if (commandName === 'dashboard') status = runDashboard(commandArgs, getTemplateCommandContext());
   process.exit(status);
 }
 

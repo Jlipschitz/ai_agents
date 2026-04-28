@@ -10,13 +10,13 @@ This file tracks the current implementation status for the larger roadmap in `ai
 
 ## Current Focus
 
-The project has completed most of the setup, bootstrap, command routing, CI, documentation, config explanation, command-layer diagnostics, board maintenance, artifact handling, and safety-test foundation.
+The project has completed most of the setup, bootstrap, command routing, CI, documentation, config explanation, command-layer diagnostics, board maintenance, artifact handling, dashboard surfaces, and safety-test foundation.
 
 Next recommended work:
 
-1. Add lightweight dashboard surfaces for repo state.
-2. Continue normalizing older command-specific diagnostics.
-3. Expand package publishing documentation and automation.
+1. Continue normalizing older command-specific diagnostics.
+2. Expand package publishing documentation and automation.
+3. Add deeper GitHub write/API integration.
 
 ---
 
@@ -61,7 +61,7 @@ Next recommended work:
 - [x] Safe release gate
 - [~] Workspace snapshots — `snapshot-workspace` writes compressed snapshots and command-layer apply flows take pre-mutation snapshots; legacy core lifecycle mutations remain open.
 - [x] Lock diagnostics
-- [ ] Multi-repo dashboard
+- [x] Multi-repo dashboard
 - [x] Config migration
 - [~] Dry run for every mutation - command-layer apply flows are dry-run by default, legacy core state mutations and process commands now support `--dry-run`; remaining follow-up is stricter coverage for external side-effect commands.
 
@@ -83,7 +83,7 @@ Next recommended work:
 - [~] Test impact selection — `test-impact` maps paths to configured checks; deeper dependency-aware selection remains open.
 - [x] Repo bootstrap profiles
 - [~] Portable npm package — package shape and bin exist; publishing remains open.
-- [ ] TUI dashboard
+- [x] TUI dashboard
 - [~] JSON API mode — available for key commands, not yet universal.
 - [x] Policy packs
 
@@ -101,7 +101,7 @@ Next recommended work:
 - [x] Release artifact bundle
 - [~] Command aliases - built-in short aliases exist; repo-defined aliases remain open.
 - [~] Natural-language query — `ask` answers common deterministic board questions; open-ended model-backed querying remains open.
-- [ ] Local web dashboard
+- [x] Local web dashboard
 - [x] Signed releases
 - [x] Self-update safety
 
@@ -227,6 +227,7 @@ Next recommended work:
 - `scripts/lib/contract-commands.mjs`
 - `scripts/lib/cost-time-commands.mjs`
 - `scripts/lib/critical-path-commands.mjs`
+- `scripts/lib/dashboard-commands.mjs`
 - `scripts/lib/error-formatting.mjs`
 - `scripts/lib/format-commands.mjs`
 - `scripts/lib/github-commands.mjs`
@@ -279,6 +280,7 @@ Next recommended work:
 - `tests/contract-commands.test.mjs`
 - `tests/cost-time-commands.test.mjs`
 - `tests/critical-path-commands.test.mjs`
+- `tests/dashboard-commands.test.mjs`
 - `tests/core-mutation-safety.test.mjs`
 - `tests/error-formatting.test.mjs`
 - `tests/examples.test.mjs`

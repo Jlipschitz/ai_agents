@@ -696,6 +696,30 @@ Main files:
 - `scripts/lib/calendar-commands.mjs`
 - `tests/calendar-commands.test.mjs`
 
+### Dashboard surfaces
+
+Status: implemented as read-only terminal, multi-repo, and static local HTML dashboards.
+
+```bash
+npm run agents:dashboard
+npm run agents -- dashboard --repos ../api,../web
+npm run agents -- dashboard --from repos.txt --json
+npm run agents -- dashboard web --out artifacts/dashboards/index.html --apply
+```
+
+Current behavior:
+
+- `dashboard` reports task counts, agents, active work, blockers, claimed paths, and recent messages for the current repo.
+- `--repos <path[,path...]>` and `--from <file>` aggregate multiple coordination workspaces.
+- `--json` returns the same dashboard data for automation.
+- `dashboard web` writes a static local HTML dashboard only with `--apply`.
+- Missing or malformed boards are reported per repo; `--strict` fails if any repo is unavailable.
+
+Main files:
+
+- `scripts/lib/dashboard-commands.mjs`
+- `tests/dashboard-commands.test.mjs`
+
 ### Approval ledger
 
 Status: implemented in the core lifecycle path.
@@ -1600,19 +1624,16 @@ These roadmap items still need core, command-layer, or documentation work.
 - Visual-specific check runner behavior, including before/after artifact-root diffs and richer artifact classification.
 - Full artifact index rebuild and stricter artifact-root policies for manual `verify --artifact` attachments.
 - Dedicated `timeline` or session-replay command.
-- Multi-repo dashboard.
 
 ### Verification, risk, and GitHub integration
 
 - Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
 - GitHub write/API integration for issues, PR comments, labels, and checklists.
-- TUI dashboard.
 - Universal JSON output for every command.
 
 ### Safety, auditing, and recovery
 
 - Open-ended model-backed natural-language query mode.
-- Local web dashboard.
 
 ### Advanced coordination and scaling
 

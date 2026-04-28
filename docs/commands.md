@@ -810,6 +810,19 @@ npm run agents -- calendar export --all --reminder-minutes 1440,60 --json
 
 The command is a dry run unless `--apply` is passed. By default it exports planned, active, blocked, waiting, review, and handoff tasks with due dates to `coordination/calendar/tasks.ics`; `--all` includes done and released tasks. Use `--status`, `--task`, or `--agent` to filter the export, and `--reminder-minutes` to control generated `VALARM` reminders.
 
+### `dashboard`
+
+Shows a terminal dashboard for the current repo or a multi-repo dashboard from explicit repo roots.
+
+```bash
+npm run agents:dashboard
+npm run agents -- dashboard --repos ../api,../web
+npm run agents -- dashboard --from repos.txt --json
+npm run agents -- dashboard web --repos ../api,../web --out artifacts/dashboards/index.html --apply
+```
+
+The terminal dashboard is read-only and reports task counts, agents, active work, blockers, claimed paths, and recent messages. `--repos` accepts comma-separated repo paths, and `--from` reads one repo path per line; entries can use `name=path` to override the displayed project name. `dashboard web` writes a static local HTML dashboard only with `--apply`.
+
 ### `approvals`
 
 Maintains a board-backed approval ledger for task gates.
