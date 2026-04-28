@@ -717,6 +717,18 @@ npm run agents -- secrets-scan --staged --strict
 
 The scanner skips common generated/runtime folders and large or binary files. Findings include redacted previews only. `--strict` exits non-zero when any finding is present, so it can be used as a local or CI guardrail.
 
+### `redact-check`
+
+Scans coordination state plus generated prompt, handoff bundle, and task-summary text for likely secrets and configured sensitive terms.
+
+```bash
+npm run agents:redact:check
+npm run agents -- redact-check --json
+npm run agents -- redact-check --paths coordination/board.json --state-only --strict
+```
+
+Configure literal terms with `privacy.redactPatterns`. Findings include redacted previews only. `--state-only` skips generated prompt checks, and `--strict` exits non-zero when findings are present.
+
 ### `runbooks`
 
 Lists built-in runbooks, suggests matching runbooks for a task or path set, and creates custom runbooks under `coordination/runbooks/`.

@@ -169,6 +169,9 @@
         },
         "offline": {
           "type": "boolean"
+        },
+        "redactPatterns": {
+          "$ref": "#/$defs/stringArray"
         }
       }
     },

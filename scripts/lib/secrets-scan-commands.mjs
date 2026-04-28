@@ -9,7 +9,7 @@ const MAX_FILE_BYTES = 1024 * 1024;
 const EXCLUDED_DIRS = new Set(['.git', 'node_modules', 'coordination', 'coordination-two', 'artifacts', 'coverage', 'dist', 'build', '.next']);
 const BINARY_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip', '.gz', '.tgz', '.br', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.mov', '.avi', '.exe', '.dll', '.bin']);
 const PLACEHOLDER_WORDS = ['example', 'sample', 'placeholder', 'replace-me', 'changeme', 'dummy', 'test-token', 'your_', '<', 'xxx'];
-const RULES = [
+export const SECRET_SCAN_RULES = [
   { id: 'private-key', severity: 'high', pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----/g },
   { id: 'openai-key', severity: 'high', pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/g },
   { id: 'github-token', severity: 'high', pattern: /\bgh[pousr]_[A-Za-z0-9_]{30,}\b/g },
@@ -35,7 +35,7 @@ function isPlaceholder(match) {
   return PLACEHOLDER_WORDS.some((word) => lower.includes(word));
 }
 
-function redact(value) {
+export function redactSecretPreview(value) {
   const text = String(value ?? '').replace(/\s+/g, ' ');
   if (text.length <= 14) return '[redacted]';
   return `${text.slice(0, 6)}...[redacted]...${text.slice(-4)}`;
@@ -117,15 +117,13 @@ function collectTargetFiles(root, argv, board) {
   return { files: unique(files), skipped };
 }
 
-function scanFile(root, relativePath) {
-  const absolutePath = path.resolve(root, relativePath);
-  const text = fs.readFileSync(absolutePath, 'utf8');
+export function scanTextForSecrets(text, relativePath = '<text>') {
   const findings = [];
-  const lines = text.split(/\r?\n/);
+  const lines = String(text ?? '').split(/\r?\n/);
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
     const line = lines[lineIndex];
     const lineFindings = [];
-    for (const rule of RULES) {
+    for (const rule of SECRET_SCAN_RULES) {
       rule.pattern.lastIndex = 0;
       let match = rule.pattern.exec(line);
       while (match) {
@@ -136,7 +134,7 @@ function scanFile(root, relativePath) {
             column: match.index + 1,
             rule: rule.id,
             severity: rule.severity,
-            preview: redact(match[0]),
+            preview: redactSecretPreview(match[0]),
           });
         }
         match = rule.pattern.exec(line);
@@ -146,6 +144,12 @@ function scanFile(root, relativePath) {
     findings.push(...(hasHighConfidenceFinding ? lineFindings.filter((finding) => finding.rule !== 'generic-secret-assignment') : lineFindings));
   }
   return findings;
+}
+
+function scanFile(root, relativePath) {
+  const absolutePath = path.resolve(root, relativePath);
+  const text = fs.readFileSync(absolutePath, 'utf8');
+  return scanTextForSecrets(text, relativePath);
 }
 
 export function buildSecretsScan(context, argv = []) {

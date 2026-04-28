@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { scanTextForSecrets } from '../scripts/lib/secrets-scan-commands.mjs';
 import { makeWorkspace, runCli, writeBoard } from './helpers/workspace.mjs';
 
 function makeSecretsWorkspace() {
@@ -52,4 +53,13 @@ test('secrets-scan rejects paths outside the repo root', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(payload.summary.scannedFiles, 0);
   assert.ok(payload.skipped.some((entry) => entry.reason === 'outside-root'));
+});
+
+test('scanTextForSecrets exposes reusable text scanning', () => {
+  const findings = scanTextForSecrets('token = "super-secret-production-value"', 'generated:sample');
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].path, 'generated:sample');
+  assert.equal(findings[0].rule, 'generic-secret-assignment');
+  assert.ok(findings[0].preview.includes('[redacted]'));
 });

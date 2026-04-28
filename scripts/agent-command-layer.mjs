@@ -44,6 +44,7 @@ import { runPromptCommand } from './lib/prompt-commands.mjs';
 import { runPublishCheck } from './lib/publish-check-command.mjs';
 import { runRiskScore } from './lib/risk-score-commands.mjs';
 import { runReviewQueue } from './lib/review-queue-commands.mjs';
+import { runRedactCheck } from './lib/redact-check-commands.mjs';
 import { runRunbooks } from './lib/runbook-commands.mjs';
 import { runSecretsScan } from './lib/secrets-scan-commands.mjs';
 import { buildReleaseSigningPlan, runReleaseSign } from './lib/release-signing-commands.mjs';
@@ -99,6 +100,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'agent-history',
   'cost-time',
   'review-queue',
+  'redact-check',
   'secrets-scan',
   'contracts',
   'runbooks',
@@ -398,6 +400,7 @@ function expectedPackageScripts() {
       'agents:dashboard': 'ai-agents dashboard',
       'agents:timeline': 'ai-agents timeline',
       'agents:publish:check': 'ai-agents publish-check',
+      'agents:redact:check': 'ai-agents redact-check',
       'agents:secrets:scan': 'ai-agents secrets-scan',
       'agents:contracts': 'ai-agents contracts',
       'agents:runbooks': 'ai-agents runbooks',
@@ -482,6 +485,7 @@ function expectedPackageScripts() {
     'agents:dashboard': 'node ./scripts/agent-coordination.mjs dashboard',
     'agents:timeline': 'node ./scripts/agent-coordination.mjs timeline',
     'agents:publish:check': 'node ./scripts/agent-coordination.mjs publish-check',
+    'agents:redact:check': 'node ./scripts/agent-coordination.mjs redact-check',
     'agents:secrets:scan': 'node ./scripts/agent-coordination.mjs secrets-scan',
     'agents:contracts': 'node ./scripts/agent-coordination.mjs contracts',
     'agents:runbooks': 'node ./scripts/agent-coordination.mjs runbooks',
@@ -554,6 +558,7 @@ function expectedPackageScripts() {
     'agents2:dashboard': 'node ./scripts/agent-coordination-two.mjs dashboard',
     'agents2:timeline': 'node ./scripts/agent-coordination-two.mjs timeline',
     'agents2:publish:check': 'node ./scripts/agent-coordination-two.mjs publish-check',
+    'agents2:redact:check': 'node ./scripts/agent-coordination-two.mjs redact-check',
     'agents2:secrets:scan': 'node ./scripts/agent-coordination-two.mjs secrets-scan',
     'agents2:contracts': 'node ./scripts/agent-coordination-two.mjs contracts',
     'agents2:runbooks': 'node ./scripts/agent-coordination-two.mjs runbooks',
@@ -1729,6 +1734,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'agent-history') status = runAgentHistory(commandArgs, getImpactCommandContext());
   else if (commandName === 'cost-time') status = runCostTime(commandArgs, getImpactCommandContext());
   else if (commandName === 'review-queue') status = runReviewQueue(commandArgs, getImpactCommandContext());
+  else if (commandName === 'redact-check') status = runRedactCheck(commandArgs, getImpactCommandContext());
   else if (commandName === 'secrets-scan') status = runSecretsScan(commandArgs, getImpactCommandContext());
   else if (commandName === 'contracts') status = runContracts(commandArgs, getTemplateCommandContext());
   else if (commandName === 'runbooks') status = runRunbooks(commandArgs, getTemplateCommandContext());

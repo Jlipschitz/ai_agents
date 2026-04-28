@@ -1255,6 +1255,8 @@ Status: implemented in the command layer.
 npm run agents:secrets:scan
 npm run agents -- secrets-scan --paths src,server --json
 npm run agents -- secrets-scan --staged --strict
+npm run agents:redact:check
+npm run agents -- redact-check --json
 ```
 
 Current behavior:
@@ -1265,11 +1267,15 @@ Current behavior:
 - Redacts previews in output and suppresses obvious placeholder/sample values.
 - Supports JSON output and `--strict` non-zero exits for local or CI guardrail use.
 - Is read-only and covered by mutation guard tests.
+- `redact-check` scans coordination state and generated prompt, handoff bundle, and task-summary text for existing secret rules plus `privacy.redactPatterns`.
+- `redact-check --state-only` limits scanning to files; `--strict` exits non-zero when findings are present.
 
 Main files:
 
 - `scripts/lib/secrets-scan-commands.mjs`
+- `scripts/lib/redact-check-commands.mjs`
 - `tests/secrets-scan-commands.test.mjs`
+- `tests/redact-check-commands.test.mjs`
 
 ### Contract files
 

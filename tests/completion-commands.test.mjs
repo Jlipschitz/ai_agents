@@ -44,6 +44,7 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('agent-history'));
   assert.ok(payload.commands.includes('cost-time'));
   assert.ok(payload.commands.includes('review-queue'));
+  assert.ok(payload.commands.includes('redact-check'));
   assert.ok(payload.commands.includes('secrets-scan'));
   assert.ok(payload.commands.includes('runbooks'));
   assert.ok(payload.commands.includes('path-groups'));
@@ -88,6 +89,7 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /agent-history/);
   assert.match(result.stdout, /cost-time/);
   assert.match(result.stdout, /review-queue/);
+  assert.match(result.stdout, /redact-check/);
   assert.match(result.stdout, /secrets-scan/);
   assert.match(result.stdout, /runbooks/);
   assert.match(result.stdout, /path-groups/);
@@ -113,6 +115,7 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /next/);
   assert.match(result.stdout, /--dry-run/);
   assert.match(result.stdout, /--cli/);
+  assert.match(result.stdout, /--state-only/);
   assert.match(result.stdout, /policy_pack_subcommands="list inspect apply"/);
   assert.match(result.stdout, /completion_subcommands="list powershell bash zsh"/);
   assert.match(result.stdout, / qa /);

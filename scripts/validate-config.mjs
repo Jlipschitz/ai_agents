@@ -306,6 +306,7 @@ export function validateAgentConfig(config, options = {}) {
       addIssue(errors, 'privacy.mode', 'must be "standard", "redacted", or "local-only"');
     }
     if ('offline' in config.privacy) validateBoolean(config.privacy.offline, 'privacy.offline', errors);
+    if ('redactPatterns' in config.privacy) validateStringArray(config.privacy.redactPatterns, 'privacy.redactPatterns', errors);
   }
 
   if ('monorepo' in config && validateObject(config.monorepo, 'monorepo', errors)) {

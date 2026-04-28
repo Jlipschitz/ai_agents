@@ -206,7 +206,7 @@ Next recommended work:
 - [x] Next command recommendation engine
 - [~] State size and performance budget - `state-size` reports coordination file sizes and cleanup recommendations; explicit latency budgets remain open.
 - [ ] Upgrade and migration compatibility tests
-- [~] Security and privacy redaction checks - secrets scanning and prompt redaction tests exist; global redaction contracts across exported summaries remain open.
+- [~] Security and privacy redaction checks - `redact-check` scans coordination state and generated prompt/handoff/task-summary text; outbound GitHub/API redaction gates remain open.
 - [x] Generated repo health status file
 - [ ] Minimal mode and command groups
 
