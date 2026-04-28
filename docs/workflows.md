@@ -150,6 +150,54 @@ npm run agents:heartbeat:status
 
 If a task is stale, add a handoff/progress note before another agent claims follow-up work.
 
+Diagnose stale runtime files:
+
+```bash
+npm run agents -- watch-diagnose
+npm run agents -- cleanup-runtime
+npm run agents -- cleanup-runtime --apply
+```
+
+## Check Release Readiness
+
+Before treating done work as release-ready:
+
+```bash
+npm run agents -- release-check task-ui
+npm run agents -- release-check task-ui --json
+```
+
+## Capture Check Output
+
+Run a package script and capture stdout/stderr:
+
+```bash
+npm run agents -- run-check test
+```
+
+Run an explicit command:
+
+```bash
+npm run agents -- run-check smoke -- node ./scripts/smoke.mjs
+```
+
+## Repair Board State
+
+Inspect first, then dry-run a repair:
+
+```bash
+npm run agents -- inspect-board
+npm run agents -- repair-board
+```
+
+Apply safe repairs and roll back from a snapshot if needed:
+
+```bash
+npm run agents -- repair-board --apply
+npm run agents -- rollback-state --list
+npm run agents -- rollback-state --to latest --apply
+```
+
 ## Move Coordination State Between Machines
 
 Runtime files are intentionally ignored by Git:

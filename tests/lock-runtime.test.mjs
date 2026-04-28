@@ -42,7 +42,7 @@ test('lock status detects stale lock by age', () => {
     command: 'claim',
     owner: 'agent-1',
     pid: process.pid,
-    updatedAt: '2000-01-01T00:00:00.000Z',
+    lockedAt: '2000-01-01T00:00:00.000Z',
   }, null, 2));
 
   const result = run(root, ['status', '--json', '--coordination-root', coordinationRoot, '--stale-ms', '1000']);
@@ -60,7 +60,7 @@ test('lock clear --stale-only removes stale lock', () => {
     command: 'claim',
     owner: 'agent-1',
     pid: 99999999,
-    updatedAt: '2000-01-01T00:00:00.000Z',
+    lockedAt: '2000-01-01T00:00:00.000Z',
   }, null, 2));
 
   const result = run(root, ['clear', '--stale-only', '--json', '--coordination-root', coordinationRoot, '--stale-ms', '1000']);
@@ -77,7 +77,7 @@ test('lock clear --stale-only refuses a fresh lock', () => {
     command: 'claim',
     owner: 'agent-1',
     pid: process.pid,
-    updatedAt: new Date().toISOString(),
+    lockedAt: new Date().toISOString(),
   }, null, 2));
 
   const result = run(root, ['clear', '--stale-only', '--json', '--coordination-root', coordinationRoot, '--stale-ms', '60000']);

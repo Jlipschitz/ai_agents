@@ -232,6 +232,79 @@ Main files:
 - `scripts/lock-runtime.mjs`
 - `tests/lock-runtime.test.mjs`
 
+### Watcher diagnostics and runtime cleanup
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- watch-diagnose
+npm run agents -- watch-diagnose --json
+npm run agents -- cleanup-runtime
+npm run agents -- cleanup-runtime --apply
+```
+
+Current behavior:
+
+- Reports watcher status, runtime lock state, and heartbeat files in one diagnostic payload.
+- Flags stale watcher status, stale runtime locks, and stale heartbeat files.
+- `cleanup-runtime` is dry-run by default.
+- `cleanup-runtime --apply` removes only stale lock, watcher, and heartbeat runtime files.
+
+Main files:
+
+- `scripts/agent-command-layer.mjs`
+- `tests/roadmap-commands.test.mjs`
+
+### Release check
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- release-check task-id
+npm run agents -- release-check task-id --json
+```
+
+Current behavior:
+
+- Checks done/released tasks for passing latest verification.
+- Blocks latest failing verification.
+- Checks dependencies are done or released.
+- Requires docs review when relevant docs are attached or `--require-doc-review` is used.
+
+### Board inspection, repair, and rollback
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- inspect-board
+npm run agents -- repair-board
+npm run agents -- repair-board --apply
+npm run agents -- rollback-state --list
+npm run agents -- rollback-state --to latest --apply
+```
+
+Current behavior:
+
+- `inspect-board` reports structural findings and task counts without mutating state.
+- `repair-board` is dry-run by default and applies only safe normalization with `--apply`.
+- Applied repairs snapshot the previous board under `runtime/snapshots/`.
+- `rollback-state` lists snapshots and restores one only with `--apply`.
+
+### Check runner and artifacts
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- run-check test
+npm run agents -- run-check smoke -- node ./scripts/smoke.mjs
+```
+
+Current behavior:
+
+- Runs a package script by name, or an explicit command after `--`.
+- Captures stdout/stderr into `artifacts/checks/`.
+- Appends a machine-readable `index.ndjson` entry.
+
 ### Planner lane sizing helper
 
 Status: implemented as a reusable helper and regression-test target.

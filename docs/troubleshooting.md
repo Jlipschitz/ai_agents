@@ -168,11 +168,12 @@ npm run agents -- lock-status
 npm run agents -- lock-status --json
 ```
 
-Future commands planned:
+Runtime diagnostics and cleanup:
 
 ```bash
-ai-agents watch-diagnose
-ai-agents cleanup-runtime
+npm run agents -- watch-diagnose
+npm run agents -- cleanup-runtime
+npm run agents -- cleanup-runtime --apply
 ```
 
 ## Heartbeat Not Updating
@@ -260,12 +261,14 @@ npm run agents:validate
 npm run agents:doctor
 ```
 
-Future commands planned:
+Board inspection and repair commands:
 
 ```bash
-ai-agents inspect-board
-ai-agents repair-board
-ai-agents rollback-state
+npm run agents -- inspect-board
+npm run agents -- repair-board
+npm run agents -- repair-board --apply
+npm run agents -- rollback-state --list
+npm run agents -- rollback-state --to latest --apply
 ```
 
 ## Agent Claimed Too Much Scope

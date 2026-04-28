@@ -46,6 +46,7 @@ function run(root, args) {
 test('doctor --fix creates starter runtime files', () => {
   const root = makeWorkspace();
   const result = run(root, ['doctor', '--fix']);
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /doctor --fix/);
@@ -53,6 +54,25 @@ test('doctor --fix creates starter runtime files', () => {
   assert.equal(fs.existsSync(path.join(root, 'coordination', 'journal.md')), true);
   assert.equal(fs.existsSync(path.join(root, 'coordination', 'messages.ndjson')), true);
   assert.match(fs.readFileSync(path.join(root, '.gitignore'), 'utf8'), /\/coordination\//);
+  assert.equal(packageJson.scripts['agents:doctor'], 'ai-agents doctor');
+  assert.equal(packageJson.scripts['agents:doctor:json'], 'ai-agents doctor --json');
+});
+
+test('doctor --fix uses copied coordinator scripts when present', () => {
+  const root = makeWorkspace();
+  fs.mkdirSync(path.join(root, 'bin'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'bin', 'ai-agents.mjs'), '');
+  fs.writeFileSync(path.join(root, 'scripts', 'agent-coordination.mjs'), '');
+  fs.writeFileSync(path.join(root, 'scripts', 'agent-coordination-two.mjs'), '');
+
+  const result = run(root, ['doctor', '--fix']);
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(packageJson.scripts.check.includes('node --check ./bin/ai-agents.mjs'));
+  assert.equal(packageJson.scripts['agents:doctor'], 'node ./scripts/agent-coordination.mjs doctor');
+  assert.equal(packageJson.scripts['agents2:doctor:json'], 'node ./scripts/agent-coordination-two.mjs doctor --json');
 });
 
 test('doctor --json reports config validation and git fields', () => {
@@ -64,6 +84,20 @@ test('doctor --json reports config validation and git fields', () => {
   assert.equal(payload.ok, true);
   assert.equal(payload.configValidation.valid, true);
   assert.equal(typeof payload.git.available, 'boolean');
+});
+
+test('doctor --json --fix reports post-fix state', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-layer-empty-'));
+  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'layer-empty-test', scripts: {} }, null, 2));
+  const result = run(root, ['doctor', '--json', '--fix']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.configValidation.valid, true);
+  assert.equal(payload.files.board, true);
+  assert.equal(payload.files.journal, true);
+  assert.equal(payload.files.messages, true);
+  assert.ok(payload.fixes.some((entry) => entry.includes('agent-coordination.config.json')));
 });
 
 test('summarize prints stale work and next actions', () => {

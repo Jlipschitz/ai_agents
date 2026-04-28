@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const agentsCli = path.join(repoRoot, 'scripts', 'agent-coordination.mjs');
 const publicCli = path.join(repoRoot, 'bin', 'ai-agents.mjs');
+const explainConfigCli = path.join(repoRoot, 'scripts', 'explain-config.mjs');
 const validConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, 'agent-coordination.config.json'), 'utf8'));
 
 function makeWorkspace(config = validConfig) {
@@ -63,6 +64,18 @@ test('explain-config text output includes key sections', () => {
 test('public CLI routes explain-config', () => {
   const root = makeWorkspace();
   const result = run(publicCli, root, ['explain-config', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.validation.valid, true);
+});
+
+test('standalone explain-config script runs on local platform', () => {
+  const root = makeWorkspace();
+  const result = spawnSync(process.execPath, [explainConfigCli, '--json', '--config', path.join(root, 'agent-coordination.config.json'), '--root', root], {
+    cwd: root,
+    encoding: 'utf8',
+  });
 
   assert.equal(result.status, 0, result.stderr);
   const payload = JSON.parse(result.stdout);

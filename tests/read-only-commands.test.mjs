@@ -59,6 +59,11 @@ const commandsExpectedToSucceed = new Set([
   'watch-status',
   'lock-status',
   'lock-status --json',
+  'cleanup-runtime',
+  'cleanup-runtime --json',
+  'repair-board',
+  'rollback-state --list',
+  'rollback-state --list --json',
 ]);
 
 for (const args of [
@@ -74,6 +79,16 @@ for (const args of [
   ['watch-status'],
   ['lock-status'],
   ['lock-status', '--json'],
+  ['watch-diagnose'],
+  ['watch-diagnose', '--json'],
+  ['cleanup-runtime'],
+  ['cleanup-runtime', '--json'],
+  ['inspect-board'],
+  ['inspect-board', '--json'],
+  ['repair-board'],
+  ['release-check', '--json'],
+  ['rollback-state', '--list'],
+  ['rollback-state', '--list', '--json'],
 ]) {
   test(`${args.join(' ')} does not mutate coordination state`, () => {
     const { root, coordinationRoot } = makeWorkspace();

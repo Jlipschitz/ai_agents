@@ -8,8 +8,14 @@ on:
 
 jobs:
   test:
-    name: Check and test
-    runs-on: ubuntu-latest
+    name: Check and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
 
     steps:
       - name: Checkout

@@ -41,6 +41,7 @@ coordination/
     state.lock.json
     watcher.status.json
     agent-heartbeats/
+    snapshots/
 ```
 
 ## `board.json`
@@ -212,11 +213,12 @@ npm run agents:watch:status
 npm run agents -- watch-status
 ```
 
-Future commands:
+Commands:
 
 ```bash
-ai-agents watch-diagnose
-ai-agents cleanup-runtime
+npm run agents -- watch-diagnose
+npm run agents -- cleanup-runtime
+npm run agents -- cleanup-runtime --apply
 ```
 
 ### `runtime/agent-heartbeats/`
@@ -240,13 +242,11 @@ npm run agents:heartbeat:stop -- agent-1
 
 ## Artifact State
 
-Artifact tracking is planned but not fully implemented yet.
-
-Future artifact indexes may live at:
+`run-check` writes command output artifacts by default under:
 
 ```text
-runtime/artifacts.json
-artifacts/index.json
+artifacts/checks/
+artifacts/checks/index.ndjson
 ```
 
 Potential artifact roots:
@@ -257,16 +257,15 @@ playwright-report/
 test-results/
 ```
 
-Future artifact support should track:
+Current captured data includes:
 
-- screenshots
-- logs
-- reports
-- traces
-- check outputs
-- retention windows
-- protected patterns
-- references from verification logs
+- check name
+- executed command
+- start and finish time
+- exit code
+- stdout/stderr log path
+
+Future artifact support can add screenshots, reports, traces, retention policies, and verification-log references.
 
 ## Archive State
 

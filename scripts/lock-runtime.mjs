@@ -2,9 +2,15 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const __filename = fileURLToPath(import.meta.url);
 const ROOT = process.cwd();
 const DEFAULT_STALE_MS = 300000;
+
+function isCliEntrypoint() {
+  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === __filename;
+}
 
 function parseArgs(argv) {
   const parsed = {
@@ -72,7 +78,7 @@ function parseTime(value) {
 }
 
 function getLockTimestamp(lock) {
-  return parseTime(lock?.updatedAt) ?? parseTime(lock?.createdAt) ?? parseTime(lock?.acquiredAt) ?? parseTime(lock?.at);
+  return parseTime(lock?.lockedAt) ?? parseTime(lock?.updatedAt) ?? parseTime(lock?.createdAt) ?? parseTime(lock?.acquiredAt) ?? parseTime(lock?.at);
 }
 
 function inspectLock(args) {
@@ -168,7 +174,7 @@ export function runCli(argv = process.argv.slice(2)) {
   throw new Error(`Unknown command: ${args.command}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isCliEntrypoint()) {
   try {
     process.exitCode = runCli();
   } catch (error) {

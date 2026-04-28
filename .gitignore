@@ -3,6 +3,7 @@ node_modules/
 # Local coordination runtime state
 /coordination/
 /coordination-two/
+/artifacts/
 
 # Logs and OS/editor files
 *.log

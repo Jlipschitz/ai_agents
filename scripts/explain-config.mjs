@@ -7,8 +7,6 @@ import { fileURLToPath } from 'node:url';
 import { readJsonFile, validateAgentConfig } from './validate-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const PACKAGE_ROOT = path.resolve(__dirname, '..');
 const ROOT = process.cwd();
 
 const DEFAULT_ENV_KEYS = [
@@ -21,6 +19,10 @@ const DEFAULT_ENV_KEYS = [
   'AGENT_COORDINATION_LOCK_WAIT_MS',
   'AGENT_TERMINAL_ID',
 ];
+
+function isCliEntrypoint() {
+  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === __filename;
+}
 
 function parseArgs(argv) {
   const args = {
@@ -246,7 +248,7 @@ export function runCli(argv = process.argv.slice(2)) {
   return report.validation.valid ? 0 : 1;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isCliEntrypoint()) {
   try {
     process.exitCode = runCli();
   } catch (error) {

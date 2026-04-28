@@ -25,6 +25,8 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
 - Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
+- Provides runtime diagnostics and cleanup via `watch-diagnose` and `cleanup-runtime`.
+- Provides release gating, board inspection, board repair, rollback, and check artifact capture commands.
 - Validates portable config with `npm run validate:agents-config` and the `validate`/`doctor` command layer.
 - Uses a cross-platform Node watcher by default for `watch-start`.
 - Bootstraps the coordinator into another repo with `npm run bootstrap`.
@@ -142,6 +144,13 @@ npm run agents:watch:start
 npm run agents:watch:node
 npm run agents:watch:status
 npm run agents:watch:stop
+npm run agents:watch:diagnose
+npm run agents:runtime:cleanup
+npm run agents:release:check -- task-id
+npm run agents:board:inspect
+npm run agents:board:repair
+npm run agents:state:rollback -- --list
+npm run agents:run-check -- test
 ```
 
 The `agents2` scripts mirror the same commands but use the `coordination-two` workspace by default.
@@ -154,6 +163,7 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - [`docs/architecture.md`](docs/architecture.md): command layer, core coordinator, wrappers, watcher, heartbeat, locking, and runtime architecture.
 - [`docs/state-files.md`](docs/state-files.md): reference for `board.json`, `journal.md`, `messages.ndjson`, runtime lock files, watcher state, and heartbeats.
 - [`docs/troubleshooting.md`](docs/troubleshooting.md): setup, Git, watcher, heartbeat, stale-lock, board, CI, and recovery troubleshooting.
+- [`docs/terminal-output-examples.md`](docs/terminal-output-examples.md): representative command output examples.
 - [`docs/agent-coordination-portability.md`](docs/agent-coordination-portability.md): configuration and portability notes.
 - [`docs/implementation-status.md`](docs/implementation-status.md): implemented vs pending status.
 - [`docs/roadmap-status.md`](docs/roadmap-status.md): current roadmap status tracker.

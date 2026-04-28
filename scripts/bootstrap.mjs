@@ -16,6 +16,7 @@ const DEFAULT_GITIGNORE_ENTRIES = [
   '# Local AI agent coordination runtime state',
   '/coordination/',
   '/coordination-two/',
+  '/artifacts/',
 ];
 
 const DEFAULT_PACKAGE_SCRIPTS = {
@@ -45,6 +46,13 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:watch:status': 'node ./scripts/agent-coordination.mjs watch-status',
   'agents:watch:stop': 'node ./scripts/agent-coordination.mjs watch-stop',
   'agents:watch:node': 'node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination.mjs',
+  'agents:watch:diagnose': 'node ./scripts/agent-coordination.mjs watch-diagnose',
+  'agents:runtime:cleanup': 'node ./scripts/agent-coordination.mjs cleanup-runtime',
+  'agents:release:check': 'node ./scripts/agent-coordination.mjs release-check',
+  'agents:board:inspect': 'node ./scripts/agent-coordination.mjs inspect-board',
+  'agents:board:repair': 'node ./scripts/agent-coordination.mjs repair-board',
+  'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
+  'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
   'agents2': 'node ./scripts/agent-coordination-two.mjs',
   'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
   'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -67,6 +75,13 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:watch:status': 'node ./scripts/agent-coordination-two.mjs watch-status',
   'agents2:watch:stop': 'node ./scripts/agent-coordination-two.mjs watch-stop',
   'agents2:watch:node': 'node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination-two.mjs',
+  'agents2:watch:diagnose': 'node ./scripts/agent-coordination-two.mjs watch-diagnose',
+  'agents2:runtime:cleanup': 'node ./scripts/agent-coordination-two.mjs cleanup-runtime',
+  'agents2:release:check': 'node ./scripts/agent-coordination-two.mjs release-check',
+  'agents2:board:inspect': 'node ./scripts/agent-coordination-two.mjs inspect-board',
+  'agents2:board:repair': 'node ./scripts/agent-coordination-two.mjs repair-board',
+  'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
+  'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
   'validate:agents-config': 'node ./scripts/validate-config.mjs',
 };
 
@@ -93,6 +108,7 @@ const FILES_TO_COPY = [
   'docs/state-files.md',
   'docs/troubleshooting.md',
   'docs/explain-config.md',
+  'docs/terminal-output-examples.md',
   'docs/implementation-status.md',
   'docs/roadmap-status.md',
 ];

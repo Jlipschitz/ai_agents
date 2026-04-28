@@ -14,12 +14,11 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add terminal output examples.
-2. Add config doctor suggestions.
-3. Add `watch-diagnose` and `cleanup-runtime`.
-4. Add `release-check`.
-5. Add plugin-style `run-check` and artifact capture.
-6. Add board repair/inspection and state rollback.
+1. Add config doctor suggestions.
+2. Add richer release bundles and PR handoff output.
+3. Add evidence attachment references from verification logs.
+4. Add config migration and policy packs.
+5. Add broader command snapshot tests and fixture repos.
 
 ---
 
@@ -51,9 +50,9 @@ Next recommended work:
 
 ## Phase 3: Planning, Prompting, and Release Support
 
-- [ ] Plugin-style checks
-- [ ] Visual check runner and artifact capture
-- [ ] Artifact index and manual attachments
+- [~] Plugin-style checks - `run-check` can run package scripts or explicit commands; configurable check plugins remain open.
+- [~] Visual check runner and artifact capture - generic command artifact capture exists; visual-specific handling remains open.
+- [~] Artifact index and manual attachments - `run-check` writes `artifacts/checks/index.ndjson`; manual attachment commands remain open.
 - [ ] Path ownership map
 - [ ] Dependency graph output
 - [ ] PR handoff generator
@@ -61,7 +60,7 @@ Next recommended work:
 - [~] Session replay — recent journal/message context is included in `summarize`; dedicated `timeline` remains open.
 - [ ] Per-repo onboarding checklist
 - [ ] Agent prompt generator
-- [ ] Safe release gate
+- [x] Safe release gate
 - [ ] Workspace snapshots
 - [x] Lock diagnostics
 - [ ] Multi-repo dashboard
@@ -135,7 +134,7 @@ Next recommended work:
 - [~] Expand the README into a full user guide — expanded, but deeper narrative documentation remains open.
 - [x] Add a complete command reference
 - [x] Add example workflows
-- [ ] Add terminal output examples
+- [x] Add terminal output examples
 - [x] Add architecture documentation
 - [x] Add state file reference
 - [x] Add troubleshooting guide
@@ -150,8 +149,8 @@ Next recommended work:
 
 ## Phase 9: Watcher and Runtime Diagnostics
 
-- [ ] Add watcher diagnostics command
-- [ ] Add runtime cleanup command
+- [x] Add watcher diagnostics command
+- [x] Add runtime cleanup command
 - [x] Keep PowerShell watcher as legacy fallback
 - [~] Add watcher failure recovery — partially covered by status/doctor/lock diagnostics; `watch-diagnose` remains open.
 
@@ -171,9 +170,9 @@ Next recommended work:
 
 ## Phase 12: Board Repair, Inspection, and Rollback
 
-- [ ] Add board repair command
-- [ ] Add rollback command
-- [ ] Add board inspection command
+- [x] Add board repair command
+- [x] Add rollback command
+- [x] Add board inspection command
 
 ## Phase 13: Git Safety Additions
 
@@ -211,4 +210,5 @@ Next recommended work:
 - `docs/architecture.md`
 - `docs/state-files.md`
 - `docs/troubleshooting.md`
+- `docs/terminal-output-examples.md`
 - `docs/implementation-status.md`

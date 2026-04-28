@@ -125,6 +125,40 @@ node ./scripts/lock-runtime.mjs status --coordination-dir coordination --json
 
 The status output reports whether the lock exists, whether it is stale, stale reasons, age, PID status, owner, and command when available.
 
+### `watch-diagnose`
+
+Inspects watcher, runtime lock, and heartbeat state together.
+
+```bash
+npm run agents:watch:diagnose
+npm run agents -- watch-diagnose --json
+```
+
+The report flags stale watcher status, stale runtime locks, stale heartbeat files, and suggested cleanup actions.
+
+### `inspect-board`
+
+Inspects `board.json` for structural problems without mutating it.
+
+```bash
+npm run agents:board:inspect
+npm run agents -- inspect-board --json
+```
+
+It reports task counts, duplicate IDs, unknown statuses, missing owners, missing agent references, and simple active path overlaps.
+
+### `release-check`
+
+Checks whether a done task is ready for release.
+
+```bash
+npm run agents:release:check -- task-id
+npm run agents -- release-check task-id --json
+npm run agents -- release-check task-id --require-doc-review
+```
+
+The check requires done status, passing latest verification for every task verification item, no latest failing verification, satisfied dependencies, and docs review when relevant docs are attached or `--require-doc-review` is passed.
+
 ## Setup Commands
 
 ### `init`
@@ -326,6 +360,59 @@ Safety rules:
 - Non-stale locks are refused.
 - Use `--force` only when a human has confirmed the lock should be removed.
 - Use `--json` for machine-readable output.
+
+### `cleanup-runtime`
+
+Dry-runs or applies cleanup for stale runtime files.
+
+```bash
+npm run agents:runtime:cleanup
+npm run agents -- cleanup-runtime --json
+npm run agents -- cleanup-runtime --apply
+```
+
+By default this is a dry run. With `--apply`, it removes only stale runtime locks, stale watcher status, and stale heartbeat files detected by runtime diagnostics.
+
+## Board Recovery Commands
+
+### `repair-board`
+
+Normalizes safe board fields and creates a snapshot before writing when applied.
+
+```bash
+npm run agents:board:repair
+npm run agents -- repair-board --json
+npm run agents -- repair-board --apply
+```
+
+The default mode is a dry run. Applied repairs can initialize missing top-level arrays, configured agent slots, and missing task array fields. Malformed JSON is not repaired automatically.
+
+### `rollback-state`
+
+Lists board snapshots or restores one.
+
+```bash
+npm run agents:state:rollback -- --list
+npm run agents -- rollback-state --list --json
+npm run agents -- rollback-state --to latest --apply
+npm run agents -- rollback-state --to coordination/runtime/snapshots/board-example.json --apply
+```
+
+Rollback applies only with `--apply`. Before replacing `board.json`, it snapshots the current board.
+
+## Check Runner
+
+### `run-check`
+
+Runs a package script or explicit command and captures stdout/stderr as an artifact.
+
+```bash
+npm run agents:run-check -- test
+npm run agents -- run-check smoke -- node ./scripts/smoke.mjs
+npm run agents -- run-check smoke --json -- node -e "console.log('ok')"
+```
+
+Artifacts are written under `artifacts/checks/` by default, with an `index.ndjson` entry for each run. Use `--artifact-dir <path>` to write elsewhere.
 
 ## Notes and Messaging
 
