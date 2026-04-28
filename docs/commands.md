@@ -508,6 +508,26 @@ npm run agents -- critical-path --json
 
 The command is read-only. It scores remaining path cost from task effort plus risk level, reports the critical task chain, lists ready work sorted by downstream cost, and warns about missing dependencies or dependency cycles.
 
+### `contracts`
+
+Manages contract files for shared API, schema, and cross-task interfaces under `coordination/contracts/`.
+
+```bash
+npm run agents:contracts -- list
+npm run agents -- contracts create api-v1 --owner agent-1 --scope api --summary "API v1 request/response contract"
+npm run agents -- contracts create api-v1 --owner agent-1 --scope api --summary "API v1 request/response contract" --producer task-api --consumer task-ui --apply --json
+npm run agents -- contracts check --json
+```
+
+Subcommands:
+
+- `list [--json]`
+- `show <id> [--json]`
+- `create <id> --owner <agent> --scope <path[,path...]> --summary <text> [--producer <task-id>] [--consumer <task-id[,task-id...]>] [--status draft|active|deprecated] [--apply] [--json]`
+- `check [--json]`
+
+Creation is a dry run unless `--apply` is passed. `contracts check` validates contract files, task references, scopes, status values, and warns when active/planned work touches contract-sensitive data/API paths without an active contract.
+
 ### `branches`
 
 Shows local Git branches, active task branch ownership, merged/gone/stale status, and dry-run cleanup candidates.

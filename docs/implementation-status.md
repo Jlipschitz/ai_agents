@@ -779,6 +779,30 @@ Main files:
 - `scripts/lib/critical-path-commands.mjs`
 - `tests/critical-path-commands.test.mjs`
 
+### Contract files
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:contracts -- list
+npm run agents -- contracts create api-v1 --owner agent-1 --scope api --summary "API contract" --apply
+npm run agents -- contracts check --json
+```
+
+Current behavior:
+
+- Stores contract files as JSON under `coordination/contracts/`.
+- Supports `contracts list`, `show`, `create`, and `check`.
+- `create` is dry-run by default and writes only with `--apply`.
+- Tracks owner, scopes, producer task, consumer tasks, summary, status, and timestamps.
+- `check` validates contract shape and task references, and warns when active/planned data/API work is not covered by an active contract.
+- Is covered by read-only mutation tests.
+
+Main files:
+
+- `scripts/lib/contract-commands.mjs`
+- `tests/contract-commands.test.mjs`
+
 ### Branch awareness and stale branch cleanup
 
 Status: partially implemented in the command layer and claim path.
@@ -1145,7 +1169,6 @@ These roadmap items still need core, command-layer, or documentation work.
 ### Verification, risk, and GitHub integration
 
 - Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
-- Contract files for shared API/schema work.
 - Incident mode.
 - GitHub write/API integration for issues, PR comments, labels, and checklists.
 - State compaction.
