@@ -22,6 +22,15 @@
         "apiPrefixes": { "$ref": "#/$defs/stringArray" }
       }
     },
+    "git": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "allowMainBranchClaims": { "type": "boolean" },
+        "allowDetachedHead": { "type": "boolean" },
+        "allowedBranchPatterns": { "$ref": "#/$defs/stringArray" }
+      }
+    },
     "paths": {
       "type": "object",
       "additionalProperties": true,
