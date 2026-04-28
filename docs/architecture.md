@@ -1,218 +1,363 @@
 # Architecture
 
-`ai_agents` is a portable coordination layer for running multiple coding agents in one repository.
+`ai_agents` is a portable, file-based coordination layer for running multiple coding agents in the same repository. It does not require a server or database. Runtime coordination state lives in repo-local folders such as `coordination/` and `coordination-two/`.
 
-The current implementation is intentionally lightweight: a Node.js coordinator script, small wrapper entrypoints, repo-local JSON/Markdown state files, and optional watcher/heartbeat helpers.
+## Main Layers
 
-## Main Components
+```text
+bin/ai-agents.mjs
+        │
+        ├── scripts/agent-coordination.mjs
+        ├── scripts/agent-coordination-two.mjs
+        │
+        ▼
+scripts/agent-command-layer.mjs
+        │
+        ├── handles newer commands and safety checks
+        └── delegates legacy/core commands
+        │
+        ▼
+scripts/agent-coordination-core.mjs
+        │
+        ▼
+coordination/ or coordination-two/
+```
 
-### Public CLI
+The architecture is intentionally incremental. Newer behavior is implemented in the command layer so the large core coordinator can be refactored safely over time.
+
+## Public CLI
 
 ```text
 bin/ai-agents.mjs
 ```
 
-The public CLI entrypoint sets default environment values and loads the shared coordinator core.
+The public CLI is the long-term entrypoint. It supports package-style usage and handles package-level behavior such as:
 
-### Workspace Wrappers
+```bash
+ai-agents --version
+ai-agents version
+ai-agents doctor
+ai-agents status
+```
+
+It routes commands through `scripts/agent-command-layer.mjs`.
+
+## Compatibility Wrappers
 
 ```text
 scripts/agent-coordination.mjs
 scripts/agent-coordination-two.mjs
 ```
 
-These wrappers set workspace-specific defaults before importing the shared core.
+These wrappers exist for compatibility and npm-script convenience.
 
-- `agent-coordination.mjs` defaults to `coordination/`.
-- `agent-coordination-two.mjs` defaults to `coordination-two/`.
+- `scripts/agent-coordination.mjs` defaults to `coordination/`.
+- `scripts/agent-coordination-two.mjs` defaults to `coordination-two/`.
 
-They exist so two independent agent groups can coordinate in the same repository without sharing one active board.
+Both wrappers route through the command layer before delegating to the core implementation.
 
-### Shared Coordinator Core
+## Command Layer
+
+```text
+scripts/agent-command-layer.mjs
+```
+
+The command layer handles newer commands and safety behavior without requiring a full rewrite of `agent-coordination-core.mjs`.
+
+Currently handled in the command layer:
+
+- `doctor --fix`
+- `doctor --json`
+- `validate --json`
+- `summarize`
+- `summarize --for-chat`
+- `summarize --json`
+- `start`
+- `finish`
+- `handoff-ready`
+- `watch-start`
+- `lock-status`
+- `lock-clear`
+- Git preflight checks before `claim`
+- `finish` safety gates:
+  - `--require-verification`
+  - `--require-doc-review`
+
+When the command layer does not handle a command, it delegates to the core coordinator.
+
+## Core Coordinator
 
 ```text
 scripts/agent-coordination-core.mjs
 ```
 
-This file contains the main coordinator implementation.
+The core coordinator owns the original board operations and lifecycle transitions.
 
-Responsibilities include:
+Core responsibilities include:
 
-- Config loading
-- Path normalization
-- Board handling
-- Task status handling
-- Planning helpers
-- Locking helpers
-- Heartbeat handling
-- Watcher status handling
-- Journal/messages handling
-- Doctor/validate/status behavior
+- config loading
+- path normalization
+- board initialization
+- planning
+- task claiming
+- progress, block, wait, review, handoff, done, and release transitions
+- manual verification records
+- app notes
+- messages
+- heartbeat status
+- watcher status
+- core doctor and validation checks
+- lock-protected mutations
 
-### Watch Loop Helpers
+## Helper Scripts
 
-```text
-scripts/agent-watch-loop.ps1
-scripts/agent-watch-loop-two.ps1
-```
+### `scripts/bootstrap.mjs`
 
-These are Windows PowerShell watcher loops. They repeatedly call `watch-tick` on an interval.
+Installs the coordinator into another repository. It copies scripts and docs, adds package scripts, updates `.gitignore`, creates starter notes, and runs `agents:doctor` unless skipped.
 
-A cross-platform Node watcher is planned so the same behavior works across Windows, macOS, Linux, WSL, and CI.
+### `scripts/validate-config.mjs`
 
-## Coordination Workspace
+Validates `agent-coordination.config.json` and can emit human-readable or JSON output.
 
-The coordinator stores runtime state in a coordination workspace.
+### `scripts/agent-watch-loop.mjs`
 
-Common defaults:
+Cross-platform Node watcher loop. It repeatedly invokes `watch-tick` and updates watcher runtime status.
+
+### `scripts/lock-runtime.mjs`
+
+Runtime lock diagnostics and safe stale-lock cleanup.
+
+### `scripts/planner-sizing.mjs`
+
+Reusable planner lane sizing helper. It scores product, data, verify, and docs lanes from configured planner keywords. It is currently a regression-test target and should eventually be integrated deeper into the core planner.
+
+## Runtime Workspace
+
+Runtime state is stored in one of these locations:
 
 ```text
 coordination/
 coordination-two/
 ```
 
-The workspace can be changed with:
+Or via environment overrides:
 
 ```text
 AGENT_COORDINATION_ROOT
 AGENT_COORDINATION_DIR
 ```
 
-## Core State Files
-
-Typical workspace files:
+Typical runtime layout:
 
 ```text
-board.json
-journal.md
-messages.ndjson
-runtime/state.lock.json
-runtime/watcher.status.json
-runtime/agent-heartbeats/
-tasks/
+coordination/
+  board.json
+  journal.md
+  messages.ndjson
+  tasks/
+  runtime/
+    state.lock.json
+    watcher.status.json
+    agent-heartbeats/
 ```
 
-These files are runtime state and should normally be ignored by Git.
+Runtime folders are intended to be ignored by Git.
 
 ## Board Model
 
-`board.json` is the active coordination board.
+`board.json` is the current source of truth for active coordination state.
 
 It tracks:
 
-- Tasks
-- Task statuses
-- Owners
-- Claimed paths
-- Dependencies
-- Verification requirements
-- Verification logs
-- Notes
-- Waiting/blocker state
+- project name
+- tasks
+- resources
+- incidents
+- updated timestamp
 
-Task statuses currently include:
+Common task fields include:
 
-- `planned`
-- `active`
-- `blocked`
-- `waiting`
-- `review`
-- `handoff`
-- `done`
-- `released`
+- `id`
+- `title`
+- `status`
+- `ownerId`
+- `claimedPaths`
+- `dependencies`
+- `waitingOn`
+- `verification`
+- `verificationLog`
+- `notes`
+- `relevantDocs`
+- `docsReviewedAt`
+
+Common task statuses:
+
+```text
+planned
+active
+blocked
+waiting
+review
+handoff
+done
+released
+```
 
 ## Journal Model
 
-`journal.md` is a human-readable event log.
-
-It should be useful when reconstructing what happened during a multi-agent session.
+`journal.md` is a human-readable event log. It helps reconstruct what happened during a session, but it is not the canonical latest state. The latest state lives in `board.json`.
 
 ## Message Model
 
-`messages.ndjson` stores lightweight structured messages, one JSON object per line.
+`messages.ndjson` is a newline-delimited JSON message log.
 
-NDJSON is used so messages can be appended safely and read incrementally.
+Each line is one JSON object. Common fields include:
+
+- `from`
+- `to`
+- `body`
+- `message`
+- `at`
+- `taskId`
+
+Recent messages are included in enhanced `summarize` output.
 
 ## Locking Model
 
-The coordinator uses a runtime lock file:
+Mutating commands use:
 
 ```text
 runtime/state.lock.json
 ```
 
-The lock protects board/runtime mutations from concurrent writes.
+The lock protects board, journal, message, and runtime writes from concurrent mutation.
 
-Roadmap improvements include:
+Diagnostics:
 
-- State transactions
-- Rollback support
-- Lock diagnostics
-- Stale-only lock clearing
-- Concurrency stress tests
+```bash
+npm run agents -- lock-status
+npm run agents -- lock-clear --stale-only
+```
+
+Standalone utility:
+
+```bash
+node ./scripts/lock-runtime.mjs status --coordination-dir coordination
+node ./scripts/lock-runtime.mjs clear --stale-only --coordination-dir coordination
+```
 
 ## Heartbeat Model
 
-Agent heartbeat files are stored under:
+Heartbeat files live under:
 
 ```text
 runtime/agent-heartbeats/
 ```
 
-Heartbeats help diagnose inactive, stale, or multi-machine sessions.
-
-Roadmap improvements include tracking:
-
-- Machine name
-- Repo path
-- Process/session ID
-- TTL renewal
-- Agent SLA warnings
+They help identify active or stale agent sessions. Future work can add richer machine identity, repo path, and SLA warnings.
 
 ## Watcher Model
 
-The watcher periodically calls into the coordinator to detect stale state, update runtime status, and support long-running coordination sessions.
+The default watcher is the Node loop:
 
-Current implementation uses PowerShell helpers. Planned implementation uses Node.
+```text
+scripts/agent-watch-loop.mjs
+```
 
-## Config Model
+`watch-start` launches this watcher through the command layer. The watcher periodically calls the core `watch-tick` command and updates:
 
-Main config file:
+```text
+runtime/watcher.status.json
+```
+
+PowerShell watcher scripts remain as legacy compatibility fallback.
+
+## Configuration Model
+
+Primary config:
 
 ```text
 agent-coordination.config.json
 ```
 
-The config controls:
+Schema:
 
-- Project name
-- Agent IDs
-- Docs roots
-- Shared-risk paths
-- Visual-impact paths
-- Verification rules
-- Notes behavior
-- Path classification
-- Planning behavior
-- Domain rules
+```text
+agent-coordination.schema.json
+```
 
-A formal JSON schema and config migration system are planned.
+Validation:
 
-## Design Goals
+```bash
+npm run validate:agents-config
+npm run agents -- validate --json
+```
 
-- Portable across repositories
-- Safe for multi-agent work
-- Simple enough to inspect manually
-- Mostly file-based
-- Friendly to Git workflows
-- Useful from terminal, chat, and future dashboards
+Config controls:
 
-## Non-Goals For Now
+- project name
+- agent IDs
+- docs roots
+- Git claim policies
+- shared-risk paths
+- visual-impact paths
+- verification rules
+- path classification
+- planner sizing
+- domain rules
 
-- Replacing Git
-- Replacing issue trackers
-- Requiring a database
-- Requiring a server
-- Requiring external APIs for local coordination
+## Environment Overrides
 
-Future GitHub integration may sync coordination state with issues, PR comments, labels, and checklists.
+Important overrides:
+
+```text
+AGENT_COORDINATION_CONFIG
+AGENT_COORDINATION_ROOT
+AGENT_COORDINATION_DIR
+AGENT_COORDINATION_CLI_ENTRYPOINT
+AGENT_COORDINATION_SCRIPT
+AGENT_COORDINATION_WATCH_LOOP_SCRIPT
+AGENT_COORDINATION_LOCK_WAIT_MS
+AGENT_TERMINAL_ID
+```
+
+## Design Tradeoffs
+
+### File-based state
+
+Pros:
+
+- easy to inspect
+- easy to copy
+- no server required
+- works in normal Git repositories
+
+Cons:
+
+- requires careful locking
+- can grow over time
+- not a distributed database
+
+### Command layer before core refactor
+
+Pros:
+
+- safer incremental changes
+- easier to test new behavior
+- avoids risky rewrites of the large core file
+
+Cons:
+
+- some logic lives outside the core
+- long-term architecture should split the core into smaller modules
+
+## Future Direction
+
+Likely architecture improvements:
+
+- split core into board, journal, lock, watcher, config, and planner modules
+- move command-layer features into smaller core modules
+- add board repair, inspection, migration, and rollback
+- add artifact index and retention modules
+- add plugin-style check runner
+- add universal JSON output support
