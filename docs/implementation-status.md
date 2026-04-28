@@ -20,19 +20,73 @@ Implemented behavior:
 - Adds coordination runtime folders to `.gitignore`.
 - Creates starter app notes when missing.
 - Runs `npm run agents:doctor` unless `--skip-doctor` is passed.
+- Installs the command layer and the new command shortcuts into target repos.
 
 Main files:
 
 - `scripts/bootstrap.mjs`
 - `tests/bootstrap.test.mjs`
 
+### Command layer
+
+Status: implemented.
+
+The command layer wraps the existing core coordinator without rewriting the large core file. It intercepts newer commands and delegates legacy commands to the core implementation.
+
+Main file:
+
+- `scripts/agent-command-layer.mjs`
+
+Wrappers using it:
+
+- `bin/ai-agents.mjs`
+- `scripts/agent-coordination.mjs`
+- `scripts/agent-coordination-two.mjs`
+
+### `doctor --fix`
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- doctor --fix
+npm run agents:doctor:fix
+```
+
+Safe fixes currently include:
+
+- Create missing starter config.
+- Add runtime folders to `.gitignore`.
+- Create starter app notes.
+- Create missing coordination runtime folders.
+- Create starter board, journal, and messages files.
+- Add missing package scripts.
+
+### `doctor --json`
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- doctor --json
+npm run agents:doctor:json
+npm run agents -- doctor --json --fix
+```
+
+Output includes:
+
+- Config validation result.
+- Git state summary.
+- Coordination path summary.
+- Runtime file existence checks.
+- Optional applied fixes.
+
 ### JSON schema for config
 
-Status: implemented as schema plus standalone validator.
+Status: implemented as schema plus standalone validator, and integrated into the command layer for `doctor` and `validate`.
 
 ```bash
 npm run validate:agents-config
 node ./scripts/validate-config.mjs --config ./agent-coordination.config.json --json
+npm run agents -- validate --json
 ```
 
 Main files:
@@ -40,12 +94,57 @@ Main files:
 - `agent-coordination.schema.json`
 - `scripts/validate-config.mjs`
 - `tests/config-validation.test.mjs`
+- `tests/command-layer.test.mjs`
 
-Follow-up: integrate the validator directly into `doctor` and `validate` so users do not need to remember a separate command.
+Follow-up: migrate any remaining core-only validation paths to reuse the standalone validator directly.
+
+### Better Git awareness before claims
+
+Status: implemented in the command layer before `claim` delegates to the core command.
+
+The preflight reports:
+
+- Current branch.
+- Upstream branch.
+- Ahead/behind state.
+- Dirty files.
+- Untracked files.
+- Merge/rebase state.
+
+Merge or rebase-in-progress state blocks the claim.
+
+### Board summarize
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:summarize
+npm run agents -- summarize
+npm run agents -- summarize --for-chat
+npm run agents -- summarize --json
+```
+
+The summary includes counts, active work, blockers, review queue, and next planned work.
+
+### Lifecycle helpers
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents -- start agent-1 task-id --paths src/path "Starting work."
+npm run agents -- finish agent-1 task-id "Implemented and verified."
+npm run agents -- handoff-ready agent-1 task-id "Ready for another agent."
+```
+
+Helpers delegate to existing core commands:
+
+- `start` -> `claim`, then optional `progress`.
+- `finish` -> `done`.
+- `handoff-ready` -> `handoff`.
 
 ### Focused tests
 
-Status: started.
+Status: expanded.
 
 Current coverage:
 
@@ -53,34 +152,42 @@ Current coverage:
 - Config validation reports duplicate agent IDs, invalid sizing, and empty rule keywords.
 - Bootstrap dry-run does not mutate the target.
 - Bootstrap writes package scripts, `.gitignore`, copied files, and starter docs.
+- `doctor --fix` creates starter runtime files.
+- `doctor --json` emits machine-readable health data.
+- `summarize --for-chat` prints compact board state.
+- `validate --json` emits machine-readable config validation.
 
 Main files:
 
 - `tests/config-validation.test.mjs`
 - `tests/bootstrap.test.mjs`
+- `tests/command-layer.test.mjs`
 
 Follow-up tests still needed:
 
 - Planner lane sizing.
-- Git status parsing.
+- Deeper Git status parsing fixtures.
 - Lock behavior.
 - Read-only commands not mutating runtime state.
 
 ### Cross-platform watcher
 
-Status: implemented as a Node watcher loop, while keeping PowerShell scripts as compatibility fallbacks.
+Status: implemented as a Node watcher loop and now used by `watch-start` through the command layer. PowerShell scripts remain as compatibility fallbacks.
 
 ```bash
+npm run agents:watch:start
+npm run agents -- watch-start --interval 30000
 npm run agents:watch:node
 npm run agents2:watch:node
 node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination.mjs --once
 ```
 
-Main file:
+Main files:
 
 - `scripts/agent-watch-loop.mjs`
+- `scripts/agent-command-layer.mjs`
 
-Follow-up: make `watch-start` prefer the Node watcher by default inside `agent-coordination-core.mjs`.
+Follow-up: eventually remove the core PowerShell-oriented watcher start path or convert it internally to the Node watcher.
 
 ### Package install flow
 
@@ -113,12 +220,12 @@ The workflow runs:
 
 ## Not Yet Implemented
 
-These roadmap items still need core integration work:
+These roadmap items still need core or deeper implementation work:
 
-- `doctor --fix`
-- `doctor --json`
-- Better Git awareness before claims
-- Board `summarize`
-- Single-command lifecycle helpers such as `start`, `finish`, and `handoff-ready`
-- Core integration for schema validation
-- Making the Node watcher the default implementation used by `watch-start`
+- `doctor --fix` integration inside the core implementation rather than the command layer.
+- `doctor --json` integration inside the core implementation rather than the command layer.
+- Deeper Git policy enforcement from config, such as branch allowlists and detached-head blocking.
+- More complete lifecycle helpers with verification/doc-review gates.
+- Full read-only mutation tests for every read-only command.
+- Lock diagnostics and lock repair commands.
+- `summarize` output that includes journal/message-derived stale-work context.
