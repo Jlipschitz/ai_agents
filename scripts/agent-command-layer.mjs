@@ -30,6 +30,7 @@ import { DEFAULT_POLICY_ENFORCEMENT, buildClaimPolicyPreflight, buildFinishPolic
 import { runPromptCommand } from './lib/prompt-commands.mjs';
 import { runRiskScore } from './lib/risk-score-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
+import { runCompactState } from './lib/state-compaction-commands.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
 import { taskMetadataLabels } from './lib/task-metadata.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
@@ -50,6 +51,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'repair-board',
   'migrate-board',
   'rollback-state',
+  'compact-state',
   'run-check',
   'artifacts',
   'graph',
@@ -323,6 +325,7 @@ function expectedPackageScripts() {
       'agents:board:repair': 'ai-agents repair-board',
       'agents:board:migrate': 'ai-agents migrate-board',
       'agents:state:rollback': 'ai-agents rollback-state',
+      'agents:state:compact': 'ai-agents compact-state',
       'agents:run-check': 'ai-agents run-check',
       'agents:policy:check': 'ai-agents policy-check',
       'agents:branches': 'ai-agents branches',
@@ -381,6 +384,7 @@ function expectedPackageScripts() {
     'agents:board:repair': 'node ./scripts/agent-coordination.mjs repair-board',
     'agents:board:migrate': 'node ./scripts/agent-coordination.mjs migrate-board',
     'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
+    'agents:state:compact': 'node ./scripts/agent-coordination.mjs compact-state',
     'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
     'agents:policy:check': 'node ./scripts/agent-coordination.mjs policy-check',
     'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
@@ -430,6 +434,7 @@ function expectedPackageScripts() {
     'agents2:board:repair': 'node ./scripts/agent-coordination-two.mjs repair-board',
     'agents2:board:migrate': 'node ./scripts/agent-coordination-two.mjs migrate-board',
     'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
+    'agents2:state:compact': 'node ./scripts/agent-coordination-two.mjs compact-state',
     'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
     'agents2:policy:check': 'node ./scripts/agent-coordination-two.mjs policy-check',
     'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
@@ -1424,6 +1429,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'repair-board') status = runRepairBoard(commandArgs, getBoardMaintenanceContext());
   else if (commandName === 'migrate-board') status = runMigrateBoard(commandArgs, getBoardMaintenanceContext());
   else if (commandName === 'rollback-state') status = runRollbackState(commandArgs, getBoardMaintenanceContext());
+  else if (commandName === 'compact-state') status = runCompactState(commandArgs, getCoordinationPaths());
   else if (commandName === 'run-check') status = runCheckCommand(commandArgs);
   else if (commandName === 'artifacts') status = runArtifactsCommand(commandArgs);
   else if (commandName === 'graph') status = runDependencyGraph(commandArgs);

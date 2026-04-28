@@ -827,6 +827,28 @@ Main files:
 - `scripts/lib/contract-commands.mjs`
 - `tests/contract-commands.test.mjs`
 
+### State compaction
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:state:compact
+npm run agents -- compact-state --keep-journal-lines 200 --keep-message-lines 500 --apply --json
+```
+
+Current behavior:
+
+- Archives old `journal.md` and `messages.ndjson` lines to `coordination/archive/state-compaction-*.json`.
+- Keeps configurable recent tails in the live journal and messages files.
+- Is dry-run by default and writes only with `--apply`.
+- Applied compaction writes a compressed workspace snapshot before rewriting state files.
+- Supports JSON output and read-only mutation coverage.
+
+Main files:
+
+- `scripts/lib/state-compaction-commands.mjs`
+- `tests/state-compaction-commands.test.mjs`
+
 ### Branch awareness and stale branch cleanup
 
 Status: partially implemented in the command layer and claim path.
@@ -1194,7 +1216,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
 - GitHub write/API integration for issues, PR comments, labels, and checklists.
-- State compaction.
 - Repo bootstrap profiles.
 - TUI dashboard.
 - Universal JSON output for every command.

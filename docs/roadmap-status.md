@@ -76,7 +76,7 @@ Next recommended work:
 - [x] Incident mode
 - [~] Backlog importer — Markdown TODO import exists; GitHub issue import remains open.
 - [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; write/API integration remains open.
-- [ ] State compaction
+- [x] State compaction
 - [~] Agent SLA warnings — stale active work appears in `summarize`.
 - [~] Ownership reviews — `ownership-review` flags broad claims and CODEOWNERS boundary crossings; periodic automation remains open.
 - [~] Test impact selection — `test-impact` maps paths to configured checks; deeper dependency-aware selection remains open.
@@ -232,6 +232,7 @@ Next recommended work:
 - `scripts/lib/prompt-commands.mjs`
 - `scripts/lib/risk-score-commands.mjs`
 - `scripts/lib/runtime-diagnostics.mjs`
+- `scripts/lib/state-compaction-commands.mjs`
 - `scripts/lib/state-transaction.mjs`
 - `scripts/lib/template-commands.mjs`
 - `scripts/lib/task-metadata.mjs`
@@ -267,6 +268,7 @@ Next recommended work:
 - `tests/read-only-commands.test.mjs`
 - `tests/risk-score-commands.test.mjs`
 - `tests/roadmap-commands.test.mjs`
+- `tests/state-compaction-commands.test.mjs`
 - `tests/template-commands.test.mjs`
 - `tests/task-metadata.test.mjs`
 - `tests/update-commands.test.mjs`

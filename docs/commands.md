@@ -843,6 +843,18 @@ npm run agents -- rollback-state --to coordination/runtime/snapshots/board-examp
 
 Rollback applies only with `--apply`. Before replacing `board.json`, it snapshots the current board.
 
+### `compact-state`
+
+Archives older journal and message lines while keeping recent coordination context in place.
+
+```bash
+npm run agents:state:compact
+npm run agents -- compact-state --keep-journal-lines 200 --keep-message-lines 500
+npm run agents -- compact-state --keep-journal-lines 100 --keep-message-lines 200 --apply --json
+```
+
+The command is a dry run unless `--apply` is passed. Applied compaction writes a compressed workspace snapshot first, stores compacted lines under `coordination/archive/state-compaction-*.json`, then rewrites `journal.md` and `messages.ndjson` with only the retained tail.
+
 ### `snapshot-workspace`
 
 Creates a compressed workspace snapshot containing board, journal, messages, and runtime state files.
