@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 import { makeWorkspace as makeTestWorkspace, runCli, writeBoard } from './helpers/workspace.mjs';
 
@@ -54,6 +55,8 @@ test('archive-completed applies archive, snapshots board, and removes archived t
   assert.equal(result.status, 0, result.stderr);
   assert.equal(payload.applied, true);
   assert.equal(fs.existsSync(payload.snapshotPath), true);
+  assert.equal(fs.existsSync(payload.workspaceSnapshotPath), true);
+  assert.match(zlib.gunzipSync(fs.readFileSync(payload.workspaceSnapshotPath)).toString('utf8'), /task-done/);
   assert.deepEqual(board.tasks.map((task) => task.id), ['task-active']);
   assert.deepEqual(archive.tasks.map((task) => task.id), ['task-done', 'task-released']);
   assert.equal(fs.existsSync(path.join(coordinationRoot, 'tasks', 'task-done.md')), false);

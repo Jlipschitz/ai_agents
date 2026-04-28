@@ -54,8 +54,18 @@ function collectSnapshotFiles(paths) {
   return [...primaryFiles, ...runtimeFiles];
 }
 
-export function buildWorkspaceSnapshot(paths) {
-  const snapshotPath = path.join(paths.snapshotsRoot, `workspace-${fileTimestamp()}.json.gz`);
+function safeSnapshotLabel(label) {
+  return String(label || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+export function buildWorkspaceSnapshot(paths, options = {}) {
+  const label = safeSnapshotLabel(options.label);
+  const snapshotName = label ? `workspace-${fileTimestamp()}-${label}.json.gz` : `workspace-${fileTimestamp()}.json.gz`;
+  const snapshotPath = path.join(paths.snapshotsRoot, snapshotName);
   const files = collectSnapshotFiles(paths);
   return {
     version: 1,
@@ -70,6 +80,12 @@ export function writeWorkspaceSnapshot(snapshot) {
   fs.mkdirSync(path.dirname(snapshot.snapshotPath), { recursive: true });
   const payload = Buffer.from(`${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
   fs.writeFileSync(snapshot.snapshotPath, zlib.gzipSync(payload));
+}
+
+export function writePreMutationWorkspaceSnapshot(paths, label) {
+  const snapshot = buildWorkspaceSnapshot(paths, { label: label ? `before-${label}` : 'before-mutation' });
+  writeWorkspaceSnapshot(snapshot);
+  return snapshot.snapshotPath;
 }
 
 export function runSnapshotWorkspace(argv, paths) {

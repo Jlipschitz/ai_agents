@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getFlagValue, getPositionals, hasFlag } from './args-utils.mjs';
 import { fileTimestamp, nowIso, writeJson } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
+import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 const CONFIG_TEMPLATES = {
   'generic-node': {
@@ -162,8 +163,9 @@ export function runTemplates(argv, context) {
     if (!template) throw new Error(`Unknown config template "${name}".`);
     const nextConfig = mergeTemplateValue(context.config, template.patch);
     const changes = diffValues(context.config, nextConfig);
-    const result = { ok: true, applied: false, template: name, changes, snapshotPath: null };
+    const result = { ok: true, applied: false, template: name, changes, snapshotPath: null, workspaceSnapshotPath: null };
     if (apply && changes.length) {
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, `template-config-${name}`);
       result.snapshotPath = snapshotFile(context.configPath, context.paths.snapshotsRoot, `config-before-template-${name}`);
       writeJson(context.configPath, nextConfig);
       result.applied = true;
@@ -178,8 +180,9 @@ export function runTemplates(argv, context) {
     const board = context.board && typeof context.board === 'object' ? context.board : { tasks: [] };
     board.tasks = Array.isArray(board.tasks) ? board.tasks : [];
     const exists = board.tasks.some((entry) => entry.id === task.id);
-    const result = { ok: !exists, applied: false, task, error: exists ? `Task ${task.id} already exists.` : null, snapshotPath: null };
+    const result = { ok: !exists, applied: false, task, error: exists ? `Task ${task.id} already exists.` : null, snapshotPath: null, workspaceSnapshotPath: null };
     if (!exists && apply) {
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(context.paths, `template-task-${task.id}`);
       result.snapshotPath = snapshotFile(context.paths.boardPath, context.paths.snapshotsRoot, `board-before-template-task-${task.id}`);
       board.tasks.push(task);
       writeJson(context.paths.boardPath, board);

@@ -48,6 +48,7 @@ test('templates apply is dry-run by default and snapshots before applying', () =
   assert.equal(applied.status, 0, applied.stderr);
   assert.equal(payload.applied, true);
   assert.equal(typeof payload.snapshotPath, 'string');
+  assert.equal(fs.existsSync(payload.workspaceSnapshotPath), true);
   assert.ok(config.verification.visualRequiredChecks.includes('visual:test'));
   assert.equal(fs.existsSync(payload.snapshotPath), true);
 });
@@ -73,4 +74,5 @@ test('templates create-task writes planned task only with --apply', () => {
   assert.equal(task.summary, 'Update docs');
   assert.deepEqual(task.claimedPaths, ['README.md', 'docs']);
   assert.equal(fs.existsSync(payload.snapshotPath), true);
+  assert.equal(fs.existsSync(payload.workspaceSnapshotPath), true);
 });

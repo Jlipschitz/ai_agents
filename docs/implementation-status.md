@@ -377,8 +377,9 @@ Current behavior:
 - Captures board, journal, messages, and runtime state files.
 - Writes compressed `workspace-<timestamp>.json.gz` files under `runtime/snapshots/` when applied.
 - Excludes existing snapshot files from the compressed payload.
+- Applied command-layer mutations now write compressed pre-mutation snapshots before board repair, rollback, config migration, policy pack application, template writes, and completed-task archiving.
 
-Follow-up: wire automatic workspace snapshots into broader mutation commands.
+Follow-up: wire automatic workspace snapshots into legacy core lifecycle mutations such as claim, progress, wait, review, done, and release.
 
 Main files:
 

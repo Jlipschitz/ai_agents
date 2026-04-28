@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add automatic workspace snapshots before broader mutation commands.
+1. Add automatic workspace snapshots before legacy core lifecycle mutations.
 
 ---
 
@@ -57,7 +57,7 @@ Next recommended work:
 - [ ] Per-repo onboarding checklist
 - [ ] Agent prompt generator
 - [x] Safe release gate
-- [~] Workspace snapshots — `snapshot-workspace` writes compressed snapshots; automatic coverage before every mutation remains open.
+- [~] Workspace snapshots — `snapshot-workspace` writes compressed snapshots and command-layer apply flows take pre-mutation snapshots; legacy core lifecycle mutations remain open.
 - [x] Lock diagnostics
 - [ ] Multi-repo dashboard
 - [x] Config migration

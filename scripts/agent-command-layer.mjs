@@ -19,7 +19,7 @@ import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoP
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
 import { runUpdateCoordinator } from './lib/update-commands.mjs';
-import { runSnapshotWorkspace } from './lib/workspace-snapshot-commands.mjs';
+import { runSnapshotWorkspace, writePreMutationWorkspaceSnapshot } from './lib/workspace-snapshot-commands.mjs';
 
 const ROOT = process.cwd();
 const DEFAULT_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
@@ -688,8 +688,9 @@ function runMigrateConfig(argv) {
   const migrated = buildMigratedConfig(config);
   const changes = diffConfig(config, migrated);
   const validation = validateAgentConfig(migrated, { root: ROOT });
-  const result = { ok: validation.valid, applied: false, configPath, targetVersion: CURRENT_CONFIG_VERSION, changes, validation, snapshotPath: null };
+  const result = { ok: validation.valid, applied: false, configPath, targetVersion: CURRENT_CONFIG_VERSION, changes, validation, snapshotPath: null, workspaceSnapshotPath: null };
   if (apply && validation.valid && changes.length) {
+    result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(getCoordinationPaths(), 'migrate-config');
     result.snapshotPath = snapshotConfig(configPath);
     writeJson(configPath, migrated);
     result.applied = true;
@@ -699,6 +700,7 @@ function runMigrateConfig(argv) {
     console.log(apply ? 'Config migration applied.' : 'Config migration dry run.');
     console.log(changes.length ? changes.map((change) => `- ${change.path}: ${JSON.stringify(change.before)} -> ${JSON.stringify(change.after)}`).join('\n') : '- no changes needed');
     if (!validation.valid) console.log(`Validation errors:\n${validation.errors.map((entry) => `- ${entry}`).join('\n')}`);
+    if (result.workspaceSnapshotPath) console.log(`Workspace snapshot: ${normalizePath(result.workspaceSnapshotPath) || result.workspaceSnapshotPath}`);
     if (result.snapshotPath) console.log(`Snapshot: ${normalizePath(result.snapshotPath) || result.snapshotPath}`);
   }
   return validation.valid ? 0 : 1;
@@ -760,7 +762,9 @@ function runPolicyPacks(argv) {
     const result = buildPolicyPackResult(packNames);
     result.applied = false;
     result.snapshotPath = null;
+    result.workspaceSnapshotPath = null;
     if (apply && result.ok && result.changes.length) {
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(getCoordinationPaths(), `policy-packs-${packNames.join('-')}`);
       result.snapshotPath = snapshotConfig(result.configPath);
       writeJson(result.configPath, result.nextConfig);
       result.applied = true;
@@ -772,6 +776,7 @@ function runPolicyPacks(argv) {
       if (result.unknown.length) console.log(`Unknown packs: ${result.unknown.join(', ')}`);
       console.log(result.changes.length ? result.changes.map((change) => `- ${change.path}: ${JSON.stringify(change.before)} -> ${JSON.stringify(change.after)}`).join('\n') : '- no changes needed');
       if (!result.validation.valid) console.log(`Validation errors:\n${result.validation.errors.map((entry) => `- ${entry}`).join('\n')}`);
+      if (result.workspaceSnapshotPath) console.log(`Workspace snapshot: ${normalizePath(result.workspaceSnapshotPath) || result.workspaceSnapshotPath}`);
       if (result.snapshotPath) console.log(`Snapshot: ${normalizePath(result.snapshotPath) || result.snapshotPath}`);
     }
     return result.ok ? 0 : 1;

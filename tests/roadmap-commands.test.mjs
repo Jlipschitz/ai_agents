@@ -58,6 +58,7 @@ test('inspect-board and repair-board handle safe board normalization', () => {
   const repairPayload = JSON.parse(repair.stdout);
   assert.ok(repairPayload.changes.some((entry) => entry.includes('initialized agents')));
   assert.equal(typeof repairPayload.snapshotPath, 'string');
+  assert.equal(fs.existsSync(repairPayload.workspaceSnapshotPath), true);
 
   const board = JSON.parse(fs.readFileSync(path.join(coordinationRoot, 'board.json'), 'utf8'));
   assert.equal(Array.isArray(board.agents), true);
@@ -75,6 +76,7 @@ test('rollback-state restores a board snapshot', () => {
 
   const rollback = run(root, coordinationRoot, ['rollback-state', '--to', snapshotPath, '--apply', '--json']);
   assert.equal(rollback.status, 0, rollback.stderr);
+  assert.equal(fs.existsSync(JSON.parse(rollback.stdout).workspaceSnapshotPath), true);
   const board = JSON.parse(fs.readFileSync(boardPath, 'utf8'));
   assert.equal(board.projectName, 'Rollback Test');
 });
@@ -233,7 +235,9 @@ test('migrate-config dry-runs and applies versioned defaults', () => {
   const nextConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   assert.equal(nextConfig.configVersion, 1);
   assert.deepEqual(nextConfig.artifacts.roots, ['artifacts']);
-  assert.equal(typeof JSON.parse(applied.stdout).snapshotPath, 'string');
+  const appliedPayload = JSON.parse(applied.stdout);
+  assert.equal(typeof appliedPayload.snapshotPath, 'string');
+  assert.equal(fs.existsSync(appliedPayload.workspaceSnapshotPath), true);
 });
 
 test('policy-packs list, inspect, dry-run, and apply reusable config patches', () => {
@@ -255,6 +259,7 @@ test('policy-packs list, inspect, dry-run, and apply reusable config patches', (
 
   const applied = run(root, coordinationRoot, ['policy-packs', 'apply', 'strict-ui', '--apply', '--json']);
   assert.equal(applied.status, 0, applied.stderr);
+  assert.equal(fs.existsSync(JSON.parse(applied.stdout).workspaceSnapshotPath), true);
   const nextConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   assert.equal(nextConfig.git.allowMainBranchClaims, false);
   assert.equal(nextConfig.checks['visual:test'].requireArtifacts, true);

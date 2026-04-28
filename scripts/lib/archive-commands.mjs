@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getNumberFlag, hasFlag } from './args-utils.mjs';
 import { fileTimestamp, nowIso, parseIsoMs, readJsonSafe, writeJson } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
+import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 const TERMINAL_STATUSES = new Set(['done', 'released']);
 const DEFAULT_OLDER_THAN_DAYS = 14;
@@ -63,6 +64,7 @@ export function buildArchiveCompletedPlan(paths, argv) {
     boardPath: paths.boardPath,
     archivePath,
     snapshotPath: null,
+    workspaceSnapshotPath: null,
     archivedTaskIds: archiveTasks.map((task) => task.id),
     archiveTasks,
     nextBoard: { ...board, tasks: keepTasks },
@@ -75,6 +77,7 @@ export function runArchiveCompleted(argv, paths) {
   const plan = buildArchiveCompletedPlan(paths, argv);
 
   if (apply && plan.archiveTasks.length) {
+    plan.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'archive-completed');
     plan.snapshotPath = snapshotBoard(paths);
     const existingArchive = readJsonSafe(plan.archivePath, { version: 1, tasks: [] });
     writeJson(plan.archivePath, mergeArchivedTasks(existingArchive, plan.archiveTasks));
@@ -91,6 +94,7 @@ export function runArchiveCompleted(argv, paths) {
     archivedTaskIds: plan.archivedTaskIds,
     archivePath: plan.archivePath,
     snapshotPath: plan.snapshotPath,
+    workspaceSnapshotPath: plan.workspaceSnapshotPath,
   };
 
   if (json) console.log(JSON.stringify(result, null, 2));
@@ -98,6 +102,7 @@ export function runArchiveCompleted(argv, paths) {
     console.log(apply ? 'Archive completed work applied.' : 'Archive completed work dry run.');
     console.log(`Archive: ${normalizePath(plan.archivePath) || plan.archivePath}`);
     console.log(plan.archivedTaskIds.length ? plan.archivedTaskIds.map((id) => `- ${id}`).join('\n') : '- no eligible completed tasks');
+    if (plan.workspaceSnapshotPath) console.log(`Workspace snapshot: ${normalizePath(plan.workspaceSnapshotPath) || plan.workspaceSnapshotPath}`);
     if (plan.snapshotPath) console.log(`Snapshot: ${normalizePath(plan.snapshotPath) || plan.snapshotPath}`);
   }
 

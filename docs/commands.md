@@ -622,6 +622,8 @@ npm run agents -- snapshot-workspace --apply --json
 
 The default mode is a dry run. Applied snapshots are written under `coordination/runtime/snapshots/workspace-<timestamp>.json.gz`. Runtime snapshot files are excluded from the compressed payload so snapshots do not recursively contain previous snapshots.
 
+Applied command-layer mutations such as board repair, rollback, config migration, policy packs, templates, and completed-task archiving also write a compressed pre-mutation workspace snapshot before changing state.
+
 ### `archive-completed`
 
 Moves old done or released tasks out of the active board into a dated archive file.

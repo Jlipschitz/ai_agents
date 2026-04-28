@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getFlagValue, hasFlag } from './args-utils.mjs';
 import { fileTimestamp, nowIso, readJsonDetailed, writeJson } from './file-utils.mjs';
 import { normalizePath, resolveRepoPath } from './path-utils.mjs';
+import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 function getConfiguredAgentIds(context) {
   const { config, defaultAgentIds } = context;
@@ -180,8 +181,9 @@ export function runRepairBoard(argv, context) {
   }
   const sourceBoard = exists ? board : createStarterBoard(context);
   const repair = repairBoardObject(sourceBoard, context);
-  const result = { ok: true, applied: apply, createdBoard: !exists, changes: exists ? repair.changes : ['created board'], snapshotPath: null };
+  const result = { ok: true, applied: apply, createdBoard: !exists, changes: exists ? repair.changes : ['created board'], snapshotPath: null, workspaceSnapshotPath: null };
   if (apply) {
+    result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'repair-board');
     result.snapshotPath = snapshotBoard(paths, 'before-repair');
     writeJson(paths.boardPath, repair.board);
   }
@@ -189,6 +191,7 @@ export function runRepairBoard(argv, context) {
   else {
     console.log(apply ? 'Board repair applied.' : 'Board repair dry run.');
     console.log(result.changes.length ? result.changes.map((entry) => `- ${entry}`).join('\n') : '- no changes needed');
+    if (result.workspaceSnapshotPath) console.log(`Workspace snapshot: ${normalizePath(result.workspaceSnapshotPath) || result.workspaceSnapshotPath}`);
     if (result.snapshotPath) console.log(`Snapshot: ${normalizePath(result.snapshotPath) || result.snapshotPath}`);
   }
   return 0;
@@ -228,14 +231,16 @@ export function runRollbackState(argv, context) {
     else console.error(message);
     return 1;
   }
-  const result = { ok: true, applied: apply, snapshotPath, backupPath: null };
+  const result = { ok: true, applied: apply, snapshotPath, backupPath: null, workspaceSnapshotPath: null };
   if (apply) {
+    result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'rollback-state');
     result.backupPath = snapshotBoard(paths, 'before-rollback');
     writeJson(paths.boardPath, parsed.value);
   }
   if (json) console.log(JSON.stringify(result, null, 2));
   else {
     console.log(apply ? `Rolled back board from ${normalizePath(snapshotPath) || snapshotPath}.` : `Rollback dry run: ${normalizePath(snapshotPath) || snapshotPath}`);
+    if (result.workspaceSnapshotPath) console.log(`Workspace snapshot: ${normalizePath(result.workspaceSnapshotPath) || result.workspaceSnapshotPath}`);
     if (result.backupPath) console.log(`Previous board snapshot: ${normalizePath(result.backupPath) || result.backupPath}`);
   }
   return 0;
