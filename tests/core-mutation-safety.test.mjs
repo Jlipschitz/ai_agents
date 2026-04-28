@@ -45,6 +45,7 @@ test('legacy core mutation dry-run leaves board, journal, and task docs untouche
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Dry run: no state was changed for claim\./);
   assert.deepEqual(after, before);
+  assert.equal(fs.existsSync(path.join(rootCoordination, 'runtime', 'snapshots')), false);
 });
 
 test('core state transaction restores board and journal when task doc sync fails', () => {
@@ -93,6 +94,7 @@ test('legacy core mutations append audit entries and dry-runs do not', () => {
     tasks: [],
   });
   const auditPath = path.join(coordinationRoot(root), 'runtime', 'audit.ndjson');
+  const snapshotsRoot = path.join(coordinationRoot(root), 'runtime', 'snapshots');
 
   const claim = runCli(root, ['claim', 'agent-1', 'task-audit', '--paths', 'src/audit', '--summary', 'Audit task']);
   assert.equal(claim.status, 0, claim.stderr);
@@ -101,11 +103,16 @@ test('legacy core mutations append audit entries and dry-runs do not', () => {
   assert.equal(entries.length, 1);
   assert.equal(entries[0].command, 'claim');
   assert.equal(entries[0].applied, true);
+  assert.match(entries[0].details.workspaceSnapshotPath, /before-claim/);
+  assert.equal(fs.existsSync(entries[0].details.workspaceSnapshotPath), true);
+  const snapshotCount = fs.readdirSync(snapshotsRoot).filter((entry) => entry.endsWith('.json.gz')).length;
+  assert.ok(snapshotCount >= 1);
 
   const dryRun = runCli(root, ['progress', 'agent-1', 'task-audit', 'dry run note', '--dry-run']);
   assert.equal(dryRun.status, 0, dryRun.stderr);
   const afterDryRun = fs.readFileSync(auditPath, 'utf8').trim().split(/\r?\n/);
   assert.equal(afterDryRun.length, 1);
+  assert.equal(fs.readdirSync(snapshotsRoot).filter((entry) => entry.endsWith('.json.gz')).length, snapshotCount);
 });
 
 test('command-layer release-bundle transaction restores output directory after write failure', () => {

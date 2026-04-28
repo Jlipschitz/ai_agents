@@ -531,7 +531,7 @@ Main files:
 
 ### Workspace snapshots
 
-Status: partially implemented in the command layer.
+Status: implemented for command-layer apply flows and lock-protected legacy core mutations.
 
 ```bash
 npm run agents:snapshot:workspace -- --apply
@@ -545,12 +545,14 @@ Current behavior:
 - Writes compressed `workspace-<timestamp>.json.gz` files under `runtime/snapshots/` when applied.
 - Excludes existing snapshot files from the compressed payload.
 - Applied command-layer mutations now write compressed pre-mutation snapshots before board repair, rollback, config migration, policy pack application, template writes, and completed-task archiving.
-
-Follow-up: wire automatic workspace snapshots into legacy core lifecycle mutations such as claim, progress, wait, review, done, and release.
+- Lock-protected legacy core mutations now write compressed pre-mutation snapshots before claim, progress, wait, review, verify, done, release, and other core state changes.
+- Core audit entries include the pre-mutation workspace snapshot path.
 
 Main files:
 
+- `scripts/agent-coordination-core.mjs`
 - `scripts/lib/workspace-snapshot-commands.mjs`
+- `tests/core-mutation-safety.test.mjs`
 - `tests/workspace-snapshot-commands.test.mjs`
 
 ### Check runner and artifacts
@@ -1662,7 +1664,6 @@ These roadmap items still need core, command-layer, or documentation work.
 - More configurable lifecycle and approval gates beyond the current `finish` verification/docs flags.
 - Richer `summarize` context from dependency, ownership, journal, and message history.
 - Core-native lock diagnostics instead of the standalone utility wrapper.
-- Automatic workspace snapshots for remaining legacy lifecycle mutations.
 - Rollback semantics for external side effects such as Git branch deletion.
 
 ### Planning, prompting, and release support

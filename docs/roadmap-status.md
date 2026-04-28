@@ -59,7 +59,7 @@ Next recommended work:
 - [~] Per-repo onboarding checklist — `doctor` reports repo-doc onboarding recommendations; profile-specific checklist expansion remains open.
 - [x] Agent prompt generator
 - [x] Safe release gate
-- [~] Workspace snapshots — `snapshot-workspace` writes compressed snapshots and command-layer apply flows take pre-mutation snapshots; legacy core lifecycle mutations remain open.
+- [x] Workspace snapshots
 - [x] Lock diagnostics
 - [x] Multi-repo dashboard
 - [x] Config migration

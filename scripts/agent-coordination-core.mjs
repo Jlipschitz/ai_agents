@@ -24,6 +24,7 @@ import { createTaskCompletionCommands } from './lib/task-completion-commands.mjs
 import { createTaskLifecycleCommands } from './lib/task-lifecycle-commands.mjs';
 import { createTaskMetadataCommands } from './lib/task-metadata-commands.mjs';
 import { ensureTaskMetadataDefaults, formatTaskDueAt } from './lib/task-metadata.mjs';
+import { writePreMutationWorkspaceSnapshot } from './lib/workspace-snapshot-commands.mjs';
 import { loadAgentConfig } from './validate-config.mjs';
 
 const ROOT = process.cwd();
@@ -53,6 +54,7 @@ const MESSAGES_PATH = path.join(COORDINATION_ROOT, 'messages.ndjson');
 const LOCK_PATH = path.join(RUNTIME_ROOT, 'state.lock.json');
 const WATCHER_STATUS_PATH = path.join(RUNTIME_ROOT, 'watcher.status.json');
 const AGENT_HEARTBEATS_ROOT = path.join(RUNTIME_ROOT, 'agent-heartbeats');
+const SNAPSHOTS_ROOT = path.join(RUNTIME_ROOT, 'snapshots');
 const AGENT_CONFIG_PATH = resolveAgentConfigPath();
 const AGENT_CONFIG = loadAgentCoordinationConfig(AGENT_CONFIG_PATH);
 const RAW_LOCK_WAIT_TIMEOUT_MS = Number.parseInt(String(process.env.AGENT_COORDINATION_LOCK_WAIT_MS ?? ''), 10);
@@ -694,11 +696,24 @@ function getCoreAuditPaths() {
   };
 }
 
+function getCoreWorkspaceSnapshotPaths() {
+  return {
+    coordinationRoot: COORDINATION_ROOT,
+    boardPath: BOARD_PATH,
+    journalPath: JOURNAL_PATH,
+    messagesPath: MESSAGES_PATH,
+    runtimeRoot: RUNTIME_ROOT,
+    watcherStatusPath: WATCHER_STATUS_PATH,
+    heartbeatsRoot: AGENT_HEARTBEATS_ROOT,
+    snapshotsRoot: SNAPSHOTS_ROOT,
+  };
+}
+
 function shouldAuditCoreMutation(commandName = currentCommandName) {
   return !CORE_AUDIT_EXCLUDED_COMMANDS.has(commandName);
 }
 
-function appendCoreMutationAudit(commandName = currentCommandName) {
+function appendCoreMutationAudit(commandName = currentCommandName, details = {}) {
   if (!shouldAuditCoreMutation(commandName)) {
     return;
   }
@@ -711,6 +726,7 @@ function appendCoreMutationAudit(commandName = currentCommandName) {
       args: process.argv.slice(2),
       workspace: COORDINATION_LABEL,
       terminalId: TERMINAL_ID,
+      ...details,
     },
   });
 }
@@ -1765,10 +1781,11 @@ async function withMutationLock(work) {
   await acquireMutationLock();
 
   try {
-    return await withStateTransaction([BOARD_PATH, TASKS_ROOT, JOURNAL_PATH, MESSAGES_PATH, auditLogPath(getCoreAuditPaths())], async () => {
+    return await withStateTransaction([BOARD_PATH, TASKS_ROOT, JOURNAL_PATH, MESSAGES_PATH, SNAPSHOTS_ROOT, auditLogPath(getCoreAuditPaths())], async () => {
+      const workspaceSnapshotPath = shouldAuditCoreMutation() ? writePreMutationWorkspaceSnapshot(getCoreWorkspaceSnapshotPaths(), currentCommandName) : null;
       const result = await work();
       if (result !== null) {
-        appendCoreMutationAudit();
+        appendCoreMutationAudit(currentCommandName, { workspaceSnapshotPath });
       }
       return result;
     });
