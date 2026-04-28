@@ -30,6 +30,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:watch:start': 'node ./scripts/agent-coordination.mjs watch-start',
   'agents:watch:status': 'node ./scripts/agent-coordination.mjs watch-status',
   'agents:watch:stop': 'node ./scripts/agent-coordination.mjs watch-stop',
+  'agents:watch:node': 'node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination.mjs',
   'agents2': 'node ./scripts/agent-coordination-two.mjs',
   'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
   'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -42,7 +43,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:watch:start': 'node ./scripts/agent-coordination-two.mjs watch-start',
   'agents2:watch:status': 'node ./scripts/agent-coordination-two.mjs watch-status',
   'agents2:watch:stop': 'node ./scripts/agent-coordination-two.mjs watch-stop',
-  'agents:watch:node': 'node ./scripts/agent-watch-loop.mjs',
+  'agents2:watch:node': 'node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination-two.mjs',
   'validate:agents-config': 'node ./scripts/validate-config.mjs',
 };
 
@@ -61,6 +62,10 @@ const FILES_TO_COPY = [
   'docs/commands.md',
   'docs/workflows.md',
 ];
+
+function isCliEntrypoint() {
+  return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === __filename;
+}
 
 export function parseArgs(argv) {
   const args = {
@@ -266,7 +271,7 @@ export function runCli(argv = process.argv.slice(2)) {
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isCliEntrypoint()) {
   try {
     process.exitCode = runCli();
   } catch (error) {
