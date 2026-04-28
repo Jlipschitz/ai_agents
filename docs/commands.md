@@ -577,6 +577,18 @@ npm run agents -- escalation-route --task task-id --json
 
 Routes are scored with active owners first, then previous task owners and CODEOWNERS. The command is read-only and includes the matched paths, source signals, and reasons for each suggested target.
 
+### `steal-work`
+
+Suggests stale, handoff, review, and unowned ready tasks that an idle agent can safely take over. With `--apply`, it assigns the best candidate or the selected `--task` and records a workspace snapshot plus audit entry.
+
+```bash
+npm run agents:work:steal -- agent-2
+npm run agents -- steal-work --agent agent-2 --stale-hours 12 --json
+npm run agents -- steal-work agent-2 --task task-id --apply --json
+```
+
+The default mode is read-only. Candidates require satisfied dependencies unless `--force` is passed. Applied steals move the previous owner to idle when that owner still points at the stolen task.
+
 ### `contracts`
 
 Manages contract files for shared API, schema, and cross-task interfaces under `coordination/contracts/`.

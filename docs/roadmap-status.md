@@ -113,7 +113,7 @@ Next recommended work:
 - [x] Reusable runbooks
 - [x] Semantic path grouping
 - [x] Task split validator
-- [ ] Work stealing
+- [x] Work stealing
 - [ ] Agent reputation/history
 - [ ] Cost/time accounting
 - [ ] Review queue

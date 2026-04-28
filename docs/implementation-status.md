@@ -926,6 +926,30 @@ Main files:
 - `scripts/lib/escalation-routing-commands.mjs`
 - `tests/escalation-routing.test.mjs`
 
+### Work stealing
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:work:steal -- agent-2
+npm run agents -- steal-work --agent agent-2 --stale-hours 12 --json
+npm run agents -- steal-work agent-2 --task task-id --apply --json
+```
+
+Current behavior:
+
+- Suggests handoff, review, stale active/blocked/waiting, and unowned ready planned tasks for an agent.
+- Requires dependencies to be satisfied unless `--force` is passed.
+- Scores candidates by handoff/review state, staleness, suggested owner, readiness, priority, severity, and due date.
+- Supports scope filtering with `--scope <path[,path...]>`.
+- Applies one reassignment only with `--apply`, writes a pre-mutation snapshot, idles the previous owner when appropriate, and appends an audit entry.
+- Is covered by read-only mutation guard tests.
+
+Main files:
+
+- `scripts/lib/work-stealing-commands.mjs`
+- `tests/work-stealing.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1354,7 +1378,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
-- Work stealing.
 - Agent reputation or history.
 - Cost/time accounting.
 - Dedicated review queue lifecycle.

@@ -37,6 +37,7 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('path-groups'));
   assert.ok(payload.commands.includes('split-validate'));
   assert.ok(payload.commands.includes('escalation-route'));
+  assert.ok(payload.commands.includes('steal-work'));
   assert.ok(payload.commands.includes('contracts'));
   assert.ok(payload.commands.includes('compact-state'));
   assert.ok(payload.commands.includes('prioritize'));
@@ -63,6 +64,7 @@ test('completions bash includes commands and repo task context', () => {
   assert.match(result.stdout, /path-groups/);
   assert.match(result.stdout, /split-validate/);
   assert.match(result.stdout, /escalation-route/);
+  assert.match(result.stdout, /steal-work/);
   assert.match(result.stdout, /contracts/);
   assert.match(result.stdout, /compact-state/);
   assert.match(result.stdout, /risk-score/);

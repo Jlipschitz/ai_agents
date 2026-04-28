@@ -40,6 +40,7 @@ import { taskMetadataLabels } from './lib/task-metadata.mjs';
 import { runTaskSplitValidation } from './lib/task-split-validator.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
 import { runUpdateCoordinator } from './lib/update-commands.mjs';
+import { runWorkSteal } from './lib/work-stealing-commands.mjs';
 import { runSnapshotWorkspace, writePreMutationWorkspaceSnapshot } from './lib/workspace-snapshot-commands.mjs';
 
 const ROOT = process.cwd();
@@ -77,6 +78,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'path-groups',
   'split-validate',
   'escalation-route',
+  'steal-work',
   'github-status',
   'templates',
   'archive-completed',
@@ -351,6 +353,7 @@ function expectedPackageScripts() {
       'agents:path:groups': 'ai-agents path-groups',
       'agents:split:validate': 'ai-agents split-validate',
       'agents:escalation:route': 'ai-agents escalation-route',
+      'agents:work:steal': 'ai-agents steal-work',
       'agents:github:status': 'ai-agents github-status',
       'agents:templates': 'ai-agents templates',
       'agents:archive:completed': 'ai-agents archive-completed',
@@ -415,6 +418,7 @@ function expectedPackageScripts() {
     'agents:path:groups': 'node ./scripts/agent-coordination.mjs path-groups',
     'agents:split:validate': 'node ./scripts/agent-coordination.mjs split-validate',
     'agents:escalation:route': 'node ./scripts/agent-coordination.mjs escalation-route',
+    'agents:work:steal': 'node ./scripts/agent-coordination.mjs steal-work',
     'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
     'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
     'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
@@ -470,6 +474,7 @@ function expectedPackageScripts() {
     'agents2:path:groups': 'node ./scripts/agent-coordination-two.mjs path-groups',
     'agents2:split:validate': 'node ./scripts/agent-coordination-two.mjs split-validate',
     'agents2:escalation:route': 'node ./scripts/agent-coordination-two.mjs escalation-route',
+    'agents2:work:steal': 'node ./scripts/agent-coordination-two.mjs steal-work',
     'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
     'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
     'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
@@ -1477,6 +1482,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'path-groups') status = runPathGroups(commandArgs, getTemplateCommandContext());
   else if (commandName === 'split-validate') status = runTaskSplitValidation(commandArgs, getTemplateCommandContext());
   else if (commandName === 'escalation-route') status = runEscalationRoutes(commandArgs, getImpactCommandContext());
+  else if (commandName === 'steal-work') status = runWorkSteal(commandArgs, getImpactCommandContext());
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
   else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());
