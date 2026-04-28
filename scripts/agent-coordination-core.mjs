@@ -4,6 +4,7 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
+import { CURRENT_BOARD_VERSION } from './lib/board-migration.mjs';
 import { createBoardValidation } from './lib/board-validation.mjs';
 import { createCommunicationCommands } from './lib/communication-commands.mjs';
 import { createCorePathAnalysis } from './lib/core-path-analysis.mjs';
@@ -1130,7 +1131,7 @@ function createInitialBoard() {
   const createdAt = nowIso();
 
   return {
-    version: 1,
+    version: CURRENT_BOARD_VERSION,
     workspace: COORDINATION_LABEL,
     createdAt,
     updatedAt: createdAt,

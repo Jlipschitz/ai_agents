@@ -444,12 +444,14 @@ Current behavior:
 - Checks dependencies are done or released.
 - Requires docs review when relevant docs are attached or `--require-doc-review` is used.
 
-### Board inspection, repair, and rollback
+### Board inspection, migration, repair, and rollback
 
 Status: implemented in the command layer.
 
 ```bash
 npm run agents -- inspect-board
+npm run agents -- migrate-board
+npm run agents -- migrate-board --apply
 npm run agents -- repair-board
 npm run agents -- repair-board --apply
 npm run agents -- rollback-state --list
@@ -459,9 +461,16 @@ npm run agents -- rollback-state --to latest --apply
 Current behavior:
 
 - `inspect-board` reports structural findings and task counts without mutating state.
+- `migrate-board` updates older or missing `board.json` schema fields to the current schema version.
 - `repair-board` is dry-run by default and applies only safe normalization with `--apply`.
-- Applied repairs snapshot the previous board under `runtime/snapshots/`.
+- Applied migrations and repairs snapshot the previous board under `runtime/snapshots/` and write a compressed pre-mutation workspace snapshot.
 - `rollback-state` lists snapshots and restores one only with `--apply`.
+
+Main files:
+
+- `scripts/lib/board-migration.mjs`
+- `scripts/lib/board-maintenance.mjs`
+- `tests/roadmap-commands.test.mjs`
 
 ### Workspace snapshots
 

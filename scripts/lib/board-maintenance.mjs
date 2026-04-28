@@ -3,30 +3,16 @@ import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
 import { appendAuditLog, auditLogPath } from './audit-log.mjs';
+import { createStarterBoard, migrateBoardObject } from './board-migration.mjs';
 import { printCommandError } from './error-formatting.mjs';
 import { fileTimestamp, nowIso, readJsonDetailed, writeJson } from './file-utils.mjs';
 import { normalizePath, resolveRepoPath } from './path-utils.mjs';
 import { withStateTransactionSync } from './state-transaction.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
-function getConfiguredAgentIds(context) {
+export function getConfiguredAgentIds(context) {
   const { config, defaultAgentIds } = context;
   return Array.isArray(config.agentIds) && config.agentIds.length ? config.agentIds.filter((entry) => typeof entry === 'string' && entry.trim()) : defaultAgentIds;
-}
-
-function createStarterBoard(context) {
-  const { config, root } = context;
-  const timestamp = nowIso();
-  return {
-    version: 1,
-    projectName: config.projectName || path.basename(root),
-    agents: getConfiguredAgentIds(context).map((id) => ({ id, status: 'idle', taskId: null, updatedAt: timestamp })),
-    tasks: [],
-    resources: [],
-    incidents: [],
-    accessRequests: [],
-    updatedAt: timestamp,
-  };
 }
 
 function readBoardDetailed(paths) {
@@ -115,12 +101,12 @@ function printBoardInspection(report, json = false) {
 }
 
 function repairBoardObject(board, context) {
-  const { config, root, validTaskStatuses } = context;
-  const repaired = board && typeof board === 'object' && !Array.isArray(board) ? JSON.parse(JSON.stringify(board)) : createStarterBoard(context);
-  const changes = [];
+  const { validTaskStatuses } = context;
+  const migration = migrateBoardObject(board, context);
+  if (!migration.ok) return { board: migration.board, changes: [], error: migration.error };
+  const repaired = migration.board;
+  const changes = [...migration.changes];
   const timestamp = nowIso();
-  if (!Number.isInteger(repaired.version)) { repaired.version = 1; changes.push('set version'); }
-  if (typeof repaired.projectName !== 'string' || !repaired.projectName.trim()) { repaired.projectName = config.projectName || path.basename(root); changes.push('set projectName'); }
   for (const key of ['tasks', 'resources', 'incidents', 'accessRequests']) {
     if (!Array.isArray(repaired[key])) { repaired[key] = []; changes.push(`initialized ${key}`); }
   }
@@ -181,6 +167,7 @@ export function runRepairBoard(argv, context) {
   }
   const sourceBoard = exists ? board : createStarterBoard(context);
   const repair = repairBoardObject(sourceBoard, context);
+  if (repair.error) return printCommandError(repair.error, { json, code: 'validation_error' });
   const result = { ok: true, applied: apply, createdBoard: !exists, changes: exists ? repair.changes : ['created board'], snapshotPath: null, workspaceSnapshotPath: null };
   if (apply) {
     withStateTransactionSync([paths.boardPath, paths.snapshotsRoot, auditLogPath(paths)], () => {
@@ -198,6 +185,54 @@ export function runRepairBoard(argv, context) {
   if (json) console.log(JSON.stringify(result, null, 2));
   else {
     console.log(apply ? 'Board repair applied.' : 'Board repair dry run.');
+    console.log(result.changes.length ? result.changes.map((entry) => `- ${entry}`).join('\n') : '- no changes needed');
+    if (result.workspaceSnapshotPath) console.log(`Workspace snapshot: ${normalizePath(result.workspaceSnapshotPath) || result.workspaceSnapshotPath}`);
+    if (result.snapshotPath) console.log(`Snapshot: ${normalizePath(result.snapshotPath) || result.snapshotPath}`);
+  }
+  return 0;
+}
+
+export function runMigrateBoard(argv, context) {
+  const { paths } = context;
+  const apply = hasFlag(argv, '--apply');
+  const json = hasFlag(argv, '--json');
+  const { exists, value: board, error } = readBoardDetailed(paths);
+  if (!exists) return printCommandError('Board not found. Run doctor --fix or init first.', { json, code: 'not_found' });
+  if (error) return printCommandError(`Cannot migrate malformed board JSON: ${error}`, { json, code: 'parse_error' });
+  if (!board || typeof board !== 'object' || Array.isArray(board)) return printCommandError('board.json must contain an object.', { json, code: 'validation_error' });
+
+  const migration = migrateBoardObject(board, context);
+  if (!migration.ok) return printCommandError(migration.error, { json, code: 'validation_error' });
+  const result = {
+    ok: true,
+    applied: false,
+    sourceVersion: migration.sourceVersion,
+    targetVersion: migration.targetVersion,
+    changes: migration.changes,
+    migrations: migration.migrations,
+    snapshotPath: null,
+    workspaceSnapshotPath: null,
+  };
+
+  if (apply && migration.changes.length) {
+    withStateTransactionSync([paths.boardPath, paths.snapshotsRoot, auditLogPath(paths)], () => {
+      result.workspaceSnapshotPath = writePreMutationWorkspaceSnapshot(paths, 'migrate-board');
+      result.snapshotPath = snapshotBoard(paths, 'before-migrate-board');
+      writeJson(paths.boardPath, migration.board);
+      appendAuditLog(paths, {
+        command: 'migrate-board',
+        applied: true,
+        summary: `Migrated board from version ${migration.sourceVersion} to ${migration.targetVersion}.`,
+        details: { changes: migration.changes, migrations: migration.migrations, snapshotPath: result.snapshotPath, workspaceSnapshotPath: result.workspaceSnapshotPath },
+      });
+    });
+    result.applied = true;
+  }
+
+  if (json) console.log(JSON.stringify(result, null, 2));
+  else {
+    console.log(result.applied ? 'Board migration applied.' : apply ? 'Board migration had no changes to apply.' : 'Board migration dry run.');
+    console.log(`Version: ${migration.sourceVersion} -> ${migration.targetVersion}`);
     console.log(result.changes.length ? result.changes.map((entry) => `- ${entry}`).join('\n') : '- no changes needed');
     if (result.workspaceSnapshotPath) console.log(`Workspace snapshot: ${normalizePath(result.workspaceSnapshotPath) || result.workspaceSnapshotPath}`);
     if (result.snapshotPath) console.log(`Snapshot: ${normalizePath(result.snapshotPath) || result.snapshotPath}`);

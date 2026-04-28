@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add board schema migrations and concurrency stress tests.
+1. Add concurrency stress tests and continue normalizing older command-specific diagnostics.
 
 ---
 
@@ -90,7 +90,7 @@ Next recommended work:
 - [ ] Secrets and sensitive-data guardrails
 - [~] Command audit log — command-layer apply flows and legacy core mutations append `runtime/audit.ndjson`; richer per-command details remain open.
 - [~] State transactions - lock-protected core state mutations and command-layer multi-file apply flows restore prior state on write failure; external side effects such as Git branch deletion remain open.
-- [ ] Schema migrations for board state
+- [x] Schema migrations for board state
 - [ ] Concurrency stress tests
 - [ ] Shell completions
 - [~] Policy enforcement mode — partially covered by Git branch policy and finish gates.
@@ -140,7 +140,7 @@ Next recommended work:
 - [x] Rename package for npm compatibility
 - [x] Add dedicated CLI entrypoint
 - [x] Keep existing wrappers as compatibility aliases
-- [~] Add version command — package and Node version exist; config/board schema version can be expanded.
+- [~] Add version command — package, Node, config, and board schema versions exist; CLI version output can be expanded.
 - [~] Add installation documentation — basic docs exist; npm-published docs remain open.
 
 ## Phase 9: Watcher and Runtime Diagnostics

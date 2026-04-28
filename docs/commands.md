@@ -640,6 +640,18 @@ npm run agents -- repair-board --apply
 
 The default mode is a dry run. Applied repairs can initialize missing top-level arrays, configured agent slots, and missing task array fields. Malformed JSON is not repaired automatically.
 
+### `migrate-board`
+
+Migrates `board.json` to the current board schema version and creates snapshots before writing when applied.
+
+```bash
+npm run agents:board:migrate
+npm run agents -- migrate-board --json
+npm run agents -- migrate-board --apply
+```
+
+The default mode is a dry run. Applied migrations update older or missing board schema fields, normalize configured agent slots, and append an audit entry.
+
 ### `rollback-state`
 
 Lists board snapshots or restores one.
@@ -665,7 +677,7 @@ npm run agents -- snapshot-workspace --apply --json
 
 The default mode is a dry run. Applied snapshots are written under `coordination/runtime/snapshots/workspace-<timestamp>.json.gz`. Runtime snapshot files are excluded from the compressed payload so snapshots do not recursively contain previous snapshots.
 
-Applied command-layer mutations such as board repair, rollback, config migration, policy packs, templates, and completed-task archiving also write a compressed pre-mutation workspace snapshot before changing state.
+Applied command-layer mutations such as board migration/repair, rollback, config migration, policy packs, templates, and completed-task archiving also write a compressed pre-mutation workspace snapshot before changing state.
 
 ### `archive-completed`
 

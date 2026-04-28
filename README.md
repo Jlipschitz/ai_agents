@@ -39,7 +39,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Supports optional `finish` safety gates for verification and docs review.
 - Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
 - Provides runtime diagnostics and cleanup via `watch-diagnose` and `cleanup-runtime`.
-- Provides release gating, board inspection, board repair, rollback, and check artifact capture commands.
+- Provides release gating, board inspection, board migration/repair, rollback, and check artifact capture commands.
 - Validates portable config with `npm run validate:agents-config` and the `validate`/`doctor` command layer.
 - Uses a cross-platform Node watcher by default for `watch-start`.
 - Bootstraps the coordinator into another repo with `npm run bootstrap`.
@@ -177,6 +177,7 @@ npm run agents:snapshot:workspace -- --apply
 npm run agents:backlog:import -- --from BACKLOG.md
 npm run agents:board:inspect
 npm run agents:board:repair
+npm run agents:board:migrate
 npm run agents:state:rollback -- --list
 npm run agents:run-check -- test
 npm run agents -- artifacts list

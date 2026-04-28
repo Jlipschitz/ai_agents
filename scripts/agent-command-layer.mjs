@@ -10,7 +10,8 @@ import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
 import { runBacklogImport } from './lib/backlog-import-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
-import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
+import { createStarterBoard } from './lib/board-migration.mjs';
+import { runInspectBoard, runMigrateBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
 import { exitCodeForError, printCliError, printCommandError } from './lib/error-formatting.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
@@ -37,6 +38,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'release-check',
   'inspect-board',
   'repair-board',
+  'migrate-board',
   'rollback-state',
   'run-check',
   'artifacts',
@@ -207,6 +209,7 @@ function getBacklogImportContext() {
     root: ROOT,
     config,
     paths: getCoordinationPaths(),
+    defaultAgentIds: DEFAULT_AGENT_IDS,
   };
 }
 
@@ -270,6 +273,7 @@ function expectedPackageScripts() {
       'agents:release:check': 'ai-agents release-check',
       'agents:board:inspect': 'ai-agents inspect-board',
       'agents:board:repair': 'ai-agents repair-board',
+      'agents:board:migrate': 'ai-agents migrate-board',
       'agents:state:rollback': 'ai-agents rollback-state',
       'agents:run-check': 'ai-agents run-check',
       'agents:branches': 'ai-agents branches',
@@ -317,6 +321,7 @@ function expectedPackageScripts() {
     'agents:release:check': 'node ./scripts/agent-coordination.mjs release-check',
     'agents:board:inspect': 'node ./scripts/agent-coordination.mjs inspect-board',
     'agents:board:repair': 'node ./scripts/agent-coordination.mjs repair-board',
+    'agents:board:migrate': 'node ./scripts/agent-coordination.mjs migrate-board',
     'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
     'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
     'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
@@ -355,6 +360,7 @@ function expectedPackageScripts() {
     'agents2:release:check': 'node ./scripts/agent-coordination-two.mjs release-check',
     'agents2:board:inspect': 'node ./scripts/agent-coordination-two.mjs inspect-board',
     'agents2:board:repair': 'node ./scripts/agent-coordination-two.mjs repair-board',
+    'agents2:board:migrate': 'node ./scripts/agent-coordination-two.mjs migrate-board',
     'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
     'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
     'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
@@ -372,7 +378,7 @@ function expectedPackageScripts() {
 
 function doctorFix() {
   const fixes = [];
-  const { configPath } = loadConfig();
+  const { configPath, config } = loadConfig();
   const paths = getCoordinationPaths();
   if (!fs.existsSync(configPath)) { createStarterConfig(configPath); fixes.push(`created ${normalizePath(configPath)}`); }
   if (appendUniqueLines(path.join(ROOT, '.gitignore'), ['', '# Local AI agent coordination runtime state', '/coordination/', '/coordination-two/', '/artifacts/'])) fixes.push('updated .gitignore');
@@ -380,7 +386,7 @@ function doctorFix() {
   for (const dir of [paths.coordinationRoot, paths.tasksRoot, paths.runtimeRoot, paths.heartbeatsRoot]) {
     if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); fixes.push(`created ${normalizePath(dir)}`); }
   }
-  if (!fs.existsSync(paths.boardPath)) { writeJson(paths.boardPath, { version: 1, projectName: path.basename(ROOT), tasks: [], resources: [], incidents: [], updatedAt: new Date().toISOString() }); fixes.push(`created ${normalizePath(paths.boardPath)}`); }
+  if (!fs.existsSync(paths.boardPath)) { writeJson(paths.boardPath, createStarterBoard({ config, root: ROOT, paths, defaultAgentIds: DEFAULT_AGENT_IDS })); fixes.push(`created ${normalizePath(paths.boardPath)}`); }
   if (ensureFile(paths.journalPath, '# Coordination Journal\n\n')) fixes.push(`created ${normalizePath(paths.journalPath)}`);
   if (ensureFile(paths.messagesPath, '')) fixes.push(`created ${normalizePath(paths.messagesPath)}`);
   const { packageJsonPath, packageJson } = loadPackageJson();
@@ -1258,6 +1264,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'release-check') status = runReleaseCheck(commandArgs);
   else if (commandName === 'inspect-board') status = runInspectBoard(commandArgs, getBoardMaintenanceContext());
   else if (commandName === 'repair-board') status = runRepairBoard(commandArgs, getBoardMaintenanceContext());
+  else if (commandName === 'migrate-board') status = runMigrateBoard(commandArgs, getBoardMaintenanceContext());
   else if (commandName === 'rollback-state') status = runRollbackState(commandArgs, getBoardMaintenanceContext());
   else if (commandName === 'run-check') status = runCheckCommand(commandArgs);
   else if (commandName === 'artifacts') status = runArtifactsCommand(commandArgs);

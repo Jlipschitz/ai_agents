@@ -43,6 +43,7 @@ const COMMANDS = {
   'ownership-map': ['ownership-map [--json]', 'Show active path ownership and overlaps.'],
   'inspect-board': ['inspect-board [--json]', 'Inspect board structure and task counts.'],
   'repair-board': ['repair-board [--apply] [--json]', 'Apply safe board repairs.'],
+  'migrate-board': ['migrate-board [--apply] [--json]', 'Migrate board.json to the current board schema version.'],
   'rollback-state': ['rollback-state --list|--to <snapshot> [--apply] [--json]', 'List or restore board snapshots.'],
   'migrate-config': ['migrate-config [--apply] [--json]', 'Add current optional config defaults.'],
   'policy-packs': ['policy-packs <list|show|apply> [pack] [--apply] [--json]', 'Inspect or apply reusable policy packs.'],

@@ -66,6 +66,47 @@ test('inspect-board and repair-board handle safe board normalization', () => {
   assert.equal(Array.isArray(board.tasks[0].claimedPaths), true);
 });
 
+test('migrate-board dry-runs and applies board schema migrations', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  writeBoard(root, {
+    version: 1,
+    projectName: 'Board Migration Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    agents: [{ id: 'agent-1', status: 'active', taskId: 'task-old' }],
+    tasks: [{ id: 'task-old', status: 'active', ownerId: 'agent-1', claimedPaths: ['src/old'] }],
+    resources: [],
+    incidents: [],
+  });
+  const boardPath = path.join(coordinationRoot, 'board.json');
+  const before = fs.readFileSync(boardPath, 'utf8');
+
+  const dryRun = run(root, coordinationRoot, ['migrate-board', '--json']);
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  const dryRunPayload = JSON.parse(dryRun.stdout);
+  assert.equal(dryRunPayload.applied, false);
+  assert.equal(dryRunPayload.sourceVersion, 1);
+  assert.equal(dryRunPayload.targetVersion, 2);
+  assert.ok(dryRunPayload.changes.some((entry) => entry.includes('set version 2')));
+  assert.equal(fs.readFileSync(boardPath, 'utf8'), before);
+
+  const applied = run(root, coordinationRoot, ['migrate-board', '--apply', '--json']);
+  assert.equal(applied.status, 0, applied.stderr);
+  const appliedPayload = JSON.parse(applied.stdout);
+  const board = JSON.parse(fs.readFileSync(boardPath, 'utf8'));
+  const auditPath = path.join(coordinationRoot, 'runtime', 'audit.ndjson');
+
+  assert.equal(appliedPayload.applied, true);
+  assert.equal(board.version, 2);
+  assert.equal(board.workspace, 'coordination');
+  assert.equal(Array.isArray(board.plans), true);
+  assert.equal(typeof board.createdAt, 'string');
+  assert.equal(board.tasks[0].effort, 'unknown');
+  assert.equal(board.tasks[0].lastOwnerId, 'agent-1');
+  assert.equal(fs.existsSync(appliedPayload.workspaceSnapshotPath), true);
+  assert.equal(fs.existsSync(appliedPayload.snapshotPath), true);
+  assert.match(fs.readFileSync(auditPath, 'utf8'), /"command":"migrate-board"/);
+});
+
 test('rollback-state restores a board snapshot', () => {
   const { root, coordinationRoot } = makeWorkspace();
   writeBoard(root, { projectName: 'Rollback Test', tasks: [], resources: [], incidents: [], updatedAt: '2026-01-01T00:00:00.000Z' });

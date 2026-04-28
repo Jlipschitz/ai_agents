@@ -53,10 +53,16 @@ Top-level fields commonly include:
 
 - `version`
 - `projectName`
+- `workspace`
+- `createdAt`
 - `tasks`
 - `resources`
 - `incidents`
+- `accessRequests`
+- `plans`
 - `updatedAt`
+
+Current board schema version: `2`.
 
 Resource fields commonly include:
 
@@ -110,7 +116,7 @@ Guidance:
 - Treat `board.json` as machine-managed state.
 - Avoid manual edits unless recovering from corruption.
 - Back up the coordination folder before repairing manually.
-- Use `validate`, `doctor`, and future repair tools before editing directly.
+- Use `validate`, `doctor`, `inspect-board`, `migrate-board`, `repair-board`, and `rollback-state` before editing directly.
 
 ## `journal.md`
 
@@ -223,7 +229,7 @@ Each line is a JSON object with:
 - `summary`
 - `details`
 
-Current coverage includes command-layer apply flows such as board repair/rollback, config migration, policy packs, templates, completed-task archiving, and Markdown backlog import. Legacy core lifecycle mutations are planned follow-up coverage.
+Current coverage includes command-layer apply flows such as board migration/repair/rollback, config migration, policy packs, templates, completed-task archiving, and Markdown backlog import. Legacy core lifecycle mutations are planned follow-up coverage.
 
 ### `runtime/watcher.status.json`
 
@@ -307,13 +313,10 @@ npm run agents -- artifacts inspect artifacts/checks/example.log
 
 ## Archive State
 
-Archiving completed tasks is planned but not implemented yet.
-
-Potential future files:
+Completed-task archiving writes dated task archive files.
 
 ```text
 archive/tasks-YYYY-MM.json
-archive/journal-YYYY-MM.md
 ```
 
 Purpose:
@@ -345,7 +348,7 @@ Before manual recovery:
 3. Run validation and doctor checks.
 4. Inspect `board.json`, `journal.md`, and `messages.ndjson`.
 5. Use `lock-status` before clearing locks.
-6. Prefer future `repair-board`, `inspect-board`, or `rollback-state` commands when available.
+6. Prefer `inspect-board`, `migrate-board`, `repair-board`, or `rollback-state` commands when available.
 
 Useful commands:
 

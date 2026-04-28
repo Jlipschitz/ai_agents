@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
 import { appendAuditLog, auditLogPath } from './audit-log.mjs';
+import { createStarterBoard } from './board-migration.mjs';
 import { nowIso, readJsonSafe, writeJson } from './file-utils.mjs';
 import { normalizePath, resolveRepoPath } from './path-utils.mjs';
 import { withStateTransactionSync } from './state-transaction.mjs';
@@ -69,6 +70,9 @@ function taskFromTodo(todo, ownerId) {
     status: 'planned',
     ownerId: null,
     suggestedOwnerId: ownerId || null,
+    rationale: '',
+    effort: 'unknown',
+    issueKey: null,
     claimedPaths: [todo.path],
     dependencies: [],
     waitingOn: [],
@@ -78,6 +82,8 @@ function taskFromTodo(todo, ownerId) {
     relevantDocs: [todo.path],
     docsReviewedAt: null,
     docsReviewedBy: null,
+    lastOwnerId: null,
+    lastHandoff: null,
     importSource: { type: 'markdown-todo', path: todo.path, line: todo.line },
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -105,7 +111,7 @@ function hasExistingImport(tasks, todo) {
 }
 
 export function buildBacklogImportPlan(argv, context) {
-  const board = readJsonSafe(context.paths.boardPath, { version: 1, projectName: context.config.projectName || path.basename(context.root), tasks: [] });
+  const board = readJsonSafe(context.paths.boardPath, createStarterBoard(context));
   board.tasks = Array.isArray(board.tasks) ? board.tasks : [];
   const ownerId = getFlagValue(argv, '--owner', '');
   const todos = collectTodos(context.root, argv);
