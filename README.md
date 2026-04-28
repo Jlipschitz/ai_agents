@@ -26,4 +26,4 @@ npm run agents2:init
 npm run agents2:doctor
 ```
 
-Edit `agent-coordination.config.json` for the target app before using the planner heavily. The included config is a working example from Taskbun and should be adapted for each repository.
+Edit `agent-coordination.config.json` for the target app before using the planner heavily. The included config is a working example from a sample app and should be adapted for each repository.
