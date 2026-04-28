@@ -195,6 +195,21 @@ Next recommended work:
 - [x] Add license
 - [x] Add examples directory
 
+## Phase 16: Command Registry, Contracts, and Agent Handoff
+
+- [ ] Central command registry
+- [ ] Doctor command wiring validation
+- [ ] End-to-end CLI smoke tests
+- [ ] Fixture-board generator
+- [ ] Command output contract tests
+- [ ] Agent handoff bundle
+- [ ] Next command recommendation engine
+- [ ] State size and performance budget
+- [ ] Upgrade and migration compatibility tests
+- [ ] Security and privacy redaction checks
+- [ ] Generated repo health status file
+- [ ] Minimal mode and command groups
+
 ---
 
 ## Recently Completed Implementation Files

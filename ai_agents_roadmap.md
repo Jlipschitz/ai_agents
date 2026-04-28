@@ -1524,6 +1524,272 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 
 ---
 
+## Phase 16: Command Registry, Contracts, and Agent Handoff
+
+- [ ] **Central command registry**
+
+  Add a single source of truth for command metadata:
+
+  ```text
+  scripts/lib/command-registry.mjs
+  ```
+
+  Each command entry should define fields such as:
+
+  ```js
+  {
+    name: 'health-score',
+    aliases: ['health'],
+    npmScript: 'agents:health:score',
+    category: 'analysis',
+    readOnly: true,
+    mutates: false,
+    json: true,
+    help: 'Scores workspace health.',
+    examples: []
+  }
+  ```
+
+  Generate or validate all command-facing surfaces from this registry:
+
+  - `package.json` scripts
+  - `bootstrap.mjs` default scripts
+  - command router wiring
+  - help output
+  - shell completions
+  - `docs/commands.md`
+  - README command references
+  - command tests
+
+- [ ] **Doctor command wiring validation**
+
+  Add a `doctor` check that validates command wiring end to end:
+
+  - Every `package.json` `agents:*` script maps to a known command.
+  - Every `bootstrap` `DEFAULT_PACKAGE_SCRIPTS` entry exists in `package.json` or the registry.
+  - Every documented command exists in the router.
+  - Every command has help text.
+  - Every mutating command supports dry-run or requires `--apply`.
+  - Every command that advertises `--json` returns valid JSON.
+
+- [ ] **End-to-end CLI smoke tests**
+
+  Add a dedicated smoke runner:
+
+  ```bash
+  node tests/smoke/run-all-commands.mjs
+  ```
+
+  It should create a temporary repo, run bootstrap, then exercise:
+
+  - `agents:init`
+  - `agents:doctor`
+  - `agents:status`
+  - `agents:plan`
+  - `agents:board:inspect`
+  - `agents:health:score`
+  - `agents:prompt`
+  - `agents:ask`
+  - `agents:release:check`
+
+  Mutation commands should be tested in both dry-run and apply modes against fixture boards.
+
+- [ ] **Fixture-board generator**
+
+  Add:
+
+  ```bash
+  npm run agents -- fixture-board blocked --out coordination/board.json
+  ```
+
+  Supported fixtures should include:
+
+  - Empty board
+  - Healthy board
+  - Blocked board
+  - Stale board
+  - Large board
+  - Malformed board
+  - Multi-agent conflict board
+  - Release-ready board
+  - Approval-required board
+  - Contract-sensitive board
+
+  Use the generator for tests, demos, documentation screenshots, and debugging.
+
+- [ ] **Command output contract tests**
+
+  Add stable contract tests for agent-parsed command output:
+
+  - `--json` shape
+  - Exit codes
+  - Stderr vs stdout behavior
+  - Dry-run vs apply behavior
+  - Machine-readable error payloads
+
+  Prioritize:
+
+  - `status --json`
+  - `summarize --json`
+  - `pick --json`
+  - `health-score --json`
+  - `risk-score --json`
+  - `prompt --json`
+  - `ask --json`
+
+- [ ] **Agent handoff bundle**
+
+  Add:
+
+  ```bash
+  npm run agents -- handoff-bundle agent-1 task-id
+  ```
+
+  The bundle should include:
+
+  - Current task state
+  - Latest notes
+  - Files owned
+  - Known blockers
+  - Verification status
+  - Docs reviewed
+  - Recommended next command
+  - Copy/paste prompt for the next agent
+
+- [ ] **Next command recommendation engine**
+
+  Add:
+
+  ```bash
+  npm run agents -- next
+  npm run agents -- next agent-2
+  ```
+
+  The command should print an exact recommended next command and the reason.
+
+  Example:
+
+  ```text
+  Recommended:
+  npm run agents -- verify agent-2 task-api unit pass "npm test passed"
+
+  Reason:
+  Task is in review and missing unit verification.
+  ```
+
+- [ ] **State size and performance budget**
+
+  Define explicit limits and latency targets for accumulated state:
+
+  - Recommended maximum `board.json` size
+  - Journal and message compaction thresholds
+  - Artifact index size thresholds
+  - Archive thresholds
+  - Command latency targets
+
+  Add:
+
+  ```bash
+  npm run agents -- state-size
+  ```
+
+  Example output:
+
+  ```text
+  board.json: 245 KB
+  journal.md: 1.8 MB
+  messages.ndjson: 400 KB
+  artifacts index: 2,391 entries
+  recommended action: compact-state
+  ```
+
+- [ ] **Upgrade and migration compatibility tests**
+
+  Add first-class tests for self-update safety:
+
+  - Bootstrap an old version into a fixture repo.
+  - Modify local config, docs, and runtime state.
+  - Run `update-coordinator` from the new version.
+  - Verify local config, docs, and runtime state are preserved.
+  - Verify scripts are updated.
+  - Verify `doctor` passes afterward.
+
+- [ ] **Security and privacy redaction checks**
+
+  Add:
+
+  ```bash
+  npm run agents -- redact-check
+  ```
+
+  It should scan:
+
+  - `board.json`
+  - `journal.md`
+  - `messages.ndjson`
+  - Task docs
+  - Release bundles
+  - Prompt output
+  - PR summaries
+
+  Add config support:
+
+  ```json
+  {
+    "privacy": {
+      "redactPatterns": ["token", "secret", "password", "api_key"],
+      "blockExternalSummaries": true
+    }
+  }
+  ```
+
+- [ ] **Generated repo health status file**
+
+  Add:
+
+  ```bash
+  npm run agents -- status-badge --apply
+  ```
+
+  It should write:
+
+  ```text
+  docs/ai-agents-status.md
+  ```
+
+  Include:
+
+  - Active tasks
+  - Blocked tasks
+  - Health score
+  - Release readiness
+  - Last updated timestamp
+
+- [ ] **Minimal mode and command groups**
+
+  Add command group views:
+
+  ```bash
+  ai-agents help basic
+  ai-agents help advanced
+  ai-agents help release
+  ai-agents help safety
+  ```
+
+  Also support config-driven command filtering:
+
+  ```json
+  {
+    "ui": {
+      "commandMode": "basic"
+    }
+  }
+  ```
+
+  This keeps the CLI approachable as advanced commands continue to grow.
+
+---
+
 ## Suggested Build Order
 
 ### Immediate Priorities
@@ -1543,6 +1809,9 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 13. Complete command reference
 14. Dedicated CLI entrypoint
 15. Per-command help
+16. Central command registry
+17. Doctor command wiring validation
+18. End-to-end CLI smoke tests
 
 ### Next Priorities
 
@@ -1562,6 +1831,12 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 14. Config explanation command
 15. Board repair command
 16. Git branch safety policies
+17. Fixture-board generator
+18. Command output contract tests
+19. Agent handoff bundle
+20. Next command recommendation engine
+21. Upgrade and migration compatibility tests
+22. Security and privacy redaction checks
 
 ### Later / Advanced
 
@@ -1580,3 +1855,6 @@ This roadmap tracks planned improvements for `ai_agents`, from easier installati
 13. Public npm release
 14. Signed releases
 15. Long-term examples and templates
+16. State size and performance budget
+17. Generated repo health status file
+18. Minimal mode and command groups
