@@ -80,7 +80,7 @@ Next recommended work:
 - [~] Agent SLA warnings — stale active work appears in `summarize`.
 - [~] Ownership reviews — `ownership-review` flags broad claims and CODEOWNERS boundary crossings; periodic automation remains open.
 - [~] Test impact selection — `test-impact` maps paths to configured checks; deeper dependency-aware selection remains open.
-- [ ] Repo bootstrap profiles
+- [x] Repo bootstrap profiles
 - [~] Portable npm package — package shape and bin exist; publishing remains open.
 - [ ] TUI dashboard
 - [~] JSON API mode — available for key commands, not yet universal.

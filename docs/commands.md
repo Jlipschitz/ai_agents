@@ -271,16 +271,23 @@ Copies the coordinator into another repository, adds package scripts, creates st
 
 ```bash
 npm run bootstrap -- --target C:\path\to\repo
+npm run bootstrap -- --target ../frontend-app --profile react
+npm run bootstrap -- --target ../api-service --profile backend --skip-doctor
 npm run bootstrap -- --target ../other-repo --dry-run
 npm run bootstrap -- --target ../other-repo --force
+npm run bootstrap -- --list-profiles
 ```
 
 Flags:
 
 - `--target <path>`: target repository path.
+- `--profile <name>`: apply a repo profile after copying files. Supported profiles are `react`, `backend`, `docs`, and `release`.
+- `--list-profiles`: print the available bootstrap profiles.
 - `--dry-run`: print intended operations without writing files.
 - `--force`: replace existing copied coordinator files.
 - `--skip-doctor`: skip the final `agents:doctor` run.
+
+Profiles merge into `agent-coordination.config.json` without removing existing local values. `react` adds visual-impact paths, visual verification checks, and UI planning defaults. `backend` adds API/database risk paths and test checks. `docs` adds README/docs risk and planning defaults. `release` adds stricter branch defaults, release approval expectations, build checks, and longer artifact retention.
 
 ### `validate:agents-config`
 

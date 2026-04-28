@@ -11,6 +11,8 @@ Status: implemented as a standalone script.
 ```bash
 npm run bootstrap -- --target C:\path\to\repo
 npm run bootstrap -- --target ../target-repo --dry-run
+npm run bootstrap -- --target ../frontend-app --profile react
+npm run bootstrap -- --list-profiles
 ```
 
 Implemented behavior:
@@ -19,6 +21,8 @@ Implemented behavior:
 - Adds standard `package.json` scripts.
 - Adds coordination runtime folders to `.gitignore`.
 - Creates starter app notes when missing.
+- Applies optional repo bootstrap profiles: `react`, `backend`, `docs`, and `release`.
+- Merges profile config into existing `agent-coordination.config.json` without deleting local values.
 - Runs `npm run agents:doctor` unless `--skip-doctor` is passed.
 - Installs the command layer, planner sizing helper, lock diagnostics, and the new command shortcuts into target repos.
 
@@ -1216,7 +1220,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
 - GitHub write/API integration for issues, PR comments, labels, and checklists.
-- Repo bootstrap profiles.
 - TUI dashboard.
 - Universal JSON output for every command.
 
