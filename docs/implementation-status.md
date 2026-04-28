@@ -339,6 +339,29 @@ Current behavior:
 - Applied repairs snapshot the previous board under `runtime/snapshots/`.
 - `rollback-state` lists snapshots and restores one only with `--apply`.
 
+### Workspace snapshots
+
+Status: partially implemented in the command layer.
+
+```bash
+npm run agents:snapshot:workspace -- --apply
+npm run agents -- snapshot-workspace --apply --json
+```
+
+Current behavior:
+
+- Dry-run by default.
+- Captures board, journal, messages, and runtime state files.
+- Writes compressed `workspace-<timestamp>.json.gz` files under `runtime/snapshots/` when applied.
+- Excludes existing snapshot files from the compressed payload.
+
+Follow-up: wire automatic workspace snapshots into broader mutation commands.
+
+Main files:
+
+- `scripts/lib/workspace-snapshot-commands.mjs`
+- `tests/workspace-snapshot-commands.test.mjs`
+
 ### Check runner and artifacts
 
 Status: expanded in the command layer and core verification command.

@@ -598,6 +598,18 @@ npm run agents -- rollback-state --to coordination/runtime/snapshots/board-examp
 
 Rollback applies only with `--apply`. Before replacing `board.json`, it snapshots the current board.
 
+### `snapshot-workspace`
+
+Creates a compressed workspace snapshot containing board, journal, messages, and runtime state files.
+
+```bash
+npm run agents:snapshot:workspace
+npm run agents -- snapshot-workspace --json
+npm run agents -- snapshot-workspace --apply --json
+```
+
+The default mode is a dry run. Applied snapshots are written under `coordination/runtime/snapshots/workspace-<timestamp>.json.gz`. Runtime snapshot files are excluded from the compressed payload so snapshots do not recursively contain previous snapshots.
+
 ### `archive-completed`
 
 Moves old done or released tasks out of the active board into a dated archive file.

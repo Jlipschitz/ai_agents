@@ -62,6 +62,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
   'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
   'agents:update': 'node ./scripts/agent-coordination.mjs update-coordinator',
+  'agents:snapshot:workspace': 'node ./scripts/agent-coordination.mjs snapshot-workspace',
   'agents2': 'node ./scripts/agent-coordination-two.mjs',
   'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
   'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -98,6 +99,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
   'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
   'agents2:update': 'node ./scripts/agent-coordination-two.mjs update-coordinator',
+  'agents2:snapshot:workspace': 'node ./scripts/agent-coordination-two.mjs snapshot-workspace',
   'validate:agents-config': 'node ./scripts/validate-config.mjs',
 };
 

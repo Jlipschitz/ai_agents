@@ -19,6 +19,7 @@ import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoP
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
 import { runUpdateCoordinator } from './lib/update-commands.mjs';
+import { runSnapshotWorkspace } from './lib/workspace-snapshot-commands.mjs';
 
 const ROOT = process.cwd();
 const DEFAULT_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
@@ -48,6 +49,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'templates',
   'archive-completed',
   'update-coordinator',
+  'snapshot-workspace',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -263,6 +265,7 @@ function expectedPackageScripts() {
       'agents:templates': 'ai-agents templates',
       'agents:archive:completed': 'ai-agents archive-completed',
       'agents:update': 'ai-agents update-coordinator',
+      'agents:snapshot:workspace': 'ai-agents snapshot-workspace',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -308,6 +311,7 @@ function expectedPackageScripts() {
     'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
     'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
     'agents:update': 'node ./scripts/agent-coordination.mjs update-coordinator',
+    'agents:snapshot:workspace': 'node ./scripts/agent-coordination.mjs snapshot-workspace',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -344,6 +348,7 @@ function expectedPackageScripts() {
     'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
     'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
     'agents2:update': 'node ./scripts/agent-coordination-two.mjs update-coordinator',
+    'agents2:snapshot:workspace': 'node ./scripts/agent-coordination-two.mjs snapshot-workspace',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -1211,5 +1216,6 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
   else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());
   else if (commandName === 'update-coordinator') status = runUpdateCoordinator(commandArgs, { root: ROOT });
+  else if (commandName === 'snapshot-workspace') status = runSnapshotWorkspace(commandArgs, getCoordinationPaths());
   process.exit(status);
 }

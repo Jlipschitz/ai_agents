@@ -28,6 +28,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Provides config and task templates with dry-run/apply flows.
 - Archives old completed work out of the active board with snapshots.
 - Updates copied coordinator files from a source package or checkout while preserving local config and runtime state.
+- Writes compressed workspace snapshots of board, journal, messages, and runtime state.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
 - Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
@@ -166,6 +167,7 @@ npm run agents:github:status
 npm run agents:templates -- list
 npm run agents:archive:completed
 npm run agents:update
+npm run agents:snapshot:workspace -- --apply
 npm run agents:board:inspect
 npm run agents:board:repair
 npm run agents:state:rollback -- --list
