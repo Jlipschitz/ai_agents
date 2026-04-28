@@ -74,7 +74,7 @@ npm run agents -- doctor --json --fix
 Output includes:
 
 - Config validation result.
-- Git state summary.
+- Git state and policy summary.
 - Coordination path summary.
 - Runtime file existence checks.
 - Optional applied fixes.
@@ -110,8 +110,27 @@ The preflight reports:
 - Dirty files.
 - Untracked files.
 - Merge/rebase state.
+- Configured Git claim policy.
 
-Merge or rebase-in-progress state blocks the claim.
+Blocking rules currently include:
+
+- Merge in progress.
+- Rebase in progress.
+- Detached HEAD when `git.allowDetachedHead` is false.
+- `main`/`master` claims when `git.allowMainBranchClaims` is false.
+- Branch names that do not match `git.allowedBranchPatterns` when that allowlist is non-empty.
+
+Config example:
+
+```json
+{
+  "git": {
+    "allowMainBranchClaims": false,
+    "allowDetachedHead": false,
+    "allowedBranchPatterns": ["agent/*", "feature/*", "fix/*"]
+  }
+}
+```
 
 ### Board summarize
 
@@ -149,26 +168,30 @@ Status: expanded.
 Current coverage:
 
 - Config validation accepts valid config.
-- Config validation reports duplicate agent IDs, invalid sizing, and empty rule keywords.
+- Config validation reports duplicate agent IDs, invalid sizing, empty rule keywords, and Git policy type errors.
 - Bootstrap dry-run does not mutate the target.
 - Bootstrap writes package scripts, `.gitignore`, copied files, and starter docs.
 - `doctor --fix` creates starter runtime files.
 - `doctor --json` emits machine-readable health data.
 - `summarize --for-chat` prints compact board state.
 - `validate --json` emits machine-readable config validation.
+- Read-only command-layer commands do not mutate board, journal, or messages files.
+- Git policy blocks disallowed main-branch claims and non-matching branch patterns.
+- Git policy allows matching branch patterns.
 
 Main files:
 
 - `tests/config-validation.test.mjs`
 - `tests/bootstrap.test.mjs`
 - `tests/command-layer.test.mjs`
+- `tests/read-only-commands.test.mjs`
+- `tests/git-policy.test.mjs`
 
 Follow-up tests still needed:
 
 - Planner lane sizing.
-- Deeper Git status parsing fixtures.
 - Lock behavior.
-- Read-only commands not mutating runtime state.
+- Broader read-only mutation coverage for core read-only commands.
 
 ### Cross-platform watcher
 
@@ -224,8 +247,7 @@ These roadmap items still need core or deeper implementation work:
 
 - `doctor --fix` integration inside the core implementation rather than the command layer.
 - `doctor --json` integration inside the core implementation rather than the command layer.
-- Deeper Git policy enforcement from config, such as branch allowlists and detached-head blocking.
 - More complete lifecycle helpers with verification/doc-review gates.
-- Full read-only mutation tests for every read-only command.
+- Broader read-only mutation tests for every core read-only command.
 - Lock diagnostics and lock repair commands.
 - `summarize` output that includes journal/message-derived stale-work context.
