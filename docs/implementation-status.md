@@ -377,6 +377,25 @@ Current behavior:
 - `doctor --json` includes `configSuggestions` with actionable improvement recommendations.
 - Built-in short aliases route `s`, `d`, `p`, and `sum` to `status`, `doctor`, `plan`, and `summarize`.
 
+### Per-command help and global flags
+
+Status: implemented through entrypoint preprocessing and command-layer help routing.
+
+Current behavior:
+
+- `ai-agents <command> --help` prints focused command help.
+- `ai-agents help <command>` prints the same focused help.
+- Built-in aliases resolve in help output, such as `help sum`.
+- Entrypoints support `--config`, `--root`, `--coordination-dir`, `--coordination-root`, `--verbose`, `--quiet`, and `--no-color` before command dispatch.
+
+Main files:
+
+- `scripts/lib/global-flags.mjs`
+- `scripts/lib/help-command.mjs`
+- `bin/ai-agents.mjs`
+- `scripts/agent-coordination.mjs`
+- `scripts/agent-coordination-two.mjs`
+
 ### Config migration and policy packs
 
 Status: implemented in the command layer.

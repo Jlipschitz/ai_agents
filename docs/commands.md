@@ -18,6 +18,27 @@ npm run agents2 -- <command>
 
 `agents` uses the `coordination/` workspace by default. `agents2` uses `coordination-two/` by default.
 
+## Global Flags
+
+The CLI accepts these flags before or after the command, as long as they appear before a command-specific `--` separator:
+
+```text
+--config <path>
+--root <path>
+--coordination-dir <dir>
+--coordination-root <path>
+--verbose
+--quiet
+--no-color
+```
+
+Every command can show focused help:
+
+```bash
+npm run agents -- claim --help
+npm run agents -- help claim
+```
+
 ## Read-only Commands
 
 These commands should not mutate runtime state.

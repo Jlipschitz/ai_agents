@@ -196,6 +196,39 @@ test('short command aliases route through the command layer and core', () => {
   assert.match(status.stdout, /task-one/);
 });
 
+test('per-command help supports command flags and help aliases', () => {
+  const root = makeWorkspace();
+  const claim = run(root, ['claim', '--help']);
+  const summary = run(root, ['help', 'sum']);
+
+  assert.equal(claim.status, 0, claim.stderr);
+  assert.match(claim.stdout, /Usage:/);
+  assert.match(claim.stdout, /claim <agent>/);
+  assert.equal(summary.status, 0, summary.stderr);
+  assert.match(summary.stdout, /summarize/);
+});
+
+test('global coordination-dir flag overrides default coordination root', () => {
+  const root = makeWorkspace();
+  const result = run(root, ['--coordination-dir', 'custom-coordination', 'doctor', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).coordinationRoot, path.join(root, 'custom-coordination'));
+});
+
+test('global config flag is honored before explain-config routing', () => {
+  const root = makeWorkspace();
+  const configPath = path.join(root, 'alt-agent-config.json');
+  const config = JSON.parse(fs.readFileSync(path.join(root, 'agent-coordination.config.json'), 'utf8'));
+  config.projectName = 'Alternate Config';
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = run(root, ['--config', configPath, 'explain-config', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).projectName, 'Alternate Config');
+});
+
 test('start records the message as the task summary and progress note', () => {
   const root = makeWorkspace();
   writeBoard(root, {

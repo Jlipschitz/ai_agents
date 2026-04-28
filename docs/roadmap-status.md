@@ -15,9 +15,8 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 Next recommended work:
 
 1. Add broader command snapshot tests and fixture repos.
-2. Add per-command help and consistent global flags.
-3. Add stale branch cleanup and multi-branch awareness.
-4. Add CODEOWNERS ownership reviews and test-impact selection.
+2. Add stale branch cleanup and multi-branch awareness.
+3. Add CODEOWNERS ownership reviews and test-impact selection.
 
 ---
 
@@ -161,8 +160,8 @@ Next recommended work:
 
 ## Phase 11: Command UX Improvements
 
-- [ ] Add per-command help
-- [ ] Add consistent global flags
+- [x] Add per-command help
+- [~] Add consistent global flags — global parser supports the requested flags; verbose/quiet behavior can become richer.
 - [ ] Add better error formatting
 - [x] Add short command aliases
 - [ ] Add interactive mode

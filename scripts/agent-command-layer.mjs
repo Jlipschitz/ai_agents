@@ -9,6 +9,7 @@ import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
+import { hasHelpFlag, runCommandHelp } from './lib/help-command.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
@@ -1062,10 +1063,26 @@ function shouldHandle(commandName, argv) {
 export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   const argv = process.argv.slice(2);
   const rawCommandName = argv[0] || 'help';
+  if (rawCommandName === '--help' || rawCommandName === '-h') {
+    process.argv = [process.argv[0], process.argv[1], 'help'];
+    await importCore();
+    return;
+  }
+
   const commandName = COMMAND_ALIASES.get(rawCommandName) || rawCommandName;
   if (commandName !== rawCommandName) process.argv[2] = commandName;
   const commandArgs = argv.slice(1);
   const normalizedCoordinatorPath = resolveRepoPath(coordinatorScriptPath, 'scripts/agent-coordination.mjs');
+  const cli = process.env.AGENT_COORDINATION_CLI_ENTRYPOINT || 'agents';
+
+  if (commandName === 'help' && commandArgs[0]) {
+    const helpTarget = COMMAND_ALIASES.get(commandArgs[0]) || commandArgs[0];
+    process.exit(runCommandHelp(commandName, [helpTarget], { cli }));
+  }
+
+  if (hasHelpFlag(commandArgs)) {
+    process.exit(runCommandHelp(commandName, commandArgs, { cli }));
+  }
 
   if (commandName === 'claim') {
     const preflightStatus = runGitPreflightForClaim();
