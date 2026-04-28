@@ -49,6 +49,30 @@ Main files:
 - `scripts/lib/install-manifest.mjs`
 - `tests/update-commands.test.mjs`
 
+### Backlog importer
+
+Status: partially implemented in the command layer.
+
+```bash
+npm run agents:backlog:import -- --from BACKLOG.md
+npm run agents -- backlog-import --from README.md,docs --apply --json
+```
+
+Current behavior:
+
+- Dry-run by default.
+- Scans Markdown files or directories for unchecked task-list items and `TODO:` lines.
+- Creates planned tasks with stable import source metadata.
+- Skips existing imports on rerun.
+- Writes a compressed pre-mutation workspace snapshot before applied board changes.
+
+Follow-up: add GitHub issue import once auth and write/update policy are defined.
+
+Main files:
+
+- `scripts/lib/backlog-import-commands.mjs`
+- `tests/backlog-import-commands.test.mjs`
+
 ### Runtime and CI baseline
 
 Status: implemented.

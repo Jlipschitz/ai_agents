@@ -6,6 +6,7 @@ import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
 import { runArchiveCompleted } from './lib/archive-commands.mjs';
+import { runBacklogImport } from './lib/backlog-import-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
@@ -50,6 +51,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'archive-completed',
   'update-coordinator',
   'snapshot-workspace',
+  'backlog-import',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -196,6 +198,15 @@ function getTemplateCommandContext() {
   };
 }
 
+function getBacklogImportContext() {
+  const { config } = loadConfig();
+  return {
+    root: ROOT,
+    config,
+    paths: getCoordinationPaths(),
+  };
+}
+
 function createStarterConfig(configPath) {
   writeJson(configPath, {
     configVersion: 1,
@@ -266,6 +277,7 @@ function expectedPackageScripts() {
       'agents:archive:completed': 'ai-agents archive-completed',
       'agents:update': 'ai-agents update-coordinator',
       'agents:snapshot:workspace': 'ai-agents snapshot-workspace',
+      'agents:backlog:import': 'ai-agents backlog-import',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -312,6 +324,7 @@ function expectedPackageScripts() {
     'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
     'agents:update': 'node ./scripts/agent-coordination.mjs update-coordinator',
     'agents:snapshot:workspace': 'node ./scripts/agent-coordination.mjs snapshot-workspace',
+    'agents:backlog:import': 'node ./scripts/agent-coordination.mjs backlog-import',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -349,6 +362,7 @@ function expectedPackageScripts() {
     'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
     'agents2:update': 'node ./scripts/agent-coordination-two.mjs update-coordinator',
     'agents2:snapshot:workspace': 'node ./scripts/agent-coordination-two.mjs snapshot-workspace',
+    'agents2:backlog:import': 'node ./scripts/agent-coordination-two.mjs backlog-import',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -1222,5 +1236,6 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());
   else if (commandName === 'update-coordinator') status = runUpdateCoordinator(commandArgs, { root: ROOT });
   else if (commandName === 'snapshot-workspace') status = runSnapshotWorkspace(commandArgs, getCoordinationPaths());
+  else if (commandName === 'backlog-import') status = runBacklogImport(commandArgs, getBacklogImportContext());
   process.exit(status);
 }

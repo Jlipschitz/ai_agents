@@ -73,7 +73,7 @@ Next recommended work:
 - [~] Agent checklists — partially covered by `finish` verification/docs gates.
 - [~] Human approval gates — partially covered by `finish` safety gates.
 - [ ] Incident mode
-- [ ] Backlog importer
+- [~] Backlog importer — Markdown TODO import exists; GitHub issue import remains open.
 - [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; write/API integration remains open.
 - [ ] State compaction
 - [~] Agent SLA warnings — stale active work appears in `summarize`.

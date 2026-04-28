@@ -52,6 +52,7 @@ const COMMANDS = {
   'archive-completed': ['archive-completed [--older-than-days <days>] [--apply] [--json]', 'Archive old done/released tasks out of board.json.'],
   'update-coordinator': ['update-coordinator [--source <path>] [--include-docs] [--apply] [--json]', 'Update copied coordinator files while preserving config and runtime state.'],
   'snapshot-workspace': ['snapshot-workspace [--apply] [--json]', 'Write a compressed snapshot of board, journal, messages, and runtime state.'],
+  'backlog-import': ['backlog-import [--from <path[,path...]>] [--owner <agent>] [--apply] [--json]', 'Import Markdown TODOs as planned tasks.'],
   'explain-config': ['explain-config [--json] [--config <path>] [--root <path>]', 'Explain active config and environment overrides.'],
   'request-access': ['request-access <agent> <task-id> <scope> <reason>', 'Request shared resource or elevated operation access.'],
   'grant-access': ['grant-access <request-id> [--by <agent>] [--note <text>]', 'Grant an access request.'],

@@ -290,6 +290,17 @@ npm run agents -- update-coordinator --source C:\path\to\ai_agents --apply --jso
 
 The default mode is a dry run. The command copies coordinator scripts, the public CLI, the schema, and `scripts/lib/` helper files. It does not copy `agent-coordination.config.json`, `coordination/`, `coordination-two/`, runtime files, artifacts, or docs unless `--include-docs` is passed.
 
+### `backlog-import`
+
+Imports Markdown TODOs into planned tasks.
+
+```bash
+npm run agents:backlog:import -- --from BACKLOG.md
+npm run agents -- backlog-import --from README.md,docs --owner agent-2 --apply --json
+```
+
+The default mode is a dry run. The importer recognizes unchecked Markdown task-list items and `TODO:` lines, skips existing imports by stable source metadata, and writes a compressed pre-mutation workspace snapshot before applied board changes.
+
 ### `policy-packs`
 
 Lists, inspects, or applies reusable config policy packs.
