@@ -10,6 +10,7 @@ import { ensureDirectory, fileExists, isPidAlive, nowIso } from './lib/file-util
 import { normalizePath, resolveRepoPath } from './lib/path-utils.mjs';
 import { createSupportOperationCommands } from './lib/support-operation-commands.mjs';
 import { createTaskCompletionCommands } from './lib/task-completion-commands.mjs';
+import { createPlannerCommands } from './lib/planner-commands.mjs';
 
 const ROOT = process.cwd();
 const COORDINATION_ROOT_OVERRIDE = String(process.env.AGENT_COORDINATION_ROOT ?? '').trim();
@@ -305,6 +306,32 @@ const {
   note,
   saveBoard,
   slugify,
+  withMutationLock,
+});
+const { planCommand } = createPlannerCommands({
+  agentIds: AGENT_IDS,
+  appendJournalLine,
+  appAgentNotesDoc: APP_AGENT_NOTES_DOC,
+  classifyGitPaths,
+  coordinationReadmePath: COORDINATION_README_PATH,
+  defaultAgentIds: DEFAULT_AGENT_IDS,
+  defaultDomainNames: DEFAULT_DOMAIN_NAMES,
+  domainRules: DOMAIN_RULES,
+  getBoard,
+  getGitChangedPaths,
+  inferDomainsFromPaths,
+  inferRelevantDocs,
+  plannedTaskStatus: PLANNED_TASK_STATUS,
+  planningAgentSizing: PLANNING_AGENT_SIZING,
+  planningDataFallbackPaths: PLANNING_DATA_FALLBACK_PATHS,
+  planningDocsFallbackPaths: PLANNING_DOCS_FALLBACK_PATHS,
+  planningProductFallbackPaths: PLANNING_PRODUCT_FALLBACK_PATHS,
+  planningVerifyFallbackPaths: PLANNING_VERIFY_FALLBACK_PATHS,
+  saveBoard,
+  slugify,
+  visualRequiredChecks: VISUAL_REQUIRED_CHECKS,
+  visualSuiteDefaultPaths: VISUAL_SUITE_DEFAULT_PATHS,
+  visualSuiteUpdateChecks: VISUAL_SUITE_UPDATE_CHECKS,
   withMutationLock,
 });
 
@@ -2636,383 +2663,6 @@ function slugify(value) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 40);
-}
-
-function mergePaths(...pathGroups) {
-  return normalizePaths(pathGroups.flat());
-}
-
-function getSuggestedAgent(index) {
-  return AGENT_IDS[index] ?? AGENT_IDS[AGENT_IDS.length - 1] ?? DEFAULT_AGENT_IDS[index] ?? DEFAULT_AGENT_IDS[0];
-}
-
-function hasAnyToken(tokens, keywords) {
-  return keywords.some((keyword) => tokens.includes(keyword));
-}
-
-function collectExplicitMatchedDomains(goal) {
-  const loweredGoal = goal.toLowerCase();
-  return DOMAIN_RULES.filter((rule) => rule.keywords.some((keyword) => loweredGoal.includes(keyword)));
-}
-
-function collectMatchedDomains(goal) {
-  const matched = collectExplicitMatchedDomains(goal);
-  if (matched.length) {
-    return matched;
-  }
-
-  const defaultDomains = DOMAIN_RULES.filter((rule) => DEFAULT_DOMAIN_NAMES.includes(rule.name));
-  return defaultDomains.length ? defaultDomains : DOMAIN_RULES.slice(0, 1);
-}
-
-function buildPlanSizing({ goal, gitBuckets, effectiveDomains, explicitDomains, complexityScore }) {
-  const tokens = tokenizeForDocs(goal);
-  const dataSignal = Boolean(gitBuckets.data.length) || hasAnyToken(tokens, PLANNING_AGENT_SIZING.dataKeywords);
-  const verifySignal = Boolean(gitBuckets.verify.length) || hasAnyToken(tokens, PLANNING_AGENT_SIZING.verifyKeywords);
-  const docsSignal = Boolean(gitBuckets.docs.length) || hasAnyToken(tokens, PLANNING_AGENT_SIZING.docsKeywords);
-  const productKeywordSignal = Boolean(gitBuckets.product.length) || hasAnyToken(tokens, PLANNING_AGENT_SIZING.productKeywords);
-  const explicitNonDocsDomain = explicitDomains.some((rule) => rule.name !== 'docs');
-  const docsOnly = docsSignal && !dataSignal && !verifySignal && !productKeywordSignal && !explicitNonDocsDomain;
-  const dataOnly = dataSignal && !docsSignal && !verifySignal && !productKeywordSignal && !explicitDomains.some((rule) => rule.scopes.product.length);
-  const verifyOnly = verifySignal && !docsSignal && !dataSignal && !productKeywordSignal && !explicitDomains.some((rule) => rule.scopes.product.length);
-  const productSignal = !docsOnly && !dataOnly && !verifyOnly;
-  const mediumComplexity = complexityScore >= PLANNING_AGENT_SIZING.mediumComplexityScore;
-  const largeComplexity = complexityScore >= PLANNING_AGENT_SIZING.largeComplexityScore;
-  const visualConfigured = VISUAL_REQUIRED_CHECKS.length > 0 || VISUAL_SUITE_UPDATE_CHECKS.length > 0;
-  const lanes = [];
-  const reasons = [];
-
-  if (docsOnly) {
-    lanes.push('docs');
-    reasons.push('docs-only goal');
-  } else if (verifyOnly) {
-    lanes.push('verify');
-    reasons.push('verification-only goal');
-  } else if (dataOnly) {
-    lanes.push('data');
-    reasons.push('data-only goal');
-  } else {
-    if (productSignal) {
-      lanes.push('product');
-      reasons.push(productKeywordSignal ? 'product/UI signal' : 'default implementation lane');
-    }
-
-    if (dataSignal) {
-      lanes.push('data');
-      reasons.push('data/backend signal');
-    }
-
-    if (verifySignal || (visualConfigured && productSignal && (dataSignal || mediumComplexity))) {
-      lanes.push('verify');
-      reasons.push(verifySignal ? 'verification signal' : 'medium UI/data complexity');
-    }
-
-    if (docsSignal || largeComplexity) {
-      lanes.push('docs');
-      reasons.push(docsSignal ? 'documentation signal' : 'large complexity needs docs cleanup');
-    }
-  }
-
-  const dedupedLanes = [...new Set(lanes)];
-  const maxAgents = Math.max(1, Math.min(PLANNING_AGENT_SIZING.maxAgents, AGENT_IDS.length || DEFAULT_AGENT_IDS.length));
-  const minAgents = Math.max(1, Math.min(PLANNING_AGENT_SIZING.minAgents, maxAgents));
-  const cappedLanes = dedupedLanes.slice(0, maxAgents);
-
-  if (cappedLanes.length < minAgents) {
-    for (const lane of ['product', 'data', 'verify', 'docs']) {
-      if (cappedLanes.length >= minAgents) {
-        break;
-      }
-      if (!cappedLanes.includes(lane)) {
-        cappedLanes.push(lane);
-      }
-    }
-  }
-
-  return {
-    lanes: cappedLanes,
-    agentCount: cappedLanes.length,
-    availableAgentCount: AGENT_IDS.length,
-    reason: reasons.join('; ') || 'minimal default split',
-    complexityScore,
-  };
-}
-
-function buildPlanProposal(goal, options = {}) {
-  const gitState = options.gitChanges ? getGitChangedPaths() : { available: false, paths: [] };
-  const pathDomains = gitState.paths.length ? inferDomainsFromPaths(gitState.paths) : [];
-  const explicitKeywordDomains = collectExplicitMatchedDomains(goal);
-  const keywordDomains = explicitKeywordDomains.length ? explicitKeywordDomains : collectMatchedDomains(goal);
-  const combinedDomains = [...new Set([...pathDomains, ...keywordDomains])];
-  const matchedDomains = DOMAIN_RULES.filter((rule) => combinedDomains.includes(rule.name));
-  const effectiveDomains = matchedDomains.length ? matchedDomains : keywordDomains;
-  const createdAt = nowIso();
-  const goalSlug = slugify(goal) || 'work';
-  const planId = `plan-${goalSlug}-${Date.now()}`;
-
-  const gitBuckets = classifyGitPaths(gitState.paths);
-
-  const productPaths = mergePaths(
-    gitBuckets.product,
-    effectiveDomains.flatMap((rule) => rule.scopes.product),
-    PLANNING_PRODUCT_FALLBACK_PATHS
-  );
-  const dataPaths = mergePaths(
-    gitBuckets.data,
-    effectiveDomains.flatMap((rule) => rule.scopes.data),
-    PLANNING_DATA_FALLBACK_PATHS
-  );
-  const verifyPaths = mergePaths(
-    gitBuckets.verify,
-    effectiveDomains.flatMap((rule) => rule.scopes.verify),
-    VISUAL_SUITE_DEFAULT_PATHS,
-    PLANNING_VERIFY_FALLBACK_PATHS
-  );
-  const docsPaths = mergePaths(
-    gitBuckets.docs,
-    effectiveDomains.flatMap((rule) => rule.scopes.docs),
-    PLANNING_DOCS_FALLBACK_PATHS,
-    [APP_AGENT_NOTES_DOC, COORDINATION_README_PATH]
-  );
-
-  const focusLabel = effectiveDomains.map((rule) => rule.name).join(', ');
-  const gitSummary = gitState.available
-    ? gitState.paths.length
-      ? `Git changed paths influenced the split (${gitState.paths.length} file(s)).`
-      : 'Git was available, but no changed paths were detected.'
-    : 'Git changed paths were not available, so the planner used repo heuristics only.';
-  const complexityScore = goal.toLowerCase().split(/\s+/).filter(Boolean).length + effectiveDomains.length * 2 + gitState.paths.length;
-  const productEffort = complexityScore >= 12 ? 'large' : 'medium';
-  const dataEffort = complexityScore >= 14 ? 'large' : 'medium';
-  const verifyEffort = complexityScore >= 10 ? 'medium' : 'small';
-  const docsEffort = gitBuckets.docs.length > 3 ? 'medium' : 'small';
-  const sizing = buildPlanSizing({
-    goal,
-    gitBuckets,
-    effectiveDomains,
-    explicitDomains: explicitKeywordDomains,
-    complexityScore,
-  });
-
-  const taskByLane = {
-    product: {
-      id: `${goalSlug}-product`,
-      ownerId: null,
-      lastOwnerId: null,
-      suggestedOwnerId: getSuggestedAgent(0),
-      status: PLANNED_TASK_STATUS,
-      summary: `Product surface changes for: ${goal}`,
-      claimedPaths: productPaths,
-      dependencies: [],
-      verification: ['typecheck'],
-      verificationLog: [],
-      relevantDocs: inferRelevantDocs(productPaths, `Product surface changes for: ${goal}`, ['typecheck']),
-      docsReviewedAt: null,
-      docsReviewedBy: null,
-      rationale: `UI-facing work was grouped around ${focusLabel}. ${gitSummary}`,
-      effort: productEffort,
-      createdAt,
-      updatedAt: createdAt,
-      lastHandoff: null,
-      planId,
-      notes: [
-        {
-          at: createdAt,
-          agent: 'planner',
-          kind: 'plan',
-          body: `Planner split generated from goal. Focus domains: ${focusLabel}. ${gitSummary}`,
-        },
-      ],
-    },
-    data: {
-      id: `${goalSlug}-data`,
-      ownerId: null,
-      lastOwnerId: null,
-      suggestedOwnerId: getSuggestedAgent(1),
-      status: PLANNED_TASK_STATUS,
-      summary: `Data, state, and integration work for: ${goal}`,
-      claimedPaths: dataPaths,
-      dependencies: [`${goalSlug}-product`],
-      verification: ['typecheck'],
-      verificationLog: [],
-      relevantDocs: inferRelevantDocs(dataPaths, `Data, state, and integration work for: ${goal}`, ['typecheck']),
-      docsReviewedAt: null,
-      docsReviewedBy: null,
-      rationale: `State and API files were isolated so contract changes stay coordinated in one lane before verification starts. ${gitSummary}`,
-      effort: dataEffort,
-      createdAt,
-      updatedAt: createdAt,
-      lastHandoff: null,
-      planId,
-      notes: [
-        {
-          at: createdAt,
-          agent: 'planner',
-          kind: 'plan',
-          body: `Planner assigned data-facing scope. Focus domains: ${focusLabel}. ${gitSummary}`,
-        },
-      ],
-    },
-    verify: {
-      id: `${goalSlug}-verify`,
-      ownerId: null,
-      lastOwnerId: null,
-      suggestedOwnerId: getSuggestedAgent(2),
-      status: PLANNED_TASK_STATUS,
-      summary: `Verification and visual coverage for: ${goal}`,
-      claimedPaths: verifyPaths,
-      dependencies: [`${goalSlug}-product`, `${goalSlug}-data`],
-      verification: [...VISUAL_SUITE_UPDATE_CHECKS, 'typecheck'],
-      verificationLog: [],
-      relevantDocs: inferRelevantDocs(verifyPaths, `Verification and visual coverage for: ${goal}`, [...VISUAL_SUITE_UPDATE_CHECKS, 'typecheck']),
-      docsReviewedAt: null,
-      docsReviewedBy: null,
-      rationale: `Visual routes, fixtures, and snapshots were grouped separately so intentional UI changes refresh the visual suite before final verification. ${gitSummary}`,
-      effort: verifyEffort,
-      createdAt,
-      updatedAt: createdAt,
-      lastHandoff: null,
-      planId,
-      notes: [
-        {
-          at: createdAt,
-          agent: 'planner',
-          kind: 'plan',
-          body: `Planner assigned verification scope. Focus domains: ${focusLabel}. ${gitSummary}`,
-        },
-      ],
-    },
-    docs: {
-      id: `${goalSlug}-docs`,
-      ownerId: null,
-      lastOwnerId: null,
-      suggestedOwnerId: getSuggestedAgent(3),
-      status: PLANNED_TASK_STATUS,
-      summary: `Documentation and coordination cleanup for: ${goal}`,
-      claimedPaths: docsPaths,
-      dependencies: [`${goalSlug}-product`, `${goalSlug}-data`],
-      verification: ['docs-review'],
-      verificationLog: [],
-      relevantDocs: inferRelevantDocs(docsPaths, `Documentation and coordination cleanup for: ${goal}`, ['docs-review']),
-      docsReviewedAt: null,
-      docsReviewedBy: null,
-      rationale: `Docs and coordination updates are split out so delivery notes can track the final merged behavior rather than drafts. ${gitSummary}`,
-      effort: docsEffort,
-      createdAt,
-      updatedAt: createdAt,
-      lastHandoff: null,
-      planId,
-      notes: [
-        {
-          at: createdAt,
-          agent: 'planner',
-          kind: 'plan',
-          body: `Planner assigned documentation and wrap-up scope. Focus domains: ${focusLabel}. ${gitSummary}`,
-        },
-      ],
-    },
-  };
-
-  const tasks = sizing.lanes
-    .map((lane) => taskByLane[lane])
-    .filter(Boolean);
-  const selectedTaskIds = new Set(tasks.map((task) => task.id));
-
-  for (const [index, task] of tasks.entries()) {
-    task.suggestedOwnerId = getSuggestedAgent(index);
-    task.dependencies = task.dependencies.filter((dependencyId) => selectedTaskIds.has(dependencyId));
-  }
-
-  return {
-    id: planId,
-    goal,
-    createdAt,
-    matchedDomains: effectiveDomains.map((rule) => rule.name),
-    gitAvailable: gitState.available,
-    gitChangedPaths: gitState.paths,
-    agentCount: sizing.agentCount,
-    availableAgentCount: sizing.availableAgentCount,
-    sizingReason: sizing.reason,
-    complexityScore: sizing.complexityScore,
-    tasks,
-  };
-}
-
-function renderPlan(plan) {
-  const lines = [];
-  lines.push(`Plan: ${plan.id}`);
-  lines.push(`Goal: ${plan.goal}`);
-  lines.push(`Domains: ${plan.matchedDomains.join(', ')}`);
-  lines.push(`Git changed paths: ${plan.gitAvailable ? (plan.gitChangedPaths.length ? plan.gitChangedPaths.join(', ') : 'none detected') : 'unavailable'}`);
-  lines.push(`Suggested agents: ${plan.agentCount ?? plan.tasks.length}/${plan.availableAgentCount ?? AGENT_IDS.length} | complexity ${plan.complexityScore ?? 'unknown'} | ${plan.sizingReason ?? 'default split'}`);
-  lines.push('');
-
-  for (const task of plan.tasks) {
-    lines.push(`- ${task.suggestedOwnerId} -> ${task.id}`);
-    lines.push(`  Summary: ${task.summary}`);
-    lines.push(`  Paths: ${task.claimedPaths.join(', ') || 'none'}`);
-    lines.push(`  Depends on: ${task.dependencies.join(', ') || 'none'}`);
-    lines.push(`  Effort: ${task.effort}`);
-    lines.push(`  Verify: ${task.verification.join(', ') || 'none'}`);
-    lines.push(`  Docs: ${task.relevantDocs.join(', ') || 'none suggested'}`);
-    lines.push(`  Why: ${task.rationale}`);
-  }
-
-  return lines.join('\n');
-}
-
-async function planCommand(positionals, options) {
-  const goal = positionals.join(' ').trim();
-
-  if (!goal) {
-    throw new Error('Usage: plan <goal> [--apply] [--git-changes]');
-  }
-
-  const plan = buildPlanProposal(goal, {
-    gitChanges: Boolean(options['git-changes']),
-  });
-
-  if (!options.apply) {
-    console.log(renderPlan(plan));
-    console.log('\nRun the same command with --apply to persist these planned tasks.');
-    return;
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    const plannedTaskIds = new Set(plan.tasks.map((task) => task.id));
-    const unsafeCollisions = board.tasks.filter(
-      (task) => plannedTaskIds.has(task.id) && (task.status !== PLANNED_TASK_STATUS || task.ownerId)
-    );
-
-    if (unsafeCollisions.length) {
-      const summary = unsafeCollisions.map((task) => `${task.id} (${task.status}${task.ownerId ? `, owner ${task.ownerId}` : ''})`).join(', ');
-      throw new Error(
-        `Plan apply refused because task id(s) already exist outside an unowned planned state: ${summary}. Use a more specific goal or manually release/rename the existing task first.`
-      );
-    }
-
-    board.tasks = board.tasks.filter((task) => !(plannedTaskIds.has(task.id) && task.status === PLANNED_TASK_STATUS && !task.ownerId));
-    board.plans = board.plans.filter((entry) => entry.id !== plan.id);
-    board.plans.push({
-      id: plan.id,
-      goal: plan.goal,
-      createdAt: plan.createdAt,
-      matchedDomains: plan.matchedDomains,
-      gitAvailable: plan.gitAvailable,
-      gitChangedPaths: plan.gitChangedPaths,
-      agentCount: plan.agentCount,
-      availableAgentCount: plan.availableAgentCount,
-      sizingReason: plan.sizingReason,
-      complexityScore: plan.complexityScore,
-    });
-    board.tasks.push(...plan.tasks);
-
-    appendJournalLine(`- ${plan.createdAt} | planner created \`${plan.id}\` for goal: ${plan.goal}`);
-    await saveBoard(board);
-    console.log(renderPlan(plan));
-    console.log('\nPlanned tasks saved. Agents can now claim these task ids directly.');
-  });
 }
 
 function getLatestVerificationOutcomes(task) {
