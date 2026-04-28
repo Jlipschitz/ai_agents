@@ -1,40 +1,85 @@
 # Agent Coordination Portability
 
-The `agents` and `agents2` commands are now driven by `agent-coordination.config.json`, so the coordinator can be copied to another repo without editing the core script.
+The `agents` and `agents2` commands are driven by `agent-coordination.config.json`, so the coordinator can be installed into another repo without editing the core script.
 
-## What To Copy
+## Recommended Install Flow
 
-For another repo, copy these files:
+From the `ai_agents` repo, preview the install:
 
-- `scripts/agent-coordination-two.mjs`
-- `scripts/agent-coordination.mjs`
+```bash
+npm run bootstrap -- --target C:\path\to\repo --dry-run
+```
+
+Apply it:
+
+```bash
+npm run bootstrap -- --target C:\path\to\repo
+```
+
+The bootstrap command will:
+
+- Copy the coordinator scripts, config, schema, and docs.
+- Add useful `package.json` scripts.
+- Add coordination runtime folders to `.gitignore`.
+- Create starter app notes when missing.
+- Run `npm run agents:doctor` unless `--skip-doctor` is passed.
+
+Useful flags:
+
+- `--force`: replace existing copied coordinator files.
+- `--dry-run`: print intended operations without writing files.
+- `--skip-doctor`: skip the final doctor run.
+
+## Files Installed
+
+Bootstrap copies these files when present:
+
+- `bin/ai-agents.mjs`
 - `scripts/agent-coordination-core.mjs`
-- `scripts/agent-watch-loop-two.ps1`
+- `scripts/agent-coordination.mjs`
+- `scripts/agent-coordination-two.mjs`
+- `scripts/agent-watch-loop.mjs`
 - `scripts/agent-watch-loop.ps1`
+- `scripts/agent-watch-loop-two.ps1`
+- `scripts/validate-config.mjs`
+- `agent-coordination.schema.json`
 - `agent-coordination.config.json`
+- `docs/agent-coordination-portability.md`
+- `docs/commands.md`
+- `docs/workflows.md`
 
-Then add package scripts like:
+## Package Scripts Added
+
+Bootstrap adds the standard `agents`, `agents2`, watcher, and config validation scripts to the target `package.json`.
+
+Manual equivalent:
 
 ```json
 {
   "scripts": {
+    "ai-agents": "node ./bin/ai-agents.mjs",
     "agents": "node ./scripts/agent-coordination.mjs",
     "agents:init": "node ./scripts/agent-coordination.mjs init",
+    "agents:plan": "node ./scripts/agent-coordination.mjs plan",
     "agents:status": "node ./scripts/agent-coordination.mjs status",
     "agents:validate": "node ./scripts/agent-coordination.mjs validate",
     "agents:doctor": "node ./scripts/agent-coordination.mjs doctor",
+    "agents:watch:node": "node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination.mjs",
     "agents2": "node ./scripts/agent-coordination-two.mjs",
     "agents2:init": "node ./scripts/agent-coordination-two.mjs init",
+    "agents2:plan": "node ./scripts/agent-coordination-two.mjs plan",
     "agents2:status": "node ./scripts/agent-coordination-two.mjs status",
     "agents2:validate": "node ./scripts/agent-coordination-two.mjs validate",
-    "agents2:doctor": "node ./scripts/agent-coordination-two.mjs doctor"
+    "agents2:doctor": "node ./scripts/agent-coordination-two.mjs doctor",
+    "agents2:watch:node": "node ./scripts/agent-watch-loop.mjs --coordinator-script ./scripts/agent-coordination-two.mjs",
+    "validate:agents-config": "node ./scripts/validate-config.mjs"
   }
 }
 ```
 
 Run `npm run agents:init` or `npm run agents2:init` in the new repo to create the local coordination workspace.
 
-Run `npm run agents:doctor` or `npm run agents2:doctor` after copying to verify config paths, package scripts, ignored runtime folders, docs, visual checks, and current board state.
+Run `npm run validate:agents-config`, then `npm run agents:doctor` or `npm run agents2:doctor` after copying to verify config paths, package scripts, ignored runtime folders, docs, visual checks, and current board state.
 
 ## Configure A New App
 
@@ -70,6 +115,13 @@ If the target app does not have visual tests, set:
     "visualSuiteUpdateChecks": []
   }
 }
+```
+
+Validate config changes with:
+
+```bash
+npm run validate:agents-config
+node ./scripts/validate-config.mjs --config ./agent-coordination.config.json --json
 ```
 
 ## Environment Overrides
@@ -117,8 +169,8 @@ The command appends a structured entry to `docs.appNotes` under `notes.sectionHe
 
 Good next upgrades:
 
-- Add a `bootstrap` command that writes package scripts and a starter config into a new repo.
-- Add JSON schema validation for `agent-coordination.config.json`.
-- Add cross-platform shell scripts for macOS/Linux watch loops alongside the PowerShell loops.
+- Add `doctor --fix` to repair common setup issues directly from the coordinator.
+- Integrate schema validation into `doctor` and `validate` in addition to the standalone validator.
+- Make the Node watcher the default implementation used by `watch-start`.
 - Add stale-branch and remote-sync checks before assigning new work.
 - Add a `summarize` command that writes a compact handoff from the current board state.
