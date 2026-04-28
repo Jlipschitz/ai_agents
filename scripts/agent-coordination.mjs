@@ -1,3 +1,7 @@
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+
 if (!process.env.AGENT_COORDINATION_ROOT && !process.env.AGENT_COORDINATION_DIR) {
   process.env.AGENT_COORDINATION_DIR = 'coordination';
 }
@@ -11,12 +15,12 @@ if (!process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT) {
 }
 
 if (!process.env.AGENT_COORDINATION_SCRIPT) {
-  process.env.AGENT_COORDINATION_SCRIPT = 'scripts/agent-coordination.mjs';
+  process.env.AGENT_COORDINATION_SCRIPT = __filename;
 }
 
 const { runCommandLayer } = await import('./agent-command-layer.mjs');
 
 await runCommandLayer({
-  coordinatorScriptPath: 'scripts/agent-coordination.mjs',
+  coordinatorScriptPath: __filename,
   importCore: async () => import('./agent-coordination-core.mjs'),
 });
