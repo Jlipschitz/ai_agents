@@ -68,7 +68,7 @@ Next recommended work:
 
 - [~] Evidence attachments - verification logs can attach artifact metadata; richer artifact root policies and pruning remain open.
 - [x] Risk scoring
-- [ ] Critical path planning
+- [x] Critical path planning
 - [~] Merge queue awareness — `github-status` detects local merge_group workflow triggers; live queue state remains open.
 - [ ] Contract files
 - [~] Agent checklists — partially covered by `finish` verification/docs gates.
@@ -219,6 +219,7 @@ Next recommended work:
 - `scripts/lib/changelog-commands.mjs`
 - `scripts/lib/claim-policy.mjs`
 - `scripts/lib/completion-commands.mjs`
+- `scripts/lib/critical-path-commands.mjs`
 - `scripts/lib/error-formatting.mjs`
 - `scripts/lib/github-commands.mjs`
 - `scripts/lib/global-flags.mjs`
@@ -252,6 +253,7 @@ Next recommended work:
 - `tests/completion-commands.test.mjs`
 - `tests/config-validation.test.mjs`
 - `tests/concurrency-stress.test.mjs`
+- `tests/critical-path-commands.test.mjs`
 - `tests/core-mutation-safety.test.mjs`
 - `tests/error-formatting.test.mjs`
 - `tests/git-policy.test.mjs`

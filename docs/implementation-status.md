@@ -757,6 +757,28 @@ Main files:
 - `scripts/lib/risk-score-commands.mjs`
 - `tests/risk-score-commands.test.mjs`
 
+### Critical path planning
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:critical:path
+npm run agents -- critical-path --json
+```
+
+Current behavior:
+
+- Builds the remaining task dependency graph from `dependencies`.
+- Computes the longest downstream path from task effort plus risk level.
+- Reports the critical task chain, ready tasks sorted by downstream cost, blocked tasks, and warnings.
+- Detects missing dependencies and dependency cycles.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/critical-path-commands.mjs`
+- `tests/critical-path-commands.test.mjs`
+
 ### Branch awareness and stale branch cleanup
 
 Status: partially implemented in the command layer and claim path.
@@ -1122,7 +1144,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 ### Verification, risk, and GitHub integration
 
-- Critical path planning.
 - Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
 - Contract files for shared API/schema work.
 - Incident mode.

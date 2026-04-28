@@ -497,6 +497,17 @@ npm run agents -- risk-score --json
 
 The command is read-only and returns `none`, `low`, `medium`, `high`, or `critical` levels with point-by-point factors so coordinators can decide what needs review or sequencing before merge/release work.
 
+### `critical-path`
+
+Finds the longest remaining dependency chain and the ready tasks that unblock the most downstream work.
+
+```bash
+npm run agents:critical:path
+npm run agents -- critical-path --json
+```
+
+The command is read-only. It scores remaining path cost from task effort plus risk level, reports the critical task chain, lists ready work sorted by downstream cost, and warns about missing dependencies or dependency cycles.
+
 ### `branches`
 
 Shows local Git branches, active task branch ownership, merged/gone/stale status, and dry-run cleanup candidates.
