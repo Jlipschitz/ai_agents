@@ -189,7 +189,7 @@ Next recommended work:
 - [~] Add linting — `npm run lint` exists as a syntax-check alias; a dedicated lint/style tool remains open.
 - [x] Add formatting
 - [~] Add type checking or JSDoc validation — syntax and schema validation exist; type/JSDoc validation remains open.
-- [ ] Add contribution guide
+- [x] Add contribution guide
 - [ ] Add security policy
 - [ ] Add license
 - [ ] Add examples directory
@@ -249,6 +249,7 @@ Next recommended work:
 - `package-lock.json`
 - `.nvmrc`
 - `.node-version`
+- `CONTRIBUTING.md`
 - `tests/archive-commands.test.mjs`
 - `tests/agent-history-commands.test.mjs`
 - `tests/approval-ledger.test.mjs`
