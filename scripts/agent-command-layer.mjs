@@ -6,12 +6,16 @@ import { fileURLToPath } from 'node:url';
 import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const ROOT = process.cwd();
 const DEFAULT_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
 const ACTIVE_STATUSES = new Set(['active', 'blocked', 'review', 'waiting', 'handoff']);
 const TERMINAL_STATUSES = new Set(['done', 'released']);
 const VALID_LIFECYCLE_COMMANDS = new Set(['start', 'finish', 'handoff-ready']);
+const DEFAULT_GIT_POLICY = {
+  allowMainBranchClaims: true,
+  allowDetachedHead: false,
+  allowedBranchPatterns: [],
+};
 
 function normalizePath(inputPath) {
   if (!inputPath) return '';
@@ -97,6 +101,7 @@ function createStarterConfig(configPath) {
     projectName: path.basename(ROOT),
     agentIds: DEFAULT_AGENT_IDS,
     docs: { roots: ['docs'], appNotes: 'docs/ai-agent-app-notes.md', visualWorkflow: '', apiPrefixes: ['docs/api'] },
+    git: DEFAULT_GIT_POLICY,
     paths: { sharedRisk: ['scripts', 'package.json', 'agent-coordination.config.json'], visualSuite: [], visualSuiteDefault: [], visualImpact: [], visualImpactFiles: [] },
     verification: { visualRequiredChecks: [], visualSuiteUpdateChecks: [] },
     notes: { categories: ['error', 'inconsistency', 'change', 'gotcha', 'decision', 'verification', 'setup'], sectionHeading: 'Agent-Maintained Notes' },
@@ -152,8 +157,35 @@ function doctorFix() {
   return fixes;
 }
 
-function getGitSnapshot() {
-  const result = { available: false, branch: null, upstream: null, ahead: null, behind: null, dirty: [], untracked: [], mergeState: false, rebaseState: false, warnings: [], errors: [] };
+function globToRegExp(pattern) {
+  const escaped = String(pattern).replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
+  return new RegExp(`^${escaped}$`);
+}
+
+function branchMatchesPattern(branch, pattern) {
+  return globToRegExp(pattern).test(branch);
+}
+
+function getGitPolicy(config) {
+  return {
+    allowMainBranchClaims: config.git?.allowMainBranchClaims ?? DEFAULT_GIT_POLICY.allowMainBranchClaims,
+    allowDetachedHead: config.git?.allowDetachedHead ?? DEFAULT_GIT_POLICY.allowDetachedHead,
+    allowedBranchPatterns: Array.isArray(config.git?.allowedBranchPatterns) ? config.git.allowedBranchPatterns.filter(Boolean) : [],
+  };
+}
+
+function applyGitPolicy(result, policy) {
+  const branch = result.branch;
+  if (!branch) return;
+  if (branch === 'detached' && !policy.allowDetachedHead) result.errors.push('Detached HEAD claims are disabled by git.allowDetachedHead.');
+  if ((branch === 'main' || branch === 'master') && !policy.allowMainBranchClaims) result.errors.push(`Claims on ${branch} are disabled by git.allowMainBranchClaims.`);
+  if (branch !== 'detached' && policy.allowedBranchPatterns.length && !policy.allowedBranchPatterns.some((pattern) => branchMatchesPattern(branch, pattern))) {
+    result.errors.push(`Branch ${branch} does not match git.allowedBranchPatterns: ${policy.allowedBranchPatterns.join(', ')}.`);
+  }
+}
+
+function getGitSnapshot(config = loadConfig().config) {
+  const result = { available: false, branch: null, upstream: null, ahead: null, behind: null, dirty: [], untracked: [], mergeState: false, rebaseState: false, policy: getGitPolicy(config), warnings: [], errors: [] };
   function git(args) { return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(); }
   try { git(['rev-parse', '--is-inside-work-tree']); result.available = true; } catch { result.warnings.push('Not inside a Git worktree or Git is unavailable.'); return result; }
   try { result.branch = git(['branch', '--show-current']) || 'detached'; } catch {}
@@ -180,6 +212,7 @@ function getGitSnapshot() {
   if (result.untracked.length) result.warnings.push(`Worktree has ${result.untracked.length} untracked file(s).`);
   if (result.mergeState) result.errors.push('A merge is currently in progress. Resolve it before claiming work.');
   if (result.rebaseState) result.errors.push('A rebase is currently in progress. Resolve it before claiming work.');
+  applyGitPolicy(result, result.policy);
   return result;
 }
 
@@ -208,8 +241,8 @@ function doctorJson({ includeFixes = false } = {}) {
   const { configPath, config } = loadConfig();
   const configValidation = validateAgentConfig(config, { root: ROOT });
   const paths = getCoordinationPaths();
-  const git = getGitSnapshot();
-  const result = { ok: configValidation.valid, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, git, files: { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) } };
+  const git = getGitSnapshot(config);
+  const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, git, files: { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) } };
   if (includeFixes) result.fixes = doctorFix();
   return result;
 }
