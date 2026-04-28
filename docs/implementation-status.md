@@ -1450,7 +1450,7 @@ Status: partially implemented.
 Current behavior:
 
 - `npm run check` runs the local syntax checker.
-- `npm run lint` exists as an alias for the syntax checker.
+- `npm run lint` runs a dependency-free static import lint that verifies relative imports resolve and Node core imports use the `node:` protocol.
 - `npm run format:check` checks JSON/text formatting without writing.
 - `npm run format` applies the formatter.
 - `npm run agents -- format --paths <path[,path...]>` supports targeted dry-run/apply formatting.
@@ -1460,7 +1460,7 @@ Current behavior:
 - Node version hints are checked into `.nvmrc` and `.node-version`.
 - The package lock marks the package as `UNLICENSED`.
 
-Follow-up: add a real lint/style tool, type or JSDoc validation, and a license file.
+Follow-up: add type or JSDoc validation and a license file.
 
 Main files:
 
@@ -1469,10 +1469,12 @@ Main files:
 - `SECURITY.md`
 - `examples/README.md`
 - `scripts/check-syntax.mjs`
+- `scripts/lint.mjs`
 - `scripts/lib/format-commands.mjs`
 - `tests/check-syntax.test.mjs`
 - `tests/examples.test.mjs`
 - `tests/format-commands.test.mjs`
+- `tests/lint.test.mjs`
 
 ## Not Yet Implemented
 
@@ -1519,6 +1521,5 @@ These roadmap items still need core, command-layer, or documentation work.
 
 ### Developer experience and repo maintenance
 
-- Dedicated linting beyond syntax checks.
 - Type checking or JSDoc validation.
 - `LICENSE`.

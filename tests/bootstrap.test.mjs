@@ -27,9 +27,11 @@ test('bootstrap creates package scripts and gitignore entries', () => {
 
   assert.ok(operations.some((entry) => entry.includes('copy bin/ai-agents.mjs')));
   assert.ok(operations.some((entry) => entry.includes('copy scripts/check-syntax.mjs')));
+  assert.ok(operations.some((entry) => entry.includes('copy scripts/lint.mjs')));
   assert.ok(operations.some((entry) => entry.includes('copy scripts/lib/file-utils.mjs')));
   assert.ok(operations.some((entry) => entry.includes('copy scripts/lib/artifact-commands.mjs')));
   assert.equal(packageJson.scripts.check, 'node ./scripts/check-syntax.mjs');
+  assert.equal(packageJson.scripts.lint, 'node ./scripts/lint.mjs');
   assert.equal(packageJson.scripts.format, 'node ./scripts/agent-coordination.mjs format --apply');
   assert.equal(packageJson.scripts['format:check'], 'node ./scripts/agent-coordination.mjs format --check');
   assert.equal(packageJson.scripts['agents:doctor'], 'node ./scripts/agent-coordination.mjs doctor');

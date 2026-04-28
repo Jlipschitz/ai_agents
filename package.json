@@ -12,7 +12,7 @@
     "bootstrap": "node ./scripts/bootstrap.mjs",
     "check": "node ./scripts/check-syntax.mjs",
     "validate:agents-config": "node ./scripts/validate-config.mjs",
-    "lint": "npm run check",
+    "lint": "node ./scripts/lint.mjs",
     "format": "node ./scripts/agent-coordination.mjs format --apply",
     "format:check": "node ./scripts/agent-coordination.mjs format --check",
     "test": "node --test",

@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
 const CHECK_COMMAND = 'node ./scripts/check-syntax.mjs';
+const LINT_COMMAND = 'node ./scripts/lint.mjs';
 
 const DEFAULT_GITIGNORE_ENTRIES = [
   '',
@@ -25,7 +26,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'ai-agents': 'node ./bin/ai-agents.mjs',
   'bootstrap': 'node ./scripts/bootstrap.mjs',
   'check': CHECK_COMMAND,
-  'lint': 'npm run check',
+  'lint': LINT_COMMAND,
   'format': 'node ./scripts/agent-coordination.mjs format --apply',
   'format:check': 'node ./scripts/agent-coordination.mjs format --check',
   'agents': 'node ./scripts/agent-coordination.mjs',

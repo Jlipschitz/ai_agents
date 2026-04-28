@@ -109,6 +109,7 @@ const COMMAND_ALIASES = new Map([
 const DEFAULT_STALE_TASK_HOURS = 6;
 const DEFAULT_RECENT_CONTEXT_LINES = 8;
 const CHECK_COMMAND = 'node ./scripts/check-syntax.mjs';
+const LINT_COMMAND = 'node ./scripts/lint.mjs';
 const CURRENT_CONFIG_VERSION = 1;
 const DEFAULT_ARTIFACT_POLICY = { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] };
 const DEFAULT_CAPACITY_POLICY = { maxActiveTasksPerAgent: 1, maxBlockedTasksPerAgent: 1, preferredDomainsByAgent: {}, enforcePreferredDomains: false };
@@ -392,7 +393,7 @@ function expectedPackageScripts() {
     'ai-agents': 'node ./bin/ai-agents.mjs',
     'bootstrap': 'node ./scripts/bootstrap.mjs',
     'check': CHECK_COMMAND,
-    'lint': 'npm run check',
+    'lint': LINT_COMMAND,
     'format': 'node ./scripts/agent-coordination.mjs format --apply',
     'format:check': 'node ./scripts/agent-coordination.mjs format --check',
     'agents': 'node ./scripts/agent-coordination.mjs',
