@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add deeper GitHub/PR integration and merge queue awareness.
+1. Add task templates and import/update flows.
 
 ---
 
@@ -68,13 +68,13 @@ Next recommended work:
 - [~] Evidence attachments - verification logs can attach artifact metadata; richer artifact root policies and pruning remain open.
 - [ ] Risk scoring
 - [ ] Critical path planning
-- [ ] Merge queue awareness
+- [~] Merge queue awareness — `github-status` detects local merge_group workflow triggers; live queue state remains open.
 - [ ] Contract files
 - [~] Agent checklists — partially covered by `finish` verification/docs gates.
 - [~] Human approval gates — partially covered by `finish` safety gates.
 - [ ] Incident mode
 - [ ] Backlog importer
-- [ ] GitHub integration
+- [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; write/API integration remains open.
 - [ ] State compaction
 - [~] Agent SLA warnings — stale active work appears in `summarize`.
 - [~] Ownership reviews — `ownership-review` flags broad claims and CODEOWNERS boundary crossings; periodic automation remains open.

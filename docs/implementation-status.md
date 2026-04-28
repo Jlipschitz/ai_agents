@@ -416,6 +416,29 @@ Main files:
 - `scripts/lib/task-claim-commands.mjs`
 - `tests/git-policy.test.mjs`
 
+### GitHub status and merge queue awareness
+
+Status: partially implemented in the command layer.
+
+```bash
+npm run agents:github:status
+npm run agents -- github-status --json
+npm run agents -- github-status --live
+```
+
+Current behavior:
+
+- Detects whether `remote.origin.url` points at GitHub.
+- Reports owner/repo URL, current branch, upstream, ahead, and behind state.
+- Scans `.github/workflows/*.yml` and `*.yaml` for `merge_group` triggers.
+- Runs without contacting GitHub by default.
+- `--live` uses `gh pr view` when available and reports PR metadata or warning details.
+
+Main files:
+
+- `scripts/lib/github-commands.mjs`
+- `tests/github-status.test.mjs`
+
 ### Config doctor suggestions and aliases
 
 Status: implemented in the command layer.

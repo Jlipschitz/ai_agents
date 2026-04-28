@@ -352,6 +352,18 @@ npm run agents -- branches --stale-days 14 --base origin/main
 
 `branches --apply` deletes only cleanup candidates: non-current, non-protected branches with no active task branch ownership that are stale and either merged into the selected base or tracking a gone upstream.
 
+### `github-status`
+
+Inspects the local GitHub remote, current branch/upstream state, GitHub Actions merge queue triggers, and optional live PR metadata through the GitHub CLI.
+
+```bash
+npm run agents:github:status
+npm run agents -- github-status --json
+npm run agents -- github-status --live
+```
+
+By default the command is local-only and does not contact GitHub. `--live` runs `gh pr view` for the current branch and reports failures as warnings.
+
 ### `claim`
 
 Claims a task for an agent and records claimed paths. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, merge/rebase state, and configured branch policies. Merge/rebase-in-progress state and configured branch policy violations block the claim.

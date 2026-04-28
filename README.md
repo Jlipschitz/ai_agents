@@ -24,6 +24,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Performs Git preflight checks before task claims.
 - Applies claim capacity/conflict policies and reports branch cleanup candidates.
 - Reviews broad/CODEOWNERS ownership claims and selects impacted checks.
+- Reports local GitHub remote and merge queue workflow awareness.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
 - Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
@@ -158,6 +159,7 @@ npm run agents -- ownership-map
 npm run agents:ownership:review
 npm run agents:test-impact -- --paths src/file.js
 npm run agents:branches
+npm run agents:github:status
 npm run agents:board:inspect
 npm run agents:board:repair
 npm run agents:state:rollback -- --list

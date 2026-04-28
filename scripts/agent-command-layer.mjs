@@ -10,6 +10,7 @@ import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
+import { runGitHubStatus } from './lib/github-commands.mjs';
 import { hasHelpFlag, runCommandHelp } from './lib/help-command.mjs';
 import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
@@ -40,6 +41,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'branches',
   'ownership-review',
   'test-impact',
+  'github-status',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -170,6 +172,10 @@ function getImpactCommandContext() {
   };
 }
 
+function getGitHubCommandContext() {
+  return { root: ROOT };
+}
+
 function createStarterConfig(configPath) {
   writeJson(configPath, {
     configVersion: 1,
@@ -235,6 +241,7 @@ function expectedPackageScripts() {
       'agents:branches': 'ai-agents branches',
       'agents:ownership:review': 'ai-agents ownership-review',
       'agents:test-impact': 'ai-agents test-impact',
+      'agents:github:status': 'ai-agents github-status',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -276,6 +283,7 @@ function expectedPackageScripts() {
     'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
     'agents:ownership:review': 'node ./scripts/agent-coordination.mjs ownership-review',
     'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
+    'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -308,6 +316,7 @@ function expectedPackageScripts() {
     'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
     'agents2:ownership:review': 'node ./scripts/agent-coordination-two.mjs ownership-review',
     'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
+    'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -1171,5 +1180,6 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'branches') status = runBranchStatus(commandArgs, getBranchCommandContext());
   else if (commandName === 'ownership-review') status = runOwnershipReview(commandArgs, getImpactCommandContext());
   else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());
+  else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
   process.exit(status);
 }

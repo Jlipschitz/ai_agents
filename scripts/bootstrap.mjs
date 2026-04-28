@@ -56,6 +56,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
   'agents:ownership:review': 'node ./scripts/agent-coordination.mjs ownership-review',
   'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
+  'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
   'agents2': 'node ./scripts/agent-coordination-two.mjs',
   'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
   'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -88,6 +89,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
   'agents2:ownership:review': 'node ./scripts/agent-coordination-two.mjs ownership-review',
   'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
+  'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
   'validate:agents-config': 'node ./scripts/validate-config.mjs',
 };
 
