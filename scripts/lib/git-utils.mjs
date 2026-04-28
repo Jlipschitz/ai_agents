@@ -8,6 +8,26 @@ export const DEFAULT_GIT_POLICY = {
   allowedBranchPatterns: [],
 };
 
+export function execGit(args, { root = process.cwd() } = {}) {
+  const candidates = process.platform === 'win32' ? ['git.exe', 'git.cmd', 'git'] : ['git'];
+
+  for (const candidate of candidates) {
+    try {
+      return execFileSync(candidate, args, {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim();
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        continue;
+      }
+    }
+  }
+
+  return null;
+}
+
 function globToRegExp(pattern) {
   const escaped = String(pattern).replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.');
   return new RegExp(`^${escaped}$`);

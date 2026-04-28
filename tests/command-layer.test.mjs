@@ -97,6 +97,14 @@ test('doctor --json reports config validation and git fields', () => {
   assert.equal(typeof payload.git.available, 'boolean');
 });
 
+test('doctor text output routes through core diagnostics', () => {
+  const root = makeWorkspace();
+  const result = run(root, ['doctor']);
+
+  assert.match(result.stdout, /Agent coordination doctor/);
+  assert.doesNotMatch(result.stderr, /execGit is not defined/);
+});
+
 test('doctor --json includes config improvement suggestions', () => {
   const root = makeWorkspace();
   const config = JSON.parse(fs.readFileSync(path.join(root, 'agent-coordination.config.json'), 'utf8'));
