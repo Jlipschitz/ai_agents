@@ -49,7 +49,7 @@ Next recommended work:
 ## Phase 3: Planning, Prompting, and Release Support
 
 - [~] Plugin-style checks - `run-check` can run package scripts or explicit commands; configurable check plugins remain open.
-- [~] Visual check runner and artifact capture - generic command artifact capture exists; visual-specific handling remains open.
+- [x] Visual check runner and artifact capture
 - [~] Artifact index and manual attachments - `run-check` writes `artifacts/checks/index.ndjson`; `verify --artifact` and `artifacts list/inspect` exist; retention/pruning remains open.
 - [x] Path ownership map
 - [x] Dependency graph output

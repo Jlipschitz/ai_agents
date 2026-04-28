@@ -1122,7 +1122,7 @@ npm run agents -- run-check smoke -- node ./scripts/smoke.mjs
 npm run agents -- run-check smoke --json -- node -e "console.log('ok')"
 ```
 
-Artifacts are written under `artifacts/checks/` by default, with an `index.ndjson` entry for each run. Use `--artifact-dir <path>` to write elsewhere.
+Artifacts are written under `artifacts/checks/` by default, with an `index.ndjson` entry for each run. Use `--artifact-dir <path>` to write elsewhere. For configured visual checks, `run-check` also diffs configured artifact roots before and after the run, classifies produced files, and exposes those files through `artifacts list`.
 
 ### `artifacts`
 

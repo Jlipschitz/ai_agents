@@ -579,6 +579,9 @@ Current behavior:
 - Runs a package script by name, or an explicit command after `--`.
 - Captures stdout/stderr into `artifacts/checks/`.
 - Appends a machine-readable `index.ndjson` entry.
+- Detects configured visual checks and diffs their artifact roots before and after the run.
+- Classifies visual artifacts such as images, HTML reports, traces, logs, data files, and videos.
+- `artifacts list` includes visual files produced or updated by `run-check`.
 - `verify --artifact <path[,path...]>` records artifact metadata on verification log entries.
 - `artifacts list` reads verification artifacts and `run-check` indexes.
 - `artifacts inspect` reports file metadata and known references.
@@ -1675,7 +1678,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 ### Planning, prompting, and release support
 
-- Visual-specific check runner behavior, including before/after artifact-root diffs and richer artifact classification.
 - Full artifact index rebuild and stricter artifact-root policies for manual `verify --artifact` attachments.
 
 ### Verification, risk, and GitHub integration

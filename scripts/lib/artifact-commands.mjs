@@ -39,17 +39,36 @@ export function createArtifactCommands(context) {
       try {
         const entry = JSON.parse(line);
         const artifactPath = entry.artifactPath || entry.path;
-        if (!artifactPath) return [];
-        const absolutePath = path.isAbsolute(artifactPath) ? artifactPath : path.resolve(root, artifactPath);
-        return [{
-          source: 'run-check',
-          path: normalizePath(absolutePath) || artifactPath,
-          check: entry.name ?? null,
-          taskId: entry.taskId ?? null,
-          outcome: typeof entry.exitCode === 'number' ? (entry.exitCode === 0 ? 'pass' : 'fail') : null,
-          exitCode: entry.exitCode ?? null,
-          createdAt: entry.finishedAt || entry.startedAt || null,
-        }];
+        const items = [];
+        const outcome = typeof entry.exitCode === 'number' ? (entry.exitCode === 0 ? 'pass' : 'fail') : null;
+        if (artifactPath) {
+          const absolutePath = path.isAbsolute(artifactPath) ? artifactPath : path.resolve(root, artifactPath);
+          items.push({
+            source: 'run-check',
+            path: normalizePath(absolutePath) || artifactPath,
+            kind: entry.artifactKind ?? null,
+            check: entry.name ?? null,
+            taskId: entry.taskId ?? null,
+            outcome,
+            exitCode: entry.exitCode ?? null,
+            createdAt: entry.finishedAt || entry.startedAt || null,
+          });
+        }
+        for (const artifact of Array.isArray(entry.visualArtifacts?.artifacts) ? entry.visualArtifacts.artifacts : []) {
+          if (!artifact?.path) continue;
+          items.push({
+            source: 'run-check-artifact',
+            path: artifact.path,
+            kind: artifact.kind ?? null,
+            check: entry.name ?? null,
+            taskId: entry.taskId ?? null,
+            outcome,
+            exitCode: entry.exitCode ?? null,
+            createdAt: entry.finishedAt || entry.startedAt || artifact.modifiedAt || null,
+            sizeBytes: artifact.sizeBytes ?? null,
+          });
+        }
+        return items;
       } catch {
         return [];
       }

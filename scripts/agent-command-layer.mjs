@@ -686,13 +686,119 @@ function sanitizeArtifactName(value) {
   return String(value || 'check').toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'check';
 }
 
+function inferArtifactKind(filePath) {
+  const extension = path.extname(filePath).toLowerCase();
+  if (['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.svg'].includes(extension)) return 'image';
+  if (['.html', '.htm'].includes(extension)) return 'report';
+  if (['.zip', '.trace'].includes(extension)) return 'trace';
+  if (['.log', '.txt'].includes(extension)) return 'log';
+  if (['.json', '.ndjson', '.xml', '.junit'].includes(extension)) return 'data';
+  if (['.webm', '.mp4', '.mov'].includes(extension)) return 'video';
+  return 'file';
+}
+
+function listArtifactRootFiles(rootPath) {
+  if (!fs.existsSync(rootPath)) return [];
+  const files = [];
+  for (const entry of fs.readdirSync(rootPath, { withFileTypes: true })) {
+    const entryPath = path.join(rootPath, entry.name);
+    if (entry.isDirectory()) files.push(...listArtifactRootFiles(entryPath));
+    else if (entry.isFile()) files.push(entryPath);
+  }
+  return files;
+}
+
+function snapshotArtifactRoots(roots) {
+  const snapshot = new Map();
+  for (const rootPath of roots) {
+    const absoluteRoot = resolveRepoPath(rootPath, rootPath);
+    for (const filePath of listArtifactRootFiles(absoluteRoot)) {
+      const stats = fs.statSync(filePath);
+      const normalizedPath = normalizePath(filePath);
+      snapshot.set(normalizedPath, {
+        path: normalizedPath,
+        root: normalizePath(absoluteRoot),
+        kind: inferArtifactKind(filePath),
+        sizeBytes: stats.size,
+        modifiedAt: stats.mtime.toISOString(),
+        modifiedMs: stats.mtimeMs,
+      });
+    }
+  }
+  return snapshot;
+}
+
+function diffArtifactRootSnapshots(before, after) {
+  const added = [];
+  const modified = [];
+  const deleted = [];
+
+  for (const [artifactPath, afterEntry] of after.entries()) {
+    const beforeEntry = before.get(artifactPath);
+    if (!beforeEntry) {
+      added.push(afterEntry);
+    } else if (beforeEntry.sizeBytes !== afterEntry.sizeBytes || beforeEntry.modifiedMs !== afterEntry.modifiedMs) {
+      modified.push(afterEntry);
+    }
+  }
+
+  for (const [artifactPath, beforeEntry] of before.entries()) {
+    if (!after.has(artifactPath)) deleted.push(beforeEntry);
+  }
+
+  const sortByPath = (left, right) => left.path.localeCompare(right.path);
+  const stripInternal = (entry) => {
+    const { modifiedMs, ...publicEntry } = entry;
+    return publicEntry;
+  };
+  const changes = {
+    added: added.sort(sortByPath).map(stripInternal),
+    modified: modified.sort(sortByPath).map(stripInternal),
+    deleted: deleted.sort(sortByPath).map(stripInternal),
+  };
+  return {
+    ...changes,
+    artifacts: [...changes.added, ...changes.modified],
+    counts: {
+      added: changes.added.length,
+      modified: changes.modified.length,
+      deleted: changes.deleted.length,
+      changed: changes.added.length + changes.modified.length + changes.deleted.length,
+    },
+  };
+}
+
+function getCheckConfig(config, name) {
+  const checks = isPlainObject(config.checks) ? config.checks : {};
+  return isPlainObject(checks[name]) ? checks[name] : {};
+}
+
+function isVisualRunCheck(name, config, checkConfig) {
+  const visualChecks = new Set([
+    ...stringArray(config.verification?.visualRequiredChecks),
+    ...stringArray(config.verification?.visualSuiteUpdateChecks),
+  ]);
+  if (visualChecks.has(name)) return true;
+  if (/^visual(?::|-|$)/i.test(name)) return true;
+  return checkConfig.requireArtifacts === true && stringArray(checkConfig.artifactRoots).some((rootPath) => /visual|screenshot|playwright|test-results/i.test(rootPath));
+}
+
+function getVisualArtifactRoots(config, checkConfig) {
+  const configuredRoots = stringArray(checkConfig.artifactRoots);
+  if (configuredRoots.length) return configuredRoots;
+  const policyRoots = stringArray(config.artifacts?.roots);
+  return policyRoots.length ? policyRoots : DEFAULT_ARTIFACT_POLICY.roots;
+}
+
 function parseRunCheckArgs(argv) {
   const delimiter = argv.indexOf('--');
   const before = delimiter >= 0 ? argv.slice(0, delimiter) : argv;
   const after = delimiter >= 0 ? argv.slice(delimiter + 1) : [];
-  const name = before.find((entry) => !entry.startsWith('--')) || 'check';
+  const positionals = getPositionals(before, new Set(['--artifact-dir', '--task']));
+  const name = positionals[0] || 'check';
   return {
     name,
+    taskId: getFlagValue(before, '--task', ''),
     json: hasFlag(before, '--json'),
     dryRun: hasFlag(before, '--dry-run'),
     artifactDir: getFlagValue(before, '--artifact-dir', ''),
@@ -702,6 +808,10 @@ function parseRunCheckArgs(argv) {
 
 function runCheckCommand(argv) {
   const args = parseRunCheckArgs(argv);
+  const { config } = loadConfig();
+  const checkConfig = getCheckConfig(config, args.name);
+  const visual = isVisualRunCheck(args.name, config, checkConfig);
+  const visualArtifactRoots = visual ? getVisualArtifactRoots(config, checkConfig) : [];
   const packageJson = loadPackageJson().packageJson;
   let command = args.command;
   if (!command.length) {
@@ -711,22 +821,36 @@ function runCheckCommand(argv) {
     command = [process.platform === 'win32' ? 'npm.cmd' : 'npm', 'run', args.name];
   }
   if (args.dryRun) {
-    const result = { ok: true, applied: false, name: args.name, command };
+    const result = { ok: true, applied: false, name: args.name, taskId: args.taskId || null, command, checkType: visual ? 'visual' : 'generic', visualArtifactRoots };
     if (args.json) console.log(JSON.stringify(result, null, 2));
     else console.log(`Dry run: would run ${command.join(' ')} and capture check artifacts.`);
     return 0;
   }
+  const beforeVisualArtifacts = visual ? snapshotArtifactRoots(visualArtifactRoots) : null;
   const startedAt = nowIso();
   const result = spawnSync(command[0], command.slice(1), { cwd: ROOT, encoding: 'utf8', shell: false });
   const finishedAt = nowIso();
   const exitCode = result.error ? 1 : result.status ?? 0;
+  const afterVisualArtifacts = visual ? snapshotArtifactRoots(visualArtifactRoots) : null;
+  const visualArtifacts = visual ? { roots: visualArtifactRoots, ...diffArtifactRootSnapshots(beforeVisualArtifacts, afterVisualArtifacts) } : null;
   const paths = getCoordinationPaths();
   const artifactRoot = args.artifactDir ? resolveRepoPath(args.artifactDir, args.artifactDir) : paths.artifactsRoot;
   const artifactPath = path.join(artifactRoot, `${fileTimestamp()}-${sanitizeArtifactName(args.name)}.log`);
   const stdout = result.stdout || '';
   const stderr = result.stderr || (result.error ? result.error.message : '');
   const artifactIndexPath = path.join(artifactRoot, 'index.ndjson');
-  const indexEntry = { name: args.name, command, startedAt, finishedAt, exitCode, artifactPath };
+  const indexEntry = {
+    name: args.name,
+    taskId: args.taskId || null,
+    command,
+    startedAt,
+    finishedAt,
+    exitCode,
+    artifactPath,
+    artifactKind: 'log',
+    checkType: visual ? 'visual' : 'generic',
+    visualArtifacts,
+  };
   withStateTransactionSync([artifactRoot], () => {
     fs.mkdirSync(artifactRoot, { recursive: true });
     fs.writeFileSync(artifactPath, [
@@ -748,6 +872,9 @@ function runCheckCommand(argv) {
   else {
     console.log(`Check ${args.name} ${exitCode === 0 ? 'passed' : 'failed'} with exit code ${exitCode}.`);
     console.log(`Artifact: ${normalizePath(artifactPath) || artifactPath}`);
+    if (visualArtifacts) {
+      console.log(`Visual artifacts: +${visualArtifacts.counts.added} ~${visualArtifacts.counts.modified} -${visualArtifacts.counts.deleted}`);
+    }
   }
   return exitCode;
 }

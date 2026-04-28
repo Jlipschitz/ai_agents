@@ -187,6 +187,49 @@ test('run-check captures command output artifacts', () => {
   assert.equal(fs.existsSync(path.join(artifactDir, 'index.ndjson')), true);
 });
 
+test('run-check captures visual artifact root diffs and classifications', () => {
+  const { root, coordinationRoot, configPath } = makeWorkspace();
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.verification.visualRequiredChecks = ['visual:test'];
+  config.checks = {
+    ...config.checks,
+    'visual:test': {
+      command: 'npm run visual:test',
+      artifactRoots: ['playwright-report', 'test-results'],
+      requireArtifacts: true,
+    },
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  fs.mkdirSync(path.join(root, 'playwright-report'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'playwright-report', 'index.html'), 'before');
+
+  const script = [
+    'const fs = require("fs");',
+    'const path = require("path");',
+    'fs.mkdirSync("playwright-report", { recursive: true });',
+    'fs.writeFileSync(path.join("playwright-report", "index.html"), "after-report");',
+    'fs.mkdirSync("test-results", { recursive: true });',
+    'fs.writeFileSync(path.join("test-results", "home.png"), "fake png");',
+  ].join(' ');
+  const result = run(root, coordinationRoot, ['run-check', 'visual:test', '--task', 'task-ui', '--json', '--', process.execPath, '-e', script]);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.checkType, 'visual');
+  assert.equal(payload.taskId, 'task-ui');
+  assert.deepEqual(payload.visualArtifacts.counts, { added: 1, modified: 1, deleted: 0, changed: 2 });
+  assert.equal(payload.visualArtifacts.added[0].path, 'test-results/home.png');
+  assert.equal(payload.visualArtifacts.added[0].kind, 'image');
+  assert.equal(payload.visualArtifacts.modified[0].path, 'playwright-report/index.html');
+  assert.equal(payload.visualArtifacts.modified[0].kind, 'report');
+
+  const list = run(root, coordinationRoot, ['artifacts', 'list', '--task', 'task-ui', '--check', 'visual:test', '--json']);
+  assert.equal(list.status, 0, list.stderr);
+  const items = JSON.parse(list.stdout).items;
+  assert.ok(items.some((entry) => entry.source === 'run-check-artifact' && entry.path === 'test-results/home.png' && entry.kind === 'image'));
+  assert.ok(items.some((entry) => entry.source === 'run-check-artifact' && entry.path === 'playwright-report/index.html' && entry.kind === 'report'));
+});
+
 test('verify attaches artifact metadata and artifacts commands report it', () => {
   const { root, coordinationRoot } = makeWorkspace();
   writeBoard(root, {
