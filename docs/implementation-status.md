@@ -856,6 +856,29 @@ Main files:
 - `scripts/lib/runbook-commands.mjs`
 - `tests/runbook-commands.test.mjs`
 
+### Semantic path grouping
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:path:groups -- --paths app/page.tsx,components/Button.tsx
+npm run agents -- path-groups --json
+```
+
+Current behavior:
+
+- Groups explicit `--paths` or board claimed paths.
+- Finds package boundaries from nearest `package.json` files.
+- Assigns product/data/verify/docs/other categories from path prefixes.
+- Parses lightweight relative JS/TS import/export/require statements to report cross-group import edges.
+- Emits group dependencies and dependents in JSON or text output.
+- Is read-only and covered by mutation guard tests.
+
+Main files:
+
+- `scripts/lib/path-group-commands.mjs`
+- `tests/path-group-commands.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1285,7 +1308,6 @@ These roadmap items still need core, command-layer, or documentation work.
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
 - Escalation routing.
-- Semantic path grouping.
 - Task split validation.
 - Work stealing.
 - Agent reputation or history.

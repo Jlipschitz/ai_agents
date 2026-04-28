@@ -111,7 +111,7 @@ Next recommended work:
 - [x] Task priority and deadlines
 - [ ] Escalation routing
 - [x] Reusable runbooks
-- [ ] Semantic path grouping
+- [x] Semantic path grouping
 - [ ] Task split validator
 - [ ] Work stealing
 - [ ] Agent reputation/history

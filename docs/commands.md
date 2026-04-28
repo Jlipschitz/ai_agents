@@ -541,6 +541,17 @@ npm run agents -- runbooks create custom-release --title "Custom release" --keyw
 
 Built-in runbooks cover migrations, auth changes, releases, incidents, and visual updates. Custom runbooks use JSON files with `id`, `title`, `summary`, `triggers.keywords`, `triggers.paths`, `steps`, `checks`, and `docs`. `create` is a dry run unless `--apply` is passed.
 
+### `path-groups`
+
+Groups paths by package boundary, module prefix, broad work category, and lightweight relative import relationships.
+
+```bash
+npm run agents:path:groups -- --paths app/page.tsx,components/Button.tsx
+npm run agents -- path-groups --json
+```
+
+When `--paths` is omitted, the command groups claimed paths from the current board. JSON output includes group IDs, package roots, categories, grouped paths, import edges, dependencies, and dependents.
+
 ### `contracts`
 
 Manages contract files for shared API, schema, and cross-task interfaces under `coordination/contracts/`.
