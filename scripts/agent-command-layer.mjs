@@ -34,6 +34,7 @@ import { runPathGroups } from './lib/path-group-commands.mjs';
 import { DEFAULT_POLICY_ENFORCEMENT, buildClaimPolicyPreflight, buildFinishPolicyPreflight, renderPolicyFindings, runPolicyCheck } from './lib/policy-enforcement.mjs';
 import { runPromptCommand } from './lib/prompt-commands.mjs';
 import { runRiskScore } from './lib/risk-score-commands.mjs';
+import { runReviewQueue } from './lib/review-queue-commands.mjs';
 import { runRunbooks } from './lib/runbook-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { runCompactState } from './lib/state-compaction-commands.mjs';
@@ -77,6 +78,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'health-score',
   'agent-history',
   'cost-time',
+  'review-queue',
   'contracts',
   'runbooks',
   'path-groups',
@@ -354,6 +356,7 @@ function expectedPackageScripts() {
       'agents:health:score': 'ai-agents health-score',
       'agents:agent:history': 'ai-agents agent-history',
       'agents:cost:time': 'ai-agents cost-time',
+      'agents:review:queue': 'ai-agents review-queue',
       'agents:contracts': 'ai-agents contracts',
       'agents:runbooks': 'ai-agents runbooks',
       'agents:path:groups': 'ai-agents path-groups',
@@ -421,6 +424,7 @@ function expectedPackageScripts() {
     'agents:health:score': 'node ./scripts/agent-coordination.mjs health-score',
     'agents:agent:history': 'node ./scripts/agent-coordination.mjs agent-history',
     'agents:cost:time': 'node ./scripts/agent-coordination.mjs cost-time',
+    'agents:review:queue': 'node ./scripts/agent-coordination.mjs review-queue',
     'agents:contracts': 'node ./scripts/agent-coordination.mjs contracts',
     'agents:runbooks': 'node ./scripts/agent-coordination.mjs runbooks',
     'agents:path:groups': 'node ./scripts/agent-coordination.mjs path-groups',
@@ -479,6 +483,7 @@ function expectedPackageScripts() {
     'agents2:health:score': 'node ./scripts/agent-coordination-two.mjs health-score',
     'agents2:agent:history': 'node ./scripts/agent-coordination-two.mjs agent-history',
     'agents2:cost:time': 'node ./scripts/agent-coordination-two.mjs cost-time',
+    'agents2:review:queue': 'node ./scripts/agent-coordination-two.mjs review-queue',
     'agents2:contracts': 'node ./scripts/agent-coordination-two.mjs contracts',
     'agents2:runbooks': 'node ./scripts/agent-coordination-two.mjs runbooks',
     'agents2:path:groups': 'node ./scripts/agent-coordination-two.mjs path-groups',
@@ -1489,6 +1494,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'health-score') status = runHealthScore(commandArgs, getImpactCommandContext());
   else if (commandName === 'agent-history') status = runAgentHistory(commandArgs, getImpactCommandContext());
   else if (commandName === 'cost-time') status = runCostTime(commandArgs, getImpactCommandContext());
+  else if (commandName === 'review-queue') status = runReviewQueue(commandArgs, getImpactCommandContext());
   else if (commandName === 'contracts') status = runContracts(commandArgs, getTemplateCommandContext());
   else if (commandName === 'runbooks') status = runRunbooks(commandArgs, getTemplateCommandContext());
   else if (commandName === 'path-groups') status = runPathGroups(commandArgs, getTemplateCommandContext());

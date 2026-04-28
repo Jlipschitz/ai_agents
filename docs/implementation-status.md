@@ -998,6 +998,31 @@ Main files:
 - `scripts/lib/cost-time-commands.mjs`
 - `tests/cost-time-commands.test.mjs`
 
+### Review queue
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:review:queue
+npm run agents -- review-queue --all --json
+npm run agents -- review-queue claim task-id --agent agent-2 --apply
+npm run agents -- review-queue complete task-id --agent agent-2 --outcome approve --note "Looks good" --apply
+```
+
+Current behavior:
+
+- Lists open review tasks with queued/claimed review status, reviewer metadata, age, urgency score, paths, priority, and severity.
+- Supports `--all`, `--task`, `--agent`, and JSON output for queue inspection.
+- `claim` records `reviewQueue.status = claimed`, reviewer, request/claim timestamps, and a task note.
+- `complete` records `approved`, `changes-requested`, or `commented` outcomes, reviewer metadata, completion timestamp, task note, and review history.
+- Claim and complete are dry-run by default; applied mutations write a pre-mutation workspace snapshot and audit log entry.
+- Does not mark tasks done or released, so existing finish/release gates remain authoritative.
+
+Main files:
+
+- `scripts/lib/review-queue-commands.mjs`
+- `tests/review-queue-commands.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1426,7 +1451,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
-- Dedicated review queue lifecycle.
 - External calendar or reminder hooks.
 - Config inheritance.
 - Offline mode.

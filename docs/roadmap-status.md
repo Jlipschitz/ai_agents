@@ -116,7 +116,7 @@ Next recommended work:
 - [x] Work stealing
 - [x] Agent reputation/history
 - [x] Cost/time accounting
-- [ ] Review queue
+- [x] Review queue
 - [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; deeper storage policy and reporting remain open.
 - [x] Human-readable changelog
 - [x] Task templates
@@ -232,6 +232,7 @@ Next recommended work:
 - `scripts/lib/onboarding-checklist.mjs`
 - `scripts/lib/policy-enforcement.mjs`
 - `scripts/lib/prompt-commands.mjs`
+- `scripts/lib/review-queue-commands.mjs`
 - `scripts/lib/risk-score-commands.mjs`
 - `scripts/lib/runtime-diagnostics.mjs`
 - `scripts/lib/state-compaction-commands.mjs`
@@ -270,6 +271,7 @@ Next recommended work:
 - `tests/policy-enforcement.test.mjs`
 - `tests/prompt-commands.test.mjs`
 - `tests/read-only-commands.test.mjs`
+- `tests/review-queue-commands.test.mjs`
 - `tests/risk-score-commands.test.mjs`
 - `tests/roadmap-commands.test.mjs`
 - `tests/state-compaction-commands.test.mjs`

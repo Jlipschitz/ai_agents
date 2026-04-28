@@ -551,6 +551,19 @@ npm run agents -- cost-time task-api --agent agent-1 --from 2026-01-01 --to 2026
 
 The command is read-only. Effort values map to hours (`small` = 2, `medium` = 6, `large` = 16, `xl` = 32) unless a task has explicit `estimatedHours`, `estimateHours`, `timeEstimateHours`, or `hoursEstimate`. `actualHours`, `spentHours`, `timeSpentHours`, or `observedHours` override observed spans.
 
+### `review-queue`
+
+Lists review work and, with `--apply`, records dedicated review-queue claim and completion metadata with snapshots and audit entries.
+
+```bash
+npm run agents:review:queue
+npm run agents -- review-queue --all --json
+npm run agents -- review-queue claim task-id --agent agent-2 --apply
+npm run agents -- review-queue complete task-id --agent agent-2 --outcome approve --note "Looks good" --apply
+```
+
+The default `list` mode is read-only and shows open `review` tasks that are queued or claimed. `claim` and `complete` are dry runs unless `--apply` is passed. Completion outcomes are `approved`, `changes-requested`, or `commented`; they update `reviewQueue`, `reviewedBy`, `reviewCompletedAt`, and `reviewOutcome` without bypassing any release or finish gate.
+
 ### `runbooks`
 
 Lists built-in runbooks, suggests matching runbooks for a task or path set, and creates custom runbooks under `coordination/runbooks/`.
