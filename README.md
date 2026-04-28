@@ -82,7 +82,7 @@ npm run ai-agents -- doctor
 npm run ai-agents -- explain-config --json
 ```
 
-After package installation or through `npx`, the CLI is intended to run as:
+If this private package is installed locally or from a GitHub/source checkout, the CLI is intended to run as:
 
 ```bash
 ai-agents init

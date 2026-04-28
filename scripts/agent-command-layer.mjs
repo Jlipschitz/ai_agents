@@ -381,7 +381,7 @@ function runReleaseCheck(argv) {
   if (json) console.log(JSON.stringify(result, null, 2));
   else {
     console.log('# Release Check');
-    for (const check of checks) {
+    for (const check of result.checks) {
       console.log(`\n${check.taskId || 'task'}: ${check.ok ? 'ready' : 'blocked'}`);
       console.log(check.findings.length ? check.findings.map((entry) => `- ${entry}`).join('\n') : '- no blocking findings');
       if (check.warnings.length) console.log(check.warnings.map((entry) => `- warning: ${entry}`).join('\n'));

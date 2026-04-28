@@ -98,6 +98,11 @@ test('release-check gates done tasks on verification and docs review', () => {
   const ready = run(root, coordinationRoot, ['release-check', 'task-ready', '--json']);
   assert.equal(ready.status, 0, ready.stderr);
   assert.equal(JSON.parse(ready.stdout).checks[0].ok, true);
+
+  const readyText = run(root, coordinationRoot, ['release-check', 'task-ready']);
+  assert.equal(readyText.status, 0, readyText.stderr);
+  assert.match(readyText.stdout, /# Release Check/);
+  assert.match(readyText.stdout, /task-ready: ready/);
 });
 
 test('run-check captures command output artifacts', () => {
