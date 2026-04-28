@@ -1133,6 +1133,29 @@ npm run agents -- compact-state --keep-journal-lines 100 --keep-message-lines 20
 
 The command is a dry run unless `--apply` is passed. Applied compaction writes a compressed workspace snapshot first, stores compacted lines under `coordination/archive/state-compaction-*.json`, then rewrites `journal.md` and `messages.ndjson` with only the retained tail.
 
+### `state-size`
+
+Reports coordination file sizes and cleanup recommendations.
+
+```bash
+npm run agents -- state-size
+npm run agents -- state-size --json
+```
+
+The report includes `board.json`, `journal.md`, `messages.ndjson`, the check artifact index, runtime state size, total coordination bytes, and recommended cleanup actions such as `compact-state` or `artifacts prune`.
+
+### `status-badge`
+
+Generates a local status file at `docs/ai-agents-status.md`.
+
+```bash
+npm run agents -- status-badge
+npm run agents -- status-badge --apply
+npm run agents -- status-badge --apply --json
+```
+
+The command is a dry run unless `--apply` is passed. The generated file includes the latest health score, release readiness, task counts, active tasks, blocked tasks, and last updated timestamp. Applied writes create a pre-mutation workspace snapshot first.
+
 ### `snapshot-workspace`
 
 Creates a compressed workspace snapshot containing board, journal, messages, and runtime state files.

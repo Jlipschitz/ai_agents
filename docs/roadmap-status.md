@@ -200,14 +200,14 @@ Next recommended work:
 - [ ] Central command registry
 - [ ] Doctor command wiring validation
 - [ ] End-to-end CLI smoke tests
-- [ ] Fixture-board generator
+- [~] Fixture-board generator - reusable fixture board library exists; CLI wiring remains open.
 - [ ] Command output contract tests
 - [ ] Agent handoff bundle
 - [ ] Next command recommendation engine
-- [ ] State size and performance budget
+- [~] State size and performance budget - `state-size` reports coordination file sizes and cleanup recommendations; explicit latency budgets remain open.
 - [ ] Upgrade and migration compatibility tests
 - [ ] Security and privacy redaction checks
-- [ ] Generated repo health status file
+- [x] Generated repo health status file
 - [ ] Minimal mode and command groups
 
 ---

@@ -1251,6 +1251,48 @@ Main files:
 - `scripts/lib/state-compaction-commands.mjs`
 - `tests/state-compaction-commands.test.mjs`
 
+### State size and generated status file
+
+Status: partially implemented in the command layer.
+
+```bash
+npm run agents -- state-size --json
+npm run agents -- status-badge --apply
+```
+
+Current behavior:
+
+- `state-size` reports `board.json`, `journal.md`, `messages.ndjson`, check artifact index, runtime state size, total coordination bytes, and cleanup recommendations.
+- `status-badge` generates `docs/ai-agents-status.md` with health score, release readiness, task counts, active tasks, blocked tasks, and last updated timestamp.
+- `status-badge` is dry-run by default and writes only with `--apply`.
+- Applied status file writes create a compressed pre-mutation workspace snapshot.
+- Both commands support JSON output.
+
+Follow-up: define explicit latency budgets and threshold policy for large coordination state.
+
+Main files:
+
+- `scripts/lib/state-status-commands.mjs`
+- `tests/state-status-commands.test.mjs`
+
+### Fixture board generator
+
+Status: partially implemented as a reusable library.
+
+Current behavior:
+
+- Generates deterministic board objects for empty, healthy, blocked, stale, large, malformed, multi-agent conflict, release-ready, approval-required, and contract-sensitive fixtures.
+- Supports configurable reference timestamps, agent IDs, project/workspace labels, and large-board task count.
+- Exposes all supported fixture names through `FIXTURE_BOARD_KINDS`.
+- Can generate every fixture in one call for tests, demos, and future smoke runners.
+
+Follow-up: wire the CLI command once command registry work defines the final command metadata surface.
+
+Main files:
+
+- `scripts/lib/fixture-board-generator.mjs`
+- `tests/fixture-board-generator.test.mjs`
+
 ### Branch awareness and stale branch cleanup
 
 Status: partially implemented in the command layer and claim path.

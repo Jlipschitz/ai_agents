@@ -58,6 +58,8 @@ export const COMMANDS = {
   'migrate-board': ['migrate-board [--apply] [--json]', 'Migrate board.json to the current board schema version.'],
   'rollback-state': ['rollback-state --list|--to <snapshot> [--apply] [--json]', 'List or restore board snapshots.'],
   'compact-state': ['compact-state [--keep-journal-lines <n>] [--keep-message-lines <n>] [--apply] [--json]', 'Archive old journal and message lines while keeping recent context.'],
+  'state-size': ['state-size [--json]', 'Report coordination state size and cleanup recommendations.'],
+  'status-badge': ['status-badge [--apply] [--json]', 'Generate docs/ai-agents-status.md with health, task, and release readiness status.'],
   'migrate-config': ['migrate-config [--apply] [--json]', 'Add current optional config defaults.'],
   'policy-packs': ['policy-packs <list|show|apply> [pack] [--apply] [--json]', 'Inspect or apply reusable policy packs.'],
   'policy-check': ['policy-check [--json]', 'Evaluate configured warn/block policy enforcement rules against active work.'],

@@ -46,6 +46,7 @@ import { runSecretsScan } from './lib/secrets-scan-commands.mjs';
 import { buildReleaseSigningPlan, runReleaseSign } from './lib/release-signing-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { runCompactState } from './lib/state-compaction-commands.mjs';
+import { runStateSize, runStatusBadge } from './lib/state-status-commands.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
 import { taskMetadataLabels } from './lib/task-metadata.mjs';
 import { runTaskSplitValidation } from './lib/task-split-validator.mjs';
@@ -71,6 +72,8 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'migrate-board',
   'rollback-state',
   'compact-state',
+  'state-size',
+  'status-badge',
   'run-check',
   'artifacts',
   'graph',
@@ -1674,6 +1677,8 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'migrate-board') status = runMigrateBoard(commandArgs, getBoardMaintenanceContext());
   else if (commandName === 'rollback-state') status = runRollbackState(commandArgs, getBoardMaintenanceContext());
   else if (commandName === 'compact-state') status = runCompactState(commandArgs, getCoordinationPaths());
+  else if (commandName === 'state-size') status = runStateSize(commandArgs, getImpactCommandContext());
+  else if (commandName === 'status-badge') status = runStatusBadge(commandArgs, getImpactCommandContext());
   else if (commandName === 'run-check') status = runCheckCommand(commandArgs);
   else if (commandName === 'artifacts') status = runArtifactsCommand(commandArgs);
   else if (commandName === 'graph') status = runDependencyGraph(commandArgs);
