@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
-const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/validate-config.mjs';
+const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/planner-sizing.mjs && node --check ./scripts/validate-config.mjs';
 
 const DEFAULT_GITIGNORE_ENTRIES = [
   '',
@@ -79,6 +79,7 @@ const FILES_TO_COPY = [
   'scripts/agent-watch-loop-two.ps1',
   'scripts/bootstrap.mjs',
   'scripts/lock-runtime.mjs',
+  'scripts/planner-sizing.mjs',
   'scripts/validate-config.mjs',
   'agent-coordination.schema.json',
   'agent-coordination.config.json',
