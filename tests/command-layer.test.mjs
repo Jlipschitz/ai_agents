@@ -20,13 +20,24 @@ function makeWorkspace() {
   return root;
 }
 
+function coordinationRoot(root) {
+  return path.join(root, 'coordination');
+}
+
+function writeBoard(root, board) {
+  fs.mkdirSync(coordinationRoot(root), { recursive: true });
+  fs.writeFileSync(path.join(coordinationRoot(root), 'board.json'), JSON.stringify(board, null, 2));
+  fs.writeFileSync(path.join(coordinationRoot(root), 'journal.md'), '# Journal\n\n');
+  fs.writeFileSync(path.join(coordinationRoot(root), 'messages.ndjson'), '');
+}
+
 function run(root, args) {
   return spawnSync(process.execPath, [cliPath, ...args], {
     cwd: root,
     encoding: 'utf8',
     env: {
       ...process.env,
-      AGENT_COORDINATION_ROOT: path.join(root, 'coordination'),
+      AGENT_COORDINATION_ROOT: coordinationRoot(root),
       AGENT_COORDINATION_CONFIG: path.join(root, 'agent-coordination.config.json'),
     },
   });
@@ -55,17 +66,18 @@ test('doctor --json reports config validation and git fields', () => {
   assert.equal(typeof payload.git.available, 'boolean');
 });
 
-test('summarize prints a compact board summary', () => {
+test('summarize prints stale work and next actions', () => {
   const root = makeWorkspace();
-  fs.mkdirSync(path.join(root, 'coordination'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'coordination', 'board.json'), JSON.stringify({
+  writeBoard(root, {
     projectName: 'Layer Test',
     updatedAt: '2026-01-01T00:00:00.000Z',
     tasks: [
-      { id: 'task-one', status: 'active', ownerId: 'agent-1', title: 'Build feature', claimedPaths: ['src/feature'] },
-      { id: 'task-two', status: 'blocked', ownerId: 'agent-2', title: 'Fix API', claimedPaths: ['server/api'] },
+      { id: 'task-one', status: 'active', ownerId: 'agent-1', title: 'Build feature', claimedPaths: ['src/feature'], updatedAt: '2000-01-01T00:00:00.000Z' },
+      { id: 'task-two', status: 'blocked', ownerId: 'agent-2', title: 'Fix API', claimedPaths: ['server/api'], updatedAt: '2000-01-01T00:00:00.000Z' },
     ],
-  }, null, 2));
+  });
+  fs.appendFileSync(path.join(coordinationRoot(root), 'journal.md'), 'Recent journal entry\n');
+  fs.appendFileSync(path.join(coordinationRoot(root), 'messages.ndjson'), `${JSON.stringify({ from: 'agent-1', to: 'agent-2', body: 'Please review API.' })}\n`);
 
   const result = run(root, ['summarize', '--for-chat']);
 
@@ -73,6 +85,26 @@ test('summarize prints a compact board summary', () => {
   assert.match(result.stdout, /Coordination summary for Layer Test/);
   assert.match(result.stdout, /task-one/);
   assert.match(result.stdout, /task-two/);
+  assert.match(result.stdout, /Stale work/);
+  assert.match(result.stdout, /Next actions/);
+});
+
+test('summarize --json includes counts and recent context', () => {
+  const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Layer Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-one', status: 'planned', ownerId: null, title: 'Plan task', claimedPaths: [] }],
+  });
+  fs.appendFileSync(path.join(coordinationRoot(root), 'journal.md'), 'Journal tail\n');
+
+  const result = run(root, ['summarize', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.counts.planned, 1);
+  assert.ok(Array.isArray(payload.nextActions));
+  assert.ok(payload.recentJournal.includes('Journal tail'));
 });
 
 test('validate --json returns machine-readable config validation', () => {
@@ -82,4 +114,61 @@ test('validate --json returns machine-readable config validation', () => {
   assert.equal(result.status, 0, result.stderr);
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.valid, true);
+});
+
+test('lock-status is routed through the main CLI', () => {
+  const root = makeWorkspace();
+  const result = run(root, ['lock-status', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.exists, false);
+});
+
+test('lock-clear is routed through the main CLI', () => {
+  const root = makeWorkspace();
+  fs.mkdirSync(path.join(coordinationRoot(root), 'runtime'), { recursive: true });
+  const lockPath = path.join(coordinationRoot(root), 'runtime', 'state.lock.json');
+  fs.writeFileSync(lockPath, JSON.stringify({ pid: 99999999, updatedAt: '2000-01-01T00:00:00.000Z' }));
+
+  const result = run(root, ['lock-clear', '--stale-only', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.cleared, true);
+  assert.equal(fs.existsSync(lockPath), false);
+});
+
+test('finish --require-verification blocks missing passing checks before mutating board', () => {
+  const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Layer Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-one', status: 'active', ownerId: 'agent-1', title: 'Needs verification', claimedPaths: ['src/a'], verification: ['unit'], verificationLog: [] }],
+  });
+  const boardPath = path.join(coordinationRoot(root), 'board.json');
+  const before = fs.readFileSync(boardPath, 'utf8');
+
+  const result = run(root, ['finish', 'agent-1', 'task-one', '--require-verification']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /missing passing verification/);
+  assert.equal(fs.readFileSync(boardPath, 'utf8'), before);
+});
+
+test('finish --require-doc-review blocks missing docs review before mutating board', () => {
+  const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Layer Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-one', status: 'active', ownerId: 'agent-1', title: 'Needs docs', claimedPaths: ['src/a'], verification: [] }],
+  });
+  const boardPath = path.join(coordinationRoot(root), 'board.json');
+  const before = fs.readFileSync(boardPath, 'utf8');
+
+  const result = run(root, ['finish', 'agent-1', 'task-one', '--require-doc-review']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /docsReviewedAt/);
+  assert.equal(fs.readFileSync(boardPath, 'utf8'), before);
 });
