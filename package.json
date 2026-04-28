@@ -57,6 +57,7 @@
     "agents:ask": "node ./scripts/agent-coordination.mjs ask",
     "agents:changelog": "node ./scripts/agent-coordination.mjs changelog",
     "agents:prioritize": "node ./scripts/agent-coordination.mjs prioritize",
+    "agents:approvals": "node ./scripts/agent-coordination.mjs approvals",
     "agents:completions": "node ./scripts/agent-coordination.mjs completions",
     "agents2": "node ./scripts/agent-coordination-two.mjs",
     "agents2:init": "node ./scripts/agent-coordination-two.mjs init",
@@ -101,6 +102,7 @@
     "agents2:ask": "node ./scripts/agent-coordination-two.mjs ask",
     "agents2:changelog": "node ./scripts/agent-coordination-two.mjs changelog",
     "agents2:prioritize": "node ./scripts/agent-coordination-two.mjs prioritize",
+    "agents2:approvals": "node ./scripts/agent-coordination-two.mjs approvals",
     "agents2:completions": "node ./scripts/agent-coordination-two.mjs completions"
   },
   "engines": {

@@ -4,7 +4,7 @@ import { COMMANDS } from './help-command.mjs';
 
 const SHELLS = ['powershell', 'bash', 'zsh'];
 const STATUSES = ['planned', 'active', 'blocked', 'waiting', 'review', 'handoff', 'done', 'released'];
-const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--priority', '--due-at', '--due', '--severity'];
+const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--priority', '--due-at', '--due', '--severity', '--approval-scope', '--scope', '--status', '--task', '--by', '--note'];
 const AGENT_COMMANDS = new Set([
   'claim',
   'start',
@@ -54,6 +54,7 @@ const TASK_COMMANDS = new Set([
   'app-note',
   'request-access',
 ]);
+const APPROVAL_SUBCOMMANDS = ['list', 'check', 'request', 'grant', 'deny', 'use'];
 
 function unique(values) {
   return [...new Set(values.filter(Boolean).map((value) => String(value)))].sort((left, right) => left.localeCompare(right));
@@ -85,6 +86,7 @@ function collectCompletionData(context) {
     tasks: unique(tasks.map((task) => task?.id)),
     checks: unique([...configChecks, ...verificationChecks, 'unit', 'test', 'lint', 'build', 'visual:test']),
     statuses: STATUSES,
+    approvalSubcommands: APPROVAL_SUBCOMMANDS,
     agentCommands: [...AGENT_COMMANDS].sort(),
     taskCommands: [...TASK_COMMANDS].sort(),
   };
@@ -103,12 +105,14 @@ _ai_agents_complete() {
   local agents="${data.agents.join(' ')}"
   local tasks="${data.tasks.join(' ')}"
   local checks="${data.checks.join(' ')}"
+  local approval_subcommands="${data.approvalSubcommands.join(' ')}"
   local shells="${data.shells.join(' ')}"
   local agent_commands="${data.agentCommands.join(' ')}"
   local task_commands="${data.taskCommands.join(' ')}"
   if [[ "$cur" == --* ]]; then COMPREPLY=( $(compgen -W "$flags" -- "$cur") ); return 0; fi
   if [[ $COMP_CWORD -eq 1 ]]; then COMPREPLY=( $(compgen -W "$commands" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "completions" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$shells" -- "$cur") ); return 0; fi
+  if [[ "$cmd" == "approvals" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$approval_subcommands" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "prioritize" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$tasks" -- "$cur") ); return 0; fi
   if [[ " $agent_commands " == *" $cmd "* && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$agents" -- "$cur") ); return 0; fi
   if [[ " $task_commands " == *" $cmd "* && $COMP_CWORD -eq 3 ]]; then COMPREPLY=( $(compgen -W "$tasks" -- "$cur") ); return 0; fi
@@ -125,16 +129,18 @@ function renderZsh(data) {
   return `#compdef ai-agents agents agents2
 # ai-agents zsh completion
 _ai_agents_complete() {
-  local -a commands flags agents tasks checks shells
+  local -a commands flags agents tasks checks shells approval_subcommands
   commands=(${data.commands.map(shellQuote).join(' ')})
   flags=(${data.flags.map(shellQuote).join(' ')})
   agents=(${data.agents.map(shellQuote).join(' ')})
   tasks=(${data.tasks.map(shellQuote).join(' ')})
   checks=(${data.checks.map(shellQuote).join(' ')})
   shells=(${data.shells.map(shellQuote).join(' ')})
+  approval_subcommands=(${data.approvalSubcommands.map(shellQuote).join(' ')})
   if [[ CURRENT -eq 2 ]]; then _describe 'command' commands; return; fi
   case "$words[2]" in
     completions) _describe 'shell' shells ;;
+    approvals) _describe 'approval command' approval_subcommands ;;
     claim|start|finish|handoff-ready|pick|progress|wait|resume|blocked|review|done|release|verify|review-docs|prompt|inbox|heartbeat|heartbeat-start|heartbeat-stop|message|app-note|request-access|reserve-resource|renew-resource|release-resource)
       if [[ CURRENT -eq 3 ]]; then _describe 'agent' agents; return; fi
       if [[ CURRENT -eq 4 ]]; then _describe 'task' tasks; return; fi
@@ -158,6 +164,7 @@ function renderPowerShell(data) {
     `$tasks = @(${data.tasks.map(powershellQuote).join(', ')})`,
     `$checks = @(${data.checks.map(powershellQuote).join(', ')})`,
     `$shells = @(${data.shells.map(powershellQuote).join(', ')})`,
+    `$approvalSubcommands = @(${data.approvalSubcommands.map(powershellQuote).join(', ')})`,
   ].join('\n  ');
   return `# ai-agents PowerShell completion
 $scriptBlock = {
@@ -169,6 +176,7 @@ $scriptBlock = {
   if ($wordToComplete -like '--*') { $items = $flags }
   elseif ($words.Count -eq 2) { $items = $commands }
   elseif ($cmd -eq 'completions' -and $words.Count -le 3) { $items = $shells }
+  elseif ($cmd -eq 'approvals' -and $words.Count -le 3) { $items = $approvalSubcommands }
   elseif (@('claim','start','finish','handoff-ready','pick','progress','wait','resume','blocked','review','done','release','verify','review-docs','prompt','inbox','heartbeat','heartbeat-start','heartbeat-stop','message','app-note','request-access','reserve-resource','renew-resource','release-resource') -contains $cmd -and $words.Count -le 3) { $items = $agents }
   elseif (@('claim','start','finish','handoff-ready','progress','wait','resume','blocked','review','done','release','verify','review-docs','prioritize','prompt','release-check','pr-summary','release-bundle','app-note','request-access') -contains $cmd -and $words.Count -le 4) { $items = $tasks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 5) { $items = $checks }

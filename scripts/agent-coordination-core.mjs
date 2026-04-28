@@ -3,6 +3,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
+import { createApprovalLedgerCommands } from './lib/approval-ledger-commands.mjs';
 import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
 import { CURRENT_BOARD_VERSION } from './lib/board-migration.mjs';
 import { createBoardValidation } from './lib/board-validation.mjs';
@@ -77,7 +78,7 @@ const VALID_ACCESS_STATUSES = new Set(['pending', 'granted', 'denied', 'complete
 const VALID_INCIDENT_STATUSES = new Set(['open', 'closed', 'abandoned']);
 const DOC_REVIEW_REQUIRED_STATUSES = new Set(['active', 'blocked', 'review', 'waiting']);
 const TERMINAL_ID = detectTerminalId();
-const ALWAYS_READ_ONLY_COMMANDS = new Set(['help', 'status', 'pick', 'inbox', 'validate', 'doctor', 'watch-status', 'heartbeat-status']);
+const ALWAYS_READ_ONLY_COMMANDS = new Set(['help', 'status', 'pick', 'inbox', 'validate', 'doctor', 'watch-status', 'heartbeat-status', 'approvals']);
 const CORE_AUDIT_EXCLUDED_COMMANDS = new Set(['heartbeat', 'heartbeat-start', 'heartbeat-stop', 'watch', 'watch-tick', 'watch-start', 'watch-stop']);
 const AUTO_HEAL_EXCLUDED_COMMANDS = new Set([
   'help',
@@ -343,6 +344,18 @@ const {
   getBoard,
   getCommandAgent,
   getTask,
+  note,
+  saveBoard,
+  slugify,
+  withMutationLock,
+});
+const { approvalsCommand, hasApprovedTaskApproval } = createApprovalLedgerCommands({
+  appendJournalLine,
+  ensureTask,
+  getAgent,
+  getBoard,
+  getCommandAgent,
+  getReadOnlyBoard,
   note,
   saveBoard,
   slugify,
@@ -1161,6 +1174,7 @@ function createInitialBoard() {
     incidents: [],
     resources: [],
     accessRequests: [],
+    approvals: [],
     plans: [],
     tasks: [],
   };
@@ -1210,6 +1224,7 @@ function normalizeBoard(board) {
   normalized.incidents = Array.isArray(normalized.incidents) ? normalized.incidents : [];
   normalized.resources = Array.isArray(normalized.resources) ? normalized.resources : [];
   normalized.accessRequests = Array.isArray(normalized.accessRequests) ? normalized.accessRequests : [];
+  normalized.approvals = Array.isArray(normalized.approvals) ? normalized.approvals : [];
   normalized.plans = Array.isArray(normalized.plans) ? normalized.plans : [];
   normalized.tasks = Array.isArray(normalized.tasks) ? normalized.tasks : [];
   for (const task of normalized.tasks) {
@@ -1890,6 +1905,7 @@ Commands:
   blocked <agent> <task-id> <note>
   review <agent> <task-id> <note>
   verify <agent> <task-id> <check> <pass|fail> [--details <text>]
+  approvals list|check|request|grant|deny|use [options]
   request-access <agent> <task-id> <scope> <reason>
   grant-access <request-id> [--by <agent>] [--note <text>]
   deny-access <request-id> [--by <agent>] [--note <text>]
@@ -1929,6 +1945,7 @@ Examples:
   ${cliRunLabel(` -- blocked ${agentTwo} task-api "Waiting on schema decision."`)}
   ${cliRunLabel(` -- review ${agentOne} task-shell "Ready for verification."`)}
   ${cliRunLabel(` -- verify ${agentThree} task-shell ${exampleVerificationCheck} pass --details "Desktop and mobile look correct."`)}
+  ${cliRunLabel(` -- approvals request ${agentOne} task-shell release "Ready for human approval."`)}
   ${cliRunLabel(` -- request-access ${agentTwo} task-api dev-server "Need elevated restart to inspect startup failure."`)}
   ${cliRunLabel(` -- grant-access access-${agentTwo}-dev-server-task-api --by ${agentOne} --note "Approved shared restart window."`)}
   ${cliRunLabel(` -- complete-access access-${agentTwo}-dev-server-task-api --by ${agentTwo} --note "Restart finished."`)}
@@ -2053,6 +2070,9 @@ async function main() {
       return;
     case 'verify':
       await verifyCommand(positionals, options);
+      return;
+    case 'approvals':
+      await approvalsCommand(positionals, options);
       return;
     case 'request-access':
       await requestAccessCommand(positionals);

@@ -1,5 +1,6 @@
 import { nowIso } from './file-utils.mjs';
 
+import { VALID_APPROVAL_STATUSES } from './approval-ledger-commands.mjs';
 import { isValidTaskDueAt, isValidTaskPriority, isValidTaskSeverity } from './task-metadata.mjs';
 
 export function createBoardValidation(context) {
@@ -273,6 +274,32 @@ export function createBoardValidation(context) {
           findings.push(`Multiple pending access requests share scope "${request.scope}".`);
         }
         openAccessScopes.add(request.scope);
+      }
+    }
+
+    const approvalIds = new Set();
+    for (const approval of board.approvals ?? []) {
+      if (!approval?.id || !approval.taskId || !approval.scope || !approval.status || !approval.requestedBy) {
+        findings.push('An approval ledger entry is missing id, taskId, scope, status, or requestedBy.');
+        continue;
+      }
+      if (approvalIds.has(approval.id)) {
+        findings.push(`Approval id "${approval.id}" is duplicated.`);
+      }
+      approvalIds.add(approval.id);
+      if (!VALID_APPROVAL_STATUSES.has(approval.status)) {
+        findings.push(`Approval "${approval.id}" has unknown status "${approval.status}".`);
+      }
+      if (!getTask(board, approval.taskId)) {
+        findings.push(`Approval "${approval.id}" references missing task "${approval.taskId}".`);
+      }
+      if (!board.agents.find((agent) => agent.id === approval.requestedBy)) {
+        findings.push(`Approval "${approval.id}" references unknown requester "${approval.requestedBy}".`);
+      }
+      for (const [field, agentId] of [['decidedBy', approval.decidedBy], ['usedBy', approval.usedBy]]) {
+        if (agentId && !board.agents.find((agent) => agent.id === agentId)) {
+          findings.push(`Approval "${approval.id}" references unknown ${field} "${agentId}".`);
+        }
       }
     }
 

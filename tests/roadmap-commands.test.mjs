@@ -107,6 +107,7 @@ test('migrate-board dry-runs and applies board schema migrations', () => {
   assert.equal(board.version, 2);
   assert.equal(board.workspace, 'coordination');
   assert.equal(Array.isArray(board.plans), true);
+  assert.equal(Array.isArray(board.approvals), true);
   assert.equal(typeof board.createdAt, 'string');
   assert.equal(board.tasks[0].effort, 'unknown');
   assert.equal(board.tasks[0].priority, 'normal');

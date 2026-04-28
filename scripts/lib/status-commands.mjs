@@ -360,6 +360,20 @@ export function createStatusCommands(context) {
         : '- none'
     );
 
+    const approvals = Array.isArray(board.approvals) ? board.approvals : [];
+    lines.push('');
+    lines.push('Approvals:');
+    lines.push(
+      approvals.length
+        ? approvals
+            .map(
+              (approval) =>
+                `- ${approval.id}: ${approval.status} | task ${approval.taskId} | scope ${approval.scope} | requested by ${approval.requestedBy}${approval.decidedBy ? ` | decided by ${approval.decidedBy}` : ''} | ${approval.summary}`
+            )
+            .join('\n')
+        : '- none'
+    );
+
     lines.push('');
     lines.push('Assist opportunities:');
     const assistLines = collectAssistOpportunityLines(board, referenceIso);

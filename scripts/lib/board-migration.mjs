@@ -119,6 +119,7 @@ export function createStarterBoard(context) {
     resources: [],
     incidents: [],
     accessRequests: [],
+    approvals: [],
     plans: [],
   };
 }
@@ -161,7 +162,7 @@ export function migrateBoardObject(board, context) {
   setIfChanged(migrated, 'createdAt', normalizedCreatedAt, changes, 'set createdAt');
   setIfChanged(migrated, 'updatedAt', normalizedUpdatedAt, changes, 'set updatedAt');
 
-  for (const key of ['tasks', 'resources', 'incidents', 'accessRequests', 'plans']) ensureArray(migrated, key, changes);
+  for (const key of ['tasks', 'resources', 'incidents', 'accessRequests', 'approvals', 'plans']) ensureArray(migrated, key, changes);
   ensureArray(migrated, 'agents', changes);
   ensureAgentSlots(migrated, context, timestamp, changes);
 

@@ -96,7 +96,7 @@ Next recommended work:
 - [x] Shell completions
 - [~] Policy enforcement mode — partially covered by Git branch policy and finish gates.
 - [~] CODEOWNERS integration — `ownership-review` reads CODEOWNERS-style files; claim-time enforcement remains open.
-- [ ] Approval ledger
+- [x] Approval ledger
 - [x] Release artifact bundle
 - [~] Command aliases - built-in short aliases exist; repo-defined aliases remain open.
 - [~] Natural-language query — `ask` answers common deterministic board questions; open-ended model-backed querying remains open.
@@ -208,6 +208,7 @@ Next recommended work:
 - `scripts/lock-runtime.mjs`
 - `scripts/planner-sizing.mjs`
 - `scripts/lib/archive-commands.mjs`
+- `scripts/lib/approval-ledger-commands.mjs`
 - `scripts/lib/ask-commands.mjs`
 - `scripts/lib/artifact-commands.mjs`
 - `scripts/lib/audit-log.mjs`
@@ -239,6 +240,7 @@ Next recommended work:
 - `.nvmrc`
 - `.node-version`
 - `tests/archive-commands.test.mjs`
+- `tests/approval-ledger.test.mjs`
 - `tests/ask-commands.test.mjs`
 - `tests/backlog-import-commands.test.mjs`
 - `tests/bootstrap.test.mjs`

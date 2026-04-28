@@ -604,6 +604,29 @@ Main files:
 - `scripts/lib/task-metadata-commands.mjs`
 - `tests/task-metadata.test.mjs`
 
+### Approval ledger
+
+Status: implemented in the core lifecycle path.
+
+```bash
+npm run agents -- approvals request agent-1 task-ui release "Ready for approval"
+npm run agents -- approvals grant approval-task-ui-release-123 --by agent-2
+npm run agents -- finish agent-1 task-ui --require-approval --approval-scope release "Done"
+```
+
+Current behavior:
+
+- `approvals list|check|request|grant|deny|use` manages approval ledger entries in `board.json`.
+- Entries track task, scope, requester, status, decision agent, decision notes, and use metadata.
+- `finish --require-approval` blocks completion until an approved or used ledger entry exists, optionally scoped with `--approval-scope`.
+- `status`, `prompt`, board migration, and board validation understand the `approvals` array.
+- Applied approval mutations write task notes, journal entries, task docs, and core audit entries.
+
+Main files:
+
+- `scripts/lib/approval-ledger-commands.mjs`
+- `tests/approval-ledger.test.mjs`
+
 ### Human-readable changelog
 
 Status: implemented in the command layer.
@@ -1070,7 +1093,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Secrets and sensitive-data guardrails.
 - Full policy enforcement mode with warn/block semantics across risky scopes.
-- Approval ledger.
 - Open-ended model-backed natural-language query mode.
 - Local web dashboard.
 - Signed releases.

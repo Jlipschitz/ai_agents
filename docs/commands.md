@@ -54,7 +54,7 @@ Use `--verbose` to include stack traces on formatted top-level errors.
 
 ## Mutation Dry Runs
 
-Most command-layer apply flows are dry-run by default and write only when `--apply` is passed. Legacy core mutation commands such as `claim`, `prioritize`, `progress`, `wait`, `resume`, `blocked`, `review`, `verify`, `message`, `app-note`, `handoff`, `done`, `release`, access requests, incidents, resource leases, heartbeat, and watcher commands also accept `--dry-run` to validate inputs and report the intended action without changing coordination state or starting/stopping background processes.
+Most command-layer apply flows are dry-run by default and write only when `--apply` is passed. Legacy core mutation commands such as `claim`, `prioritize`, `approvals request|grant|deny|use`, `progress`, `wait`, `resume`, `blocked`, `review`, `verify`, `message`, `app-note`, `handoff`, `done`, `release`, access requests, incidents, resource leases, heartbeat, and watcher commands also accept `--dry-run` to validate inputs and report the intended action without changing coordination state or starting/stopping background processes.
 
 ```bash
 npm run agents -- claim agent-1 task-ui --paths app/page.tsx --summary "UI fix" --dry-run
@@ -557,6 +557,29 @@ Supported values:
 
 Priority and due-date metadata appears in `status`, `summarize`, `prompt`, `ask`, task docs under `coordination/tasks/`, and `pick` scoring.
 
+### `approvals`
+
+Maintains a board-backed approval ledger for task gates.
+
+```bash
+npm run agents:approvals -- list
+npm run agents -- approvals request agent-1 task-id release "Ready for human approval"
+npm run agents -- approvals grant approval-task-id-release-123 --by agent-2 --note "Reviewed"
+npm run agents -- approvals check task-id --scope release --json
+npm run agents -- approvals use approval-task-id-release-123 --by agent-1
+```
+
+Subcommands:
+
+- `list [--task <task-id>] [--scope <scope>] [--status pending|approved|denied|used] [--json]`
+- `check <task-id> [--scope <scope>] [--json]`
+- `request <agent> <task-id> <scope> <summary>`
+- `grant <approval-id> --by <agent> [--note <text>]`
+- `deny <approval-id> --by <agent> [--note <text>]`
+- `use <approval-id> --by <agent> [--note <text>]`
+
+Approval entries are stored in `board.json` under `approvals`, appear in `status` and `prompt`, and are included in board validation.
+
 ### `progress`
 
 Adds a progress note to a task.
@@ -633,12 +656,14 @@ Optional safety gates:
 npm run agents -- finish agent-1 task-id --require-verification "Finished and verified."
 npm run agents -- finish agent-1 task-id --require-doc-review "Finished after reviewing docs."
 npm run agents -- finish agent-1 task-id --require-verification --require-doc-review "Finished safely."
+npm run agents -- finish agent-1 task-id --require-approval --approval-scope release "Finished after approval."
 ```
 
 Gate behavior:
 
 - `--require-verification`: all checks listed in the task `verification` array must have a latest `verificationLog` outcome of `pass`.
 - `--require-doc-review`: the task must have `docsReviewedAt` recorded.
+- `--require-approval`: the task must have an `approved` or `used` approval ledger entry. Use `--approval-scope <scope>` to require a specific scope.
 - If a gate fails, the command exits before delegating to the core `done` command, so the board is not mutated.
 
 ### `release`

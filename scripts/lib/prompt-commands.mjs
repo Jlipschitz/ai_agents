@@ -84,6 +84,19 @@ function verificationRows(task) {
   });
 }
 
+function approvalRows(board, task) {
+  return array(board.approvals)
+    .filter((approval) => approval?.taskId === task.id)
+    .map((approval) => ({
+      id: approval.id,
+      scope: approval.scope ?? '',
+      status: approval.status ?? 'unknown',
+      requestedBy: approval.requestedBy ?? null,
+      decidedBy: approval.decidedBy ?? null,
+      summary: approval.summary ?? '',
+    }));
+}
+
 function recentNotes(task, limit = 5) {
   return task.notes.slice(-limit).map((note) => ({
     at: note?.at ?? null,
@@ -157,12 +170,14 @@ export function buildAgentPrompt(board, agentId, explicitTaskId = '') {
 
   const dependencies = dependencyRows(board, task);
   const verification = verificationRows(task);
+  const approvals = approvalRows(board, task);
   const notes = recentNotes(task);
   const recommendations = buildRecommendations(task, dependencies, verification);
   const projectName = board.projectName || board.workspace || 'workspace';
   const prompt = renderAgentPrompt({
     agent,
     agentId,
+    approvals,
     dependencies,
     notes,
     projectName,
@@ -178,6 +193,7 @@ export function buildAgentPrompt(board, agentId, explicitTaskId = '') {
     taskId: task.id,
     task,
     dependencies,
+    approvals,
     verification,
     recentNotes: notes,
     recommendations,
@@ -189,7 +205,7 @@ function bulletList(items, fallback = '- none') {
   return items.length ? items.map((entry) => `- ${entry}`).join('\n') : fallback;
 }
 
-function renderAgentPrompt({ agent, agentId, dependencies, notes, projectName, recommendations, task, verification }) {
+function renderAgentPrompt({ agent, agentId, approvals, dependencies, notes, projectName, recommendations, task, verification }) {
   const dependencyLines = dependencies.map((entry) => {
     const owner = entry.ownerId ?? 'unowned';
     const title = entry.title ? ` - ${entry.title}` : '';
@@ -200,6 +216,10 @@ function renderAgentPrompt({ agent, agentId, dependencies, notes, projectName, r
     const outcome = entry.latestOutcome ? `${entry.latestOutcome}${entry.latestAt ? ` at ${entry.latestAt}` : ''}` : 'not recorded';
     const artifacts = entry.artifactCount ? `, artifacts ${entry.artifactCount}` : '';
     return `${entry.check}: ${outcome}${artifacts}${entry.details ? ` | ${entry.details}` : ''}`;
+  });
+  const approvalLines = approvals.map((entry) => {
+    const decided = entry.decidedBy ? `, decided by ${entry.decidedBy}` : '';
+    return `${entry.id}: ${entry.status}, scope ${entry.scope}, requested by ${entry.requestedBy ?? 'unknown'}${decided}${entry.summary ? ` | ${entry.summary}` : ''}`;
   });
   const noteLines = notes.map((entry) => {
     const agentLabel = entry.agent ? `${entry.agent} ` : '';
@@ -239,6 +259,10 @@ function renderAgentPrompt({ agent, agentId, dependencies, notes, projectName, r
     '## Verification',
     '',
     bulletList(verificationLines),
+    '',
+    '## Approvals',
+    '',
+    bulletList(approvalLines),
     '',
     '## Recent Notes',
     '',

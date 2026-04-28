@@ -328,6 +328,7 @@ function expectedPackageScripts() {
       'agents:ask': 'ai-agents ask',
       'agents:changelog': 'ai-agents changelog',
       'agents:prioritize': 'ai-agents prioritize',
+      'agents:approvals': 'ai-agents approvals',
       'agents:completions': 'ai-agents completions',
       'validate:agents-config': 'ai-agents validate --json',
     };
@@ -381,6 +382,7 @@ function expectedPackageScripts() {
     'agents:ask': 'node ./scripts/agent-coordination.mjs ask',
     'agents:changelog': 'node ./scripts/agent-coordination.mjs changelog',
     'agents:prioritize': 'node ./scripts/agent-coordination.mjs prioritize',
+    'agents:approvals': 'node ./scripts/agent-coordination.mjs approvals',
     'agents:completions': 'node ./scripts/agent-coordination.mjs completions',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
@@ -425,6 +427,7 @@ function expectedPackageScripts() {
     'agents2:ask': 'node ./scripts/agent-coordination-two.mjs ask',
     'agents2:changelog': 'node ./scripts/agent-coordination-two.mjs changelog',
     'agents2:prioritize': 'node ./scripts/agent-coordination-two.mjs prioritize',
+    'agents2:approvals': 'node ./scripts/agent-coordination-two.mjs approvals',
     'agents2:completions': 'node ./scripts/agent-coordination-two.mjs completions',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
@@ -1177,13 +1180,47 @@ function latestVerificationByCheck(task) {
   return map;
 }
 
+function normalizeApprovalScope(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function getApprovalGateScope(argv) {
+  if (!argv.includes('--require-approval')) return null;
+  const index = argv.indexOf('--approval-scope');
+  if (index < 0) return '';
+  const next = argv[index + 1];
+  return next && !next.startsWith('--') ? normalizeApprovalScope(next) : '';
+}
+
+function hasApprovedTaskApproval(taskId, scope = '') {
+  const board = readJsonSafe(getCoordinationPaths().boardPath, { approvals: [] });
+  const approvals = Array.isArray(board.approvals) ? board.approvals : [];
+  return approvals.some((approval) =>
+    approval?.taskId === taskId
+    && (approval.status === 'approved' || approval.status === 'used')
+    && (!scope || approval.scope === scope)
+  );
+}
+
 function assertFinishGates(taskId, argv) {
   const requireVerification = argv.includes('--require-verification');
   const requireDocs = argv.includes('--require-doc-review');
-  if (!requireVerification && !requireDocs) return { ok: true };
+  const approvalScope = getApprovalGateScope(argv);
+  const requireApproval = approvalScope !== null;
+  if (!requireVerification && !requireDocs && !requireApproval) return { ok: true };
   const task = getTaskById(taskId);
   if (!task) return { ok: false, message: `Cannot enforce finish gates because task ${taskId} was not found.` };
   if (requireDocs && !task.docsReviewedAt) return { ok: false, message: `Task ${taskId} has not recorded docsReviewedAt.` };
+  if (requireApproval && !hasApprovedTaskApproval(taskId, approvalScope)) {
+    return {
+      ok: false,
+      message: `Task ${taskId} is missing an approved approval-ledger entry${approvalScope ? ` for scope ${approvalScope}` : ''}.`,
+    };
+  }
   if (requireVerification) {
     const requiredChecks = Array.isArray(task.verification) ? task.verification : [];
     const latest = latestVerificationByCheck(task);
@@ -1196,8 +1233,8 @@ function assertFinishGates(taskId, argv) {
 function parseLifecycleRest(rest) {
   const messageParts = [];
   const flags = {};
-  const booleanFlags = new Set(['--require-verification', '--require-doc-review']);
-  const valuedFlags = new Set(['--paths', '--priority', '--due-at', '--due', '--severity']);
+  const booleanFlags = new Set(['--require-verification', '--require-doc-review', '--require-approval']);
+  const valuedFlags = new Set(['--paths', '--priority', '--due-at', '--due', '--severity', '--approval-scope']);
   for (let index = 0; index < rest.length; index += 1) {
     const entry = rest[index];
     if (!entry.startsWith('--')) {
