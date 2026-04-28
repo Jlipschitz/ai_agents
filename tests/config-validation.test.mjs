@@ -67,6 +67,10 @@ function validConfig() {
         finishApprovalScope: '',
       },
     },
+    privacy: {
+      mode: 'standard',
+      offline: false,
+    },
     checks: {
       unit: {
         command: 'npm test',
@@ -141,6 +145,8 @@ test('validateAgentConfig reports actionable errors', () => {
   config.ownership.codeownersFiles = ['CODEOWNERS', 'CODEOWNERS'];
   config.policyEnforcement.mode = 'strict';
   config.policyEnforcement.rules.finishRequiresApproval = 'yes';
+  config.privacy.mode = 'public';
+  config.privacy.offline = 'yes';
   config.checks.unit.timeoutMs = 500;
   config.checks.unit.requireArtifacts = 'yes';
 
@@ -160,6 +166,8 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('ownership.codeownersFiles[1]')));
   assert.ok(result.errors.some((entry) => entry.includes('policyEnforcement.mode')));
   assert.ok(result.errors.some((entry) => entry.includes('policyEnforcement.rules.finishRequiresApproval')));
+  assert.ok(result.errors.some((entry) => entry.includes('privacy.mode')));
+  assert.ok(result.errors.some((entry) => entry.includes('privacy.offline')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.timeoutMs')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.requireArtifacts')));
 });

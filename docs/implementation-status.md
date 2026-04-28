@@ -606,10 +606,12 @@ Current behavior:
 - Accepts an explicit task ID override.
 - Produces copy-ready Markdown with task objective, claimed paths, dependency status, docs, verification expectations, recent notes, and next actions.
 - Supports JSON output with the same structured prompt payload.
+- Supports `privacy.mode: "redacted"` or `"local-only"` and `AI_AGENTS_PRIVACY_MODE=redacted` to redact exported summaries, paths, docs, notes, verification details, and approval summaries.
 
 Main files:
 
 - `scripts/lib/prompt-commands.mjs`
+- `scripts/lib/privacy-utils.mjs`
 - `tests/prompt-commands.test.mjs`
 
 ### Natural-language board query
@@ -1162,10 +1164,12 @@ Current behavior:
 - Scans `.github/workflows/*.yml` and `*.yaml` for `merge_group` triggers.
 - Runs without contacting GitHub by default.
 - `--live` uses `gh pr view` when available and reports PR metadata or warning details.
+- `privacy.offline: true`, `privacy.mode: "local-only"`, or `AI_AGENTS_OFFLINE=1` skips live GitHub checks even when `--live` is passed.
 
 Main files:
 
 - `scripts/lib/github-commands.mjs`
+- `scripts/lib/privacy-utils.mjs`
 - `tests/github-status.test.mjs`
 
 ### Config doctor suggestions and aliases
@@ -1544,8 +1548,6 @@ These roadmap items still need core, command-layer, or documentation work.
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
 - External calendar or reminder hooks.
-- Offline mode.
-- Data privacy modes.
 
 ### Developer experience and repo maintenance
 

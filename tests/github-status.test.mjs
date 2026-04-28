@@ -81,3 +81,19 @@ test('github-status warns when merge_group workflow trigger is missing', () => {
   assert.equal(payload.mergeQueue.enabledByWorkflow, false);
   assert.ok(payload.warnings.some((entry) => entry.includes('merge_group')));
 });
+
+test('github-status skips live checks in offline mode', () => {
+  const { root, coordinationRoot } = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.privacy = { mode: 'local-only', offline: true };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = run(root, coordinationRoot, ['github-status', '--live', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(payload.privacy.offline, true);
+  assert.equal(payload.live.skipped, true);
+  assert.ok(payload.warnings.some((entry) => entry.includes('Offline mode')));
+});

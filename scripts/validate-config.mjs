@@ -277,6 +277,13 @@ export function validateAgentConfig(config, options = {}) {
     }
   }
 
+  if ('privacy' in config && validateObject(config.privacy, 'privacy', errors)) {
+    if ('mode' in config.privacy && !['standard', 'redacted', 'local-only'].includes(config.privacy.mode)) {
+      addIssue(errors, 'privacy.mode', 'must be "standard", "redacted", or "local-only"');
+    }
+    if ('offline' in config.privacy) validateBoolean(config.privacy.offline, 'privacy.offline', errors);
+  }
+
   if ('paths' in config) {
     validateKnownStringArrays(config.paths, 'paths', ['sharedRisk', 'visualSuite', 'visualSuiteDefault', 'visualImpact', 'visualImpactFiles'], errors);
   }

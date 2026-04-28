@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import { makeWorkspace, runCli, writeBoard } from './helpers/workspace.mjs';
 
@@ -87,4 +88,21 @@ test('prompt reports missing assignments in JSON mode', () => {
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.ok, false);
   assert.equal(payload.error, 'No active or assigned task was found for agent-3.');
+});
+
+test('prompt redacts exported details in privacy mode', () => {
+  const { root, configPath } = makePromptWorkspace();
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.privacy = { mode: 'redacted', offline: false };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = runCli(root, ['prompt', 'agent-1', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(payload.privacy.mode, 'redacted');
+  assert.deepEqual(payload.task.claimedPaths, ['[redacted]']);
+  assert.equal(payload.task.summary, '[redacted]');
+  assert.match(payload.prompt, /\[redacted\]/);
+  assert.doesNotMatch(payload.prompt, /app\/settings\/page\.tsx/);
 });

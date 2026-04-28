@@ -5,86 +5,170 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
-    "configVersion": { "type": "integer", "minimum": 1 },
+    "configVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
     "extends": {
       "oneOf": [
-        { "type": "string", "minLength": 1 },
-        { "$ref": "#/$defs/stringArray" }
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "$ref": "#/$defs/stringArray"
+        }
       ]
     },
-    "projectName": { "type": "string", "minLength": 1 },
+    "projectName": {
+      "type": "string",
+      "minLength": 1
+    },
     "agentIds": {
       "type": "array",
       "minItems": 1,
-      "items": { "type": "string", "minLength": 1 },
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
       "uniqueItems": true
     },
     "docs": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "roots": { "$ref": "#/$defs/stringArray" },
-        "appNotes": { "type": "string" },
-        "visualWorkflow": { "type": "string" },
-        "apiPrefixes": { "$ref": "#/$defs/stringArray" }
+        "roots": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "appNotes": {
+          "type": "string"
+        },
+        "visualWorkflow": {
+          "type": "string"
+        },
+        "apiPrefixes": {
+          "$ref": "#/$defs/stringArray"
+        }
       }
     },
     "git": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "allowMainBranchClaims": { "type": "boolean" },
-        "allowDetachedHead": { "type": "boolean" },
-        "allowedBranchPatterns": { "$ref": "#/$defs/stringArray" },
-        "defaultBaseBranch": { "type": "string" },
-        "staleBranchDays": { "type": "integer", "minimum": 0 },
-        "protectedBranchPatterns": { "$ref": "#/$defs/stringArray" }
+        "allowMainBranchClaims": {
+          "type": "boolean"
+        },
+        "allowDetachedHead": {
+          "type": "boolean"
+        },
+        "allowedBranchPatterns": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "defaultBaseBranch": {
+          "type": "string"
+        },
+        "staleBranchDays": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "protectedBranchPatterns": {
+          "$ref": "#/$defs/stringArray"
+        }
       }
     },
     "capacity": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "maxActiveTasksPerAgent": { "type": "integer", "minimum": 1 },
-        "maxBlockedTasksPerAgent": { "type": "integer", "minimum": 0 },
+        "maxActiveTasksPerAgent": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxBlockedTasksPerAgent": {
+          "type": "integer",
+          "minimum": 0
+        },
         "preferredDomainsByAgent": {
           "type": "object",
-          "additionalProperties": { "$ref": "#/$defs/stringArray" }
+          "additionalProperties": {
+            "$ref": "#/$defs/stringArray"
+          }
         },
-        "enforcePreferredDomains": { "type": "boolean" }
+        "enforcePreferredDomains": {
+          "type": "boolean"
+        }
       }
     },
     "conflictPrediction": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "enabled": { "type": "boolean" },
-        "blockOnGitOverlap": { "type": "boolean" }
+        "enabled": {
+          "type": "boolean"
+        },
+        "blockOnGitOverlap": {
+          "type": "boolean"
+        }
       }
     },
     "ownership": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "codeownersFiles": { "$ref": "#/$defs/stringArray" },
-        "broadPathPatterns": { "$ref": "#/$defs/stringArray" }
+        "codeownersFiles": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "broadPathPatterns": {
+          "$ref": "#/$defs/stringArray"
+        }
       }
     },
     "policyEnforcement": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "mode": { "enum": ["warn", "block"] },
+        "mode": {
+          "enum": [
+            "warn",
+            "block"
+          ]
+        },
         "rules": {
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "broadClaims": { "type": "boolean" },
-            "codeownersCrossing": { "type": "boolean" },
-            "finishRequiresApproval": { "type": "boolean" },
-            "finishRequiresDocsReview": { "type": "boolean" },
-            "finishApprovalScope": { "type": "string" }
+            "broadClaims": {
+              "type": "boolean"
+            },
+            "codeownersCrossing": {
+              "type": "boolean"
+            },
+            "finishRequiresApproval": {
+              "type": "boolean"
+            },
+            "finishRequiresDocsReview": {
+              "type": "boolean"
+            },
+            "finishApprovalScope": {
+              "type": "string"
+            }
           }
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "mode": {
+          "enum": [
+            "standard",
+            "redacted",
+            "local-only"
+          ]
+        },
+        "offline": {
+          "type": "boolean"
         }
       }
     },
@@ -92,30 +176,57 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "sharedRisk": { "$ref": "#/$defs/stringArray" },
-        "visualSuite": { "$ref": "#/$defs/stringArray" },
-        "visualSuiteDefault": { "$ref": "#/$defs/stringArray" },
-        "visualImpact": { "$ref": "#/$defs/stringArray" },
-        "visualImpactFiles": { "$ref": "#/$defs/stringArray" }
+        "sharedRisk": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "visualSuite": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "visualSuiteDefault": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "visualImpact": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "visualImpactFiles": {
+          "$ref": "#/$defs/stringArray"
+        }
       }
     },
     "verification": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "visualRequiredChecks": { "$ref": "#/$defs/stringArray" },
-        "visualSuiteUpdateChecks": { "$ref": "#/$defs/stringArray" }
+        "visualRequiredChecks": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "visualSuiteUpdateChecks": {
+          "$ref": "#/$defs/stringArray"
+        }
       }
     },
     "artifacts": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "roots": { "$ref": "#/$defs/stringArray" },
-        "keepDays": { "type": "integer", "minimum": 1 },
-        "keepFailedDays": { "type": "integer", "minimum": 1 },
-        "maxMb": { "type": "integer", "minimum": 1 },
-        "protectPatterns": { "$ref": "#/$defs/stringArray" }
+        "roots": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "keepDays": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "keepFailedDays": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxMb": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "protectPatterns": {
+          "$ref": "#/$defs/stringArray"
+        }
       }
     },
     "checks": {
@@ -124,11 +235,22 @@
         "type": "object",
         "additionalProperties": true,
         "properties": {
-          "command": { "type": "string" },
-          "timeoutMs": { "type": "integer", "minimum": 1000 },
-          "artifactRoots": { "$ref": "#/$defs/stringArray" },
-          "requiredForPaths": { "$ref": "#/$defs/stringArray" },
-          "requireArtifacts": { "type": "boolean" }
+          "command": {
+            "type": "string"
+          },
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 1000
+          },
+          "artifactRoots": {
+            "$ref": "#/$defs/stringArray"
+          },
+          "requiredForPaths": {
+            "$ref": "#/$defs/stringArray"
+          },
+          "requireArtifacts": {
+            "type": "boolean"
+          }
         }
       }
     },
@@ -136,42 +258,86 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "categories": { "$ref": "#/$defs/stringArray" },
-        "sectionHeading": { "type": "string" }
+        "categories": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "sectionHeading": {
+          "type": "string"
+        }
       }
     },
     "pathClassification": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "productPrefixes": { "$ref": "#/$defs/stringArray" },
-        "dataPrefixes": { "$ref": "#/$defs/stringArray" },
-        "verifyPrefixes": { "$ref": "#/$defs/stringArray" },
-        "docsPrefixes": { "$ref": "#/$defs/stringArray" },
-        "docsFiles": { "$ref": "#/$defs/stringArray" }
+        "productPrefixes": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "dataPrefixes": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "verifyPrefixes": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "docsPrefixes": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "docsFiles": {
+          "$ref": "#/$defs/stringArray"
+        }
       }
     },
     "planning": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "defaultDomains": { "$ref": "#/$defs/stringArray" },
-        "productFallbackPaths": { "$ref": "#/$defs/stringArray" },
-        "dataFallbackPaths": { "$ref": "#/$defs/stringArray" },
-        "verifyFallbackPaths": { "$ref": "#/$defs/stringArray" },
-        "docsFallbackPaths": { "$ref": "#/$defs/stringArray" },
+        "defaultDomains": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "productFallbackPaths": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "dataFallbackPaths": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "verifyFallbackPaths": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "docsFallbackPaths": {
+          "$ref": "#/$defs/stringArray"
+        },
         "agentSizing": {
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "minAgents": { "type": "integer", "minimum": 1 },
-            "maxAgents": { "type": "integer", "minimum": 1 },
-            "mediumComplexityScore": { "type": "integer", "minimum": 1 },
-            "largeComplexityScore": { "type": "integer", "minimum": 1 },
-            "productKeywords": { "$ref": "#/$defs/stringArray" },
-            "dataKeywords": { "$ref": "#/$defs/stringArray" },
-            "verifyKeywords": { "$ref": "#/$defs/stringArray" },
-            "docsKeywords": { "$ref": "#/$defs/stringArray" }
+            "minAgents": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxAgents": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "mediumComplexityScore": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "largeComplexityScore": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "productKeywords": {
+              "$ref": "#/$defs/stringArray"
+            },
+            "dataKeywords": {
+              "$ref": "#/$defs/stringArray"
+            },
+            "verifyKeywords": {
+              "$ref": "#/$defs/stringArray"
+            },
+            "docsKeywords": {
+              "$ref": "#/$defs/stringArray"
+            }
           }
         }
       }
@@ -180,30 +346,58 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "keywords", "scopes"],
+        "required": [
+          "name",
+          "keywords",
+          "scopes"
+        ],
         "additionalProperties": true,
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "keywords": { "$ref": "#/$defs/stringArray" },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "keywords": {
+            "$ref": "#/$defs/stringArray"
+          },
           "scopes": {
             "type": "object",
             "additionalProperties": true,
             "properties": {
-              "product": { "$ref": "#/$defs/stringArray" },
-              "data": { "$ref": "#/$defs/stringArray" },
-              "verify": { "$ref": "#/$defs/stringArray" },
-              "docs": { "$ref": "#/$defs/stringArray" }
+              "product": {
+                "$ref": "#/$defs/stringArray"
+              },
+              "data": {
+                "$ref": "#/$defs/stringArray"
+              },
+              "verify": {
+                "$ref": "#/$defs/stringArray"
+              },
+              "docs": {
+                "$ref": "#/$defs/stringArray"
+              }
             }
           }
         }
       }
     }
   },
-  "required": ["projectName", "agentIds", "docs", "paths", "verification", "pathClassification", "planning", "domainRules"],
+  "required": [
+    "projectName",
+    "agentIds",
+    "docs",
+    "paths",
+    "verification",
+    "pathClassification",
+    "planning",
+    "domainRules"
+  ],
   "$defs": {
     "stringArray": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "uniqueItems": true
     }
   }

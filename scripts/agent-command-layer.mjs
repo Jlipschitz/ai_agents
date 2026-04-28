@@ -237,7 +237,8 @@ function getImpactCommandContext() {
 }
 
 function getGitHubCommandContext() {
-  return { root: ROOT };
+  const { config } = loadConfig();
+  return { root: ROOT, config };
 }
 
 function getTemplateCommandContext() {
@@ -263,10 +264,12 @@ function getBacklogImportContext() {
 }
 
 function getPromptCommandContext() {
+  const { config } = loadConfig();
   const paths = getCoordinationPaths();
   return {
     root: ROOT,
     paths,
+    config,
     board: readJsonSafe(paths.boardPath, { tasks: [], agents: [] }),
   };
 }

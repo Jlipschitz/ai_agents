@@ -1,5 +1,6 @@
 import { getPositionals, hasFlag } from './args-utils.mjs';
 import { printCommandError } from './error-formatting.mjs';
+import { applyPromptPrivacy, getPrivacyOptions } from './privacy-utils.mjs';
 import { ensureTaskMetadataDefaults, formatTaskDueAt } from './task-metadata.mjs';
 
 const ACTIVE_STATUSES = new Set(['active', 'blocked', 'review', 'waiting', 'handoff']);
@@ -281,7 +282,9 @@ export function runPromptCommand(argv, context) {
     return printCommandError('Usage: prompt <agent-id> [task-id] [--json]', { json });
   }
 
-  const result = buildAgentPrompt(context.board, agentId, taskId ?? '');
+  const privacy = getPrivacyOptions(context.config);
+  const result = buildAgentPrompt(applyPromptPrivacy(context.board, privacy), agentId, taskId ?? '');
+  result.privacy = privacy;
   if (json) {
     console.log(JSON.stringify(result, null, 2));
   } else if (result.ok) {

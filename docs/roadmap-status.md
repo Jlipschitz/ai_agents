@@ -123,8 +123,8 @@ Next recommended work:
 - [ ] External calendar/reminder hooks
 - [x] Config inheritance
 - [~] Multi-branch awareness — claims record Git branch metadata and `branches` reports task ownership by branch; cross-worktree awareness remains open.
-- [ ] Offline mode
-- [ ] Data privacy modes
+- [x] Offline mode
+- [x] Data privacy modes
 
 ## Phase 7: Documentation and Repo Polish
 
@@ -236,6 +236,7 @@ Next recommended work:
 - `scripts/lib/onboarding-checklist.mjs`
 - `scripts/lib/policy-enforcement.mjs`
 - `scripts/lib/prompt-commands.mjs`
+- `scripts/lib/privacy-utils.mjs`
 - `scripts/lib/review-queue-commands.mjs`
 - `scripts/lib/risk-score-commands.mjs`
 - `scripts/lib/secrets-scan-commands.mjs`

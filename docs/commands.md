@@ -452,6 +452,8 @@ npm run agents -- prompt agent-1 --json
 
 The prompt includes the assigned task, priority, due date, severity, objective, claimed paths, dependency status, relevant docs, docs-review state, verification expectations, recent task notes, and next actions. If a task ID is omitted, the command uses the agent's recorded assignment or active owned task.
 
+Set `privacy.mode` to `redacted` or `local-only`, or set `AI_AGENTS_PRIVACY_MODE=redacted`, to redact exported prompt summaries, claimed paths, notes, verification details, and approval summaries.
+
 ### `ask`
 
 Answers common coordination questions from the current board.
@@ -704,7 +706,7 @@ npm run agents -- github-status --json
 npm run agents -- github-status --live
 ```
 
-By default the command is local-only and does not contact GitHub. `--live` runs `gh pr view` for the current branch and reports failures as warnings.
+By default the command is local-only and does not contact GitHub. `--live` runs `gh pr view` for the current branch and reports failures as warnings. Set `privacy.offline: true`, `privacy.mode: "local-only"`, or `AI_AGENTS_OFFLINE=1` to skip live checks even when `--live` is passed.
 
 ### `claim`
 

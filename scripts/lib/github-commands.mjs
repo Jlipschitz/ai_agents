@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 
 import { hasFlag } from './args-utils.mjs';
 import { execGit } from './git-utils.mjs';
+import { getPrivacyOptions } from './privacy-utils.mjs';
 
 function parseGitHubRemote(remoteUrl) {
   const match = String(remoteUrl ?? '').trim().match(/github\.com[:/]([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i);
@@ -73,7 +74,8 @@ function getAheadBehind(root, upstream) {
   };
 }
 
-export function buildGitHubStatus({ root, argv = [] }) {
+export function buildGitHubStatus({ root, argv = [], config = {}, env = process.env }) {
+  const privacy = getPrivacyOptions(config, env);
   const remoteUrl = execGit(['config', '--get', 'remote.origin.url'], { root });
   const repository = parseGitHubRemote(remoteUrl);
   const branch = execGit(['branch', '--show-current'], { root }) || null;
@@ -93,7 +95,10 @@ export function buildGitHubStatus({ root, argv = [] }) {
   if (behind && behind > 0) warnings.push(`Current branch is behind upstream by ${behind} commit(s).`);
   if (ahead && ahead > 0) warnings.push(`Current branch has ${ahead} unpushed commit(s).`);
 
-  const live = hasFlag(argv, '--live') ? runGhPrView(root) : { available: null, error: null, pr: null };
+  const live = hasFlag(argv, '--live') && !privacy.offline
+    ? runGhPrView(root)
+    : { available: null, skipped: hasFlag(argv, '--live') && privacy.offline, error: null, pr: null };
+  if (live.skipped) warnings.push('Offline mode is enabled; skipped GitHub CLI live PR check.');
   if (live.error) warnings.push(`GitHub CLI live PR check failed: ${live.error}`);
 
   return {
@@ -107,6 +112,7 @@ export function buildGitHubStatus({ root, argv = [] }) {
     workflows,
     mergeQueue,
     live,
+    privacy,
     warnings,
   };
 }
