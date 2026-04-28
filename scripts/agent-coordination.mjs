@@ -7,11 +7,16 @@ if (!process.env.AGENT_COORDINATION_CLI_ENTRYPOINT) {
 }
 
 if (!process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT) {
-  process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT = 'scripts/agent-watch-loop.ps1';
+  process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT = 'scripts/agent-watch-loop.mjs';
 }
 
 if (!process.env.AGENT_COORDINATION_SCRIPT) {
   process.env.AGENT_COORDINATION_SCRIPT = 'scripts/agent-coordination.mjs';
 }
 
-await import('./agent-coordination-core.mjs');
+const { runCommandLayer } = await import('./agent-command-layer.mjs');
+
+await runCommandLayer({
+  coordinatorScriptPath: 'scripts/agent-coordination.mjs',
+  importCore: async () => import('./agent-coordination-core.mjs'),
+});
