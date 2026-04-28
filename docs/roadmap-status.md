@@ -15,10 +15,9 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 Next recommended work:
 
 1. Add broader command snapshot tests and fixture repos.
-2. Add configurable capacity and conflict-prediction gates.
-3. Add per-command help and consistent global flags.
-4. Add stale branch cleanup and multi-branch awareness.
-5. Add CODEOWNERS ownership reviews and test-impact selection.
+2. Add per-command help and consistent global flags.
+3. Add stale branch cleanup and multi-branch awareness.
+4. Add CODEOWNERS ownership reviews and test-impact selection.
 
 ---
 
@@ -36,8 +35,8 @@ Next recommended work:
 ## Phase 2: Task Lifecycle and Daily Workflow
 
 - [~] Single-command task lifecycle — `start`, `finish`, and `handoff-ready` exist; more configurable gates remain open.
-- [ ] Agent capacity rules
-- [ ] Conflict prediction
+- [~] Agent capacity rules — claim-time active/blocked/domain gates exist; richer planner integration remains open.
+- [~] Conflict prediction — claim-time local Git overlap detection exists; richer merge prediction remains open.
 - [~] Machine identity — terminal/session identity is partially supported.
 - [~] Remote sync checks — ahead/behind warnings are partially covered before claim.
 - [~] `doctor --json` — implemented through the command layer; core-native integration remains open.

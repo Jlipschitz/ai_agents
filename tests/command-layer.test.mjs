@@ -213,6 +213,51 @@ test('start records the message as the task summary and progress note', () => {
   assert.ok(task.notes.some((entry) => entry.kind === 'progress' && entry.body === 'Starting summary'));
 });
 
+test('claim blocks agents that exceed configured active capacity', () => {
+  const root = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.capacity = { maxActiveTasksPerAgent: 1, maxBlockedTasksPerAgent: 1, preferredDomainsByAgent: {}, enforcePreferredDomains: false };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  writeBoard(root, {
+    projectName: 'Capacity Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [
+      { id: 'task-active', status: 'active', ownerId: 'agent-1', title: 'Current task', claimedPaths: ['app/current'] },
+      { id: 'task-next', status: 'planned', ownerId: null, title: 'Next task', claimedPaths: [] },
+    ],
+  });
+
+  const result = run(root, ['claim', 'agent-1', 'task-next', '--paths', 'app/next']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /capacity policy/);
+  assert.match(result.stderr, /active task limit/);
+});
+
+test('claim enforces preferred domains when configured', () => {
+  const root = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.capacity = {
+    maxActiveTasksPerAgent: 1,
+    maxBlockedTasksPerAgent: 1,
+    preferredDomainsByAgent: { 'agent-1': ['docs'] },
+    enforcePreferredDomains: true,
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  writeBoard(root, {
+    projectName: 'Capacity Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [{ id: 'task-app', status: 'planned', ownerId: null, title: 'App task', claimedPaths: [] }],
+  });
+
+  const result = run(root, ['claim', 'agent-1', 'task-app', '--paths', 'app/screen']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /prefers domain/);
+});
+
 test('validate --json returns machine-readable config validation', () => {
   const root = makeWorkspace();
   const result = run(root, ['validate', '--json']);

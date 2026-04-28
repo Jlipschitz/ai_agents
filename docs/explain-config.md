@@ -40,6 +40,8 @@ node ./scripts/explain-config.mjs --json
 - configured app notes and visual workflow docs
 - API prefixes
 - Git claim policy
+- capacity policy
+- conflict prediction policy
 - shared-risk paths
 - visual-impact paths
 - visual-suite paths
@@ -126,6 +128,8 @@ Returns a JSON object with these top-level fields:
   },
   "docs": {},
   "git": {},
+  "capacity": {},
+  "conflictPrediction": {},
   "paths": {},
   "verification": {},
   "pathClassification": {},
@@ -150,6 +154,7 @@ Use `explain-config` when:
 - debugging missing docs paths
 - debugging wrong coordination folders
 - reviewing Git claim policy
+- reviewing capacity and conflict prediction rules
 - checking planner sizing rules
 - checking active environment overrides
 - preparing another agent for work

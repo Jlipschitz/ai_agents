@@ -153,6 +153,33 @@ Config example:
 }
 ```
 
+### Agent capacity and conflict prediction
+
+Status: partially implemented in the core claim path.
+
+Claim-time policy now supports:
+
+- `capacity.maxActiveTasksPerAgent`
+- `capacity.maxBlockedTasksPerAgent`
+- `capacity.preferredDomainsByAgent`
+- `capacity.enforcePreferredDomains`
+- `conflictPrediction.enabled`
+- `conflictPrediction.blockOnGitOverlap`
+
+Current behavior:
+
+- Blocks claims when the target agent is already at active or blocked work limits.
+- Warns or blocks when an agent claims work outside its configured preferred domains.
+- Checks local Git changes against other active agents' claimed paths before claim.
+- Blocks predicted Git-overlap conflicts unless `--force` is used.
+
+Main files:
+
+- `scripts/lib/claim-policy.mjs`
+- `scripts/lib/task-claim-commands.mjs`
+- `tests/command-layer.test.mjs`
+- `tests/git-policy.test.mjs`
+
 ### Board summarize
 
 Status: implemented and enhanced in the command layer.

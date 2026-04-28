@@ -301,6 +301,13 @@ The command exits non-zero when active path overlaps are detected.
 
 Claims a task for an agent and records claimed paths. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, merge/rebase state, and configured branch policies. Merge/rebase-in-progress state and configured branch policy violations block the claim.
 
+The claim command also applies coordination policies from config:
+
+- `capacity.maxActiveTasksPerAgent`: blocks claims when an agent already owns too much active work.
+- `capacity.maxBlockedTasksPerAgent`: blocks claims when an agent is carrying too much blocked work.
+- `capacity.preferredDomainsByAgent`: warns, or blocks when `enforcePreferredDomains` is true, if a claim does not match the agent's preferred domains.
+- `conflictPrediction.blockOnGitOverlap`: blocks claims when current local Git changes overlap another active agent's claimed paths.
+
 ```bash
 npm run agents -- claim agent-1 task-id --paths src/tasks,docs/tasks.md
 ```
@@ -313,6 +320,19 @@ Configure branch claim policies in `agent-coordination.config.json`:
     "allowMainBranchClaims": false,
     "allowDetachedHead": false,
     "allowedBranchPatterns": ["agent/*", "feature/*", "fix/*"]
+  },
+  "capacity": {
+    "maxActiveTasksPerAgent": 1,
+    "maxBlockedTasksPerAgent": 1,
+    "preferredDomainsByAgent": {
+      "agent-1": ["app"],
+      "agent-2": ["backend", "docs"]
+    },
+    "enforcePreferredDomains": false
+  },
+  "conflictPrediction": {
+    "enabled": true,
+    "blockOnGitOverlap": true
   }
 }
 ```

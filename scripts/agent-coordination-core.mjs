@@ -6,6 +6,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { createBoardValidation } from './lib/board-validation.mjs';
 import { createCommunicationCommands } from './lib/communication-commands.mjs';
 import { createCorePathAnalysis } from './lib/core-path-analysis.mjs';
+import { normalizeClaimPolicies } from './lib/claim-policy.mjs';
 import { ensureDirectory, fileExists, isPidAlive, nowIso } from './lib/file-utils.mjs';
 import { createDoctorCommand } from './lib/doctor-command.mjs';
 import { createHeartbeatWatchCommands } from './lib/heartbeat-watch-commands.mjs';
@@ -253,6 +254,7 @@ const PLANNING_AGENT_SIZING = {
 const DOMAIN_RULES = normalizeDomainRules(AGENT_CONFIG.domainRules, DEFAULT_DOMAIN_RULES);
 const APP_NOTE_CATEGORIES = new Set(normalizeConfigStringArray(AGENT_CONFIG.notes?.categories, DEFAULT_APP_NOTE_CATEGORIES));
 const APP_NOTES_SECTION_HEADING = normalizeConfigString(AGENT_CONFIG.notes?.sectionHeading, 'Agent-Maintained Notes');
+const CLAIM_POLICIES = normalizeClaimPolicies(AGENT_CONFIG);
 const {
   classifyGitPaths,
   collectMergeRiskWarnings,
@@ -485,6 +487,7 @@ const {
   assertAgentSessionAvailable,
   buildDependencyInsight,
   buildWaitingInsights,
+  claimPolicies: CLAIM_POLICIES,
   collectMergeRiskWarnings,
   coordinationLabel: COORDINATION_LABEL,
   ensureBaseFiles,
@@ -494,11 +497,13 @@ const {
   getBoard,
   getCommandAgent,
   getCurrentCommandName: () => currentCommandName,
+  getGitChangedPaths,
   getReadOnlyBoard,
   getTask,
   getVisualVerificationChecksForTask,
   hasVisualImpact,
   inferRelevantDocs,
+  inferDomainsFromPaths,
   isTaskStale,
   maybeQueueAssistMessages,
   note,

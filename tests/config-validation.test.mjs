@@ -32,6 +32,16 @@ function validConfig() {
       maxMb: 500,
       protectPatterns: ['**/baseline/**'],
     },
+    capacity: {
+      maxActiveTasksPerAgent: 1,
+      maxBlockedTasksPerAgent: 1,
+      preferredDomainsByAgent: { 'agent-1': ['app'] },
+      enforcePreferredDomains: false,
+    },
+    conflictPrediction: {
+      enabled: true,
+      blockOnGitOverlap: true,
+    },
     checks: {
       unit: {
         command: 'npm test',
@@ -98,6 +108,9 @@ test('validateAgentConfig reports actionable errors', () => {
   config.planning.agentSizing.maxAgents = 2;
   config.domainRules[0].keywords = [];
   config.artifacts.keepDays = 0;
+  config.capacity.maxActiveTasksPerAgent = 0;
+  config.capacity.preferredDomainsByAgent['agent-3'] = ['app'];
+  config.conflictPrediction.blockOnGitOverlap = 'yes';
   config.checks.unit.timeoutMs = 500;
   config.checks.unit.requireArtifacts = 'yes';
 
@@ -109,6 +122,9 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('minAgents cannot be greater than maxAgents')));
   assert.ok(result.errors.some((entry) => entry.includes('domainRules[0].keywords')));
   assert.ok(result.errors.some((entry) => entry.includes('artifacts.keepDays')));
+  assert.ok(result.errors.some((entry) => entry.includes('capacity.maxActiveTasksPerAgent')));
+  assert.ok(result.warnings.some((entry) => entry.includes('capacity.preferredDomainsByAgent.agent-3')));
+  assert.ok(result.errors.some((entry) => entry.includes('conflictPrediction.blockOnGitOverlap')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.timeoutMs')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.requireArtifacts')));
 });

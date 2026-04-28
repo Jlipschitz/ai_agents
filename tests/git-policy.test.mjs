@@ -23,6 +23,9 @@ function makeGitWorkspace(gitConfig) {
   fs.mkdirSync(path.join(coordinationRoot, 'runtime'), { recursive: true });
   fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'git-policy-test', scripts: {} }, null, 2));
   fs.writeFileSync(path.join(root, 'README.md'), '# Test\n');
+  fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'src', 'shared.js'), 'export const shared = 1;\n');
+  fs.writeFileSync(path.join(root, 'src', 'other.js'), 'export const other = 1;\n');
   fs.writeFileSync(path.join(root, 'agent-coordination.config.json'), `${JSON.stringify({ ...baseConfig, git: gitConfig }, null, 2)}\n`);
   fs.writeFileSync(path.join(coordinationRoot, 'board.json'), JSON.stringify({
     projectName: 'Git Policy Test',
@@ -95,4 +98,27 @@ test('claim is blocked when branch does not match configured patterns', () => {
   const result = run(root, coordinationRoot, ['claim', 'agent-1', 'task-one', '--paths', 'src/a']);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /git.allowedBranchPatterns/);
+});
+
+test('claim conflict prediction blocks local changes owned by another active task', () => {
+  const { root, coordinationRoot } = makeGitWorkspace({
+    allowMainBranchClaims: true,
+    allowDetachedHead: false,
+    allowedBranchPatterns: [],
+  });
+  fs.writeFileSync(path.join(root, 'src', 'shared.js'), 'export const shared = 2;\n');
+  fs.writeFileSync(path.join(coordinationRoot, 'board.json'), JSON.stringify({
+    projectName: 'Git Policy Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [
+      { id: 'task-other', status: 'active', ownerId: 'agent-2', title: 'Other task', claimedPaths: ['src/shared.js'] },
+      { id: 'task-new', status: 'planned', ownerId: null, title: 'New task', claimedPaths: [] },
+    ],
+  }, null, 2));
+
+  const result = run(root, coordinationRoot, ['claim', 'agent-1', 'task-new', '--paths', 'src/other.js']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /conflict prediction/);
+  assert.match(result.stderr, /src\/shared\.js/);
 });

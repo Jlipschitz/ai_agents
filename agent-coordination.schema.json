@@ -32,6 +32,27 @@
         "allowedBranchPatterns": { "$ref": "#/$defs/stringArray" }
       }
     },
+    "capacity": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "maxActiveTasksPerAgent": { "type": "integer", "minimum": 1 },
+        "maxBlockedTasksPerAgent": { "type": "integer", "minimum": 0 },
+        "preferredDomainsByAgent": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stringArray" }
+        },
+        "enforcePreferredDomains": { "type": "boolean" }
+      }
+    },
+    "conflictPrediction": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "blockOnGitOverlap": { "type": "boolean" }
+      }
+    },
     "paths": {
       "type": "object",
       "additionalProperties": true,

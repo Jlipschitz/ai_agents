@@ -152,6 +152,25 @@ export function validateAgentConfig(config, options = {}) {
     if ('allowedBranchPatterns' in config.git) validateStringArray(config.git.allowedBranchPatterns, 'git.allowedBranchPatterns', errors);
   }
 
+  if ('capacity' in config && validateObject(config.capacity, 'capacity', errors)) {
+    if ('maxActiveTasksPerAgent' in config.capacity) validateInteger(config.capacity.maxActiveTasksPerAgent, 'capacity.maxActiveTasksPerAgent', errors);
+    if ('maxBlockedTasksPerAgent' in config.capacity) validateInteger(config.capacity.maxBlockedTasksPerAgent, 'capacity.maxBlockedTasksPerAgent', errors, { min: 0 });
+    if ('enforcePreferredDomains' in config.capacity) validateBoolean(config.capacity.enforcePreferredDomains, 'capacity.enforcePreferredDomains', errors);
+    if ('preferredDomainsByAgent' in config.capacity && validateObject(config.capacity.preferredDomainsByAgent, 'capacity.preferredDomainsByAgent', errors)) {
+      for (const [agentId, domains] of Object.entries(config.capacity.preferredDomainsByAgent)) {
+        validateStringArray(domains, `capacity.preferredDomainsByAgent.${agentId}`, errors);
+        if (Array.isArray(config.agentIds) && !config.agentIds.includes(agentId)) {
+          addIssue(warnings, `capacity.preferredDomainsByAgent.${agentId}`, 'does not match a configured agentId');
+        }
+      }
+    }
+  }
+
+  if ('conflictPrediction' in config && validateObject(config.conflictPrediction, 'conflictPrediction', errors)) {
+    if ('enabled' in config.conflictPrediction) validateBoolean(config.conflictPrediction.enabled, 'conflictPrediction.enabled', errors);
+    if ('blockOnGitOverlap' in config.conflictPrediction) validateBoolean(config.conflictPrediction.blockOnGitOverlap, 'conflictPrediction.blockOnGitOverlap', errors);
+  }
+
   if ('paths' in config) {
     validateKnownStringArrays(config.paths, 'paths', ['sharedRisk', 'visualSuite', 'visualSuiteDefault', 'visualImpact', 'visualImpactFiles'], errors);
   }

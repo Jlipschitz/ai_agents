@@ -146,6 +146,8 @@ function createStarterConfig(configPath) {
     agentIds: DEFAULT_AGENT_IDS,
     docs: { roots: ['docs'], appNotes: 'docs/ai-agent-app-notes.md', visualWorkflow: '', apiPrefixes: ['docs/api'] },
     git: DEFAULT_GIT_POLICY,
+    capacity: { maxActiveTasksPerAgent: 1, maxBlockedTasksPerAgent: 1, preferredDomainsByAgent: {}, enforcePreferredDomains: false },
+    conflictPrediction: { enabled: true, blockOnGitOverlap: true },
     paths: { sharedRisk: ['scripts', 'package.json', 'agent-coordination.config.json'], visualSuite: [], visualSuiteDefault: [], visualImpact: [], visualImpactFiles: [] },
     verification: { visualRequiredChecks: [], visualSuiteUpdateChecks: [] },
     artifacts: { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] },

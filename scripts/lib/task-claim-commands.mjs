@@ -1,20 +1,24 @@
 import { nowIso } from './file-utils.mjs';
+import { evaluateCapacityPolicy, predictClaimConflicts } from './claim-policy.mjs';
 
 export function createTaskClaimCommands(context) {
   const {
     activeTaskStatuses,
     appendJournalLine,
     collectMergeRiskWarnings,
+    claimPolicies,
     coordinationLabel,
     ensureBaseFiles,
     ensureTask,
     ensureVisualVerificationForTask,
     getBoard,
     getCommandAgent,
+    getGitChangedPaths,
     getTask,
     getVisualVerificationChecksForTask,
     hasVisualImpact,
     inferRelevantDocs,
+    inferDomainsFromPaths,
     note,
     parsePathsOption,
     pathsOverlap,
@@ -74,9 +78,23 @@ export function createTaskClaimCommands(context) {
     await withMutationLock(async () => {
       const board = getBoard();
       const agent = getCommandAgent(board, agentId);
+      const domains = inferDomainsFromPaths(claimedPaths);
 
       if (agent.taskId && agent.taskId !== taskId) {
         throw new Error(`${agentId} is already assigned to "${agent.taskId}". Release or hand off that task first.`);
+      }
+
+      const capacity = evaluateCapacityPolicy({
+        board,
+        agentId,
+        taskId,
+        domains,
+        policy: claimPolicies.capacity,
+        activeTaskStatuses,
+      });
+
+      if (capacity.errors.length) {
+        throw new Error(`Claim rejected by capacity policy: ${capacity.errors.join(' ')}`);
       }
 
       const conflicts = collectPathConflicts(board, agentId, taskId, claimedPaths);
@@ -84,6 +102,21 @@ export function createTaskClaimCommands(context) {
       if (conflicts.length) {
         const summary = conflicts.map((conflict) => `${conflict.ownerId}/${conflict.taskId} (${conflict.path})`).join(', ');
         throw new Error(`Claim rejected because the requested paths overlap existing work: ${summary}`);
+      }
+
+      const predictedConflicts = predictClaimConflicts({
+        board,
+        agentId,
+        taskId,
+        claimedPaths,
+        gitChangedPaths: getGitChangedPaths(),
+        policy: claimPolicies.conflicts,
+        activeTaskStatuses,
+        pathsOverlap,
+      });
+
+      if (predictedConflicts.errors.length && !options.force) {
+        throw new Error(`Claim rejected by conflict prediction: ${predictedConflicts.errors.join(' ')} Re-run with --force only if this overlap is intentional.`);
       }
 
       const candidateTask = getTask(board, taskId) ?? {
@@ -181,6 +214,9 @@ export function createTaskClaimCommands(context) {
       appendJournalLine(`- ${startedAt} | ${agentId} claimed \`${taskId}\` on ${claimedPaths.join(', ')}.`);
       await saveBoard(board);
       console.log(`Claimed ${taskId} for ${agentId}.`);
+      for (const warning of [...capacity.warnings, ...predictedConflicts.warnings]) {
+        console.warn(`warning: ${warning}`);
+      }
       if (task.relevantDocs.length) {
         console.log(`Review docs before coding: ${task.relevantDocs.join(', ')}`);
       }

@@ -12,6 +12,16 @@
     "allowDetachedHead": false,
     "allowedBranchPatterns": []
   },
+  "capacity": {
+    "maxActiveTasksPerAgent": 1,
+    "maxBlockedTasksPerAgent": 1,
+    "preferredDomainsByAgent": {},
+    "enforcePreferredDomains": false
+  },
+  "conflictPrediction": {
+    "enabled": true,
+    "blockOnGitOverlap": true
+  },
   "paths": {
     "sharedRisk": ["scripts", "package.json", "agent-coordination.config.json"],
     "visualSuite": [],
