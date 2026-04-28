@@ -313,6 +313,8 @@ npm run check
 npm test
 ```
 
+`npm run check` recursively syntax-checks `.mjs` files under `bin`, `scripts`, and `tests`.
+
 CI runs on Node 24, installs with `npm ci`, and uses GitHub Actions npm caching keyed by `package-lock.json`.
 
 ## Roadmap

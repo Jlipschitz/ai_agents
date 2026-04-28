@@ -100,29 +100,6 @@ const FILES_TO_COPY = [
   'scripts/lock-runtime.mjs',
   'scripts/planner-sizing.mjs',
   'scripts/validate-config.mjs',
-  'scripts/lib/args-utils.mjs',
-  'scripts/lib/artifact-commands.mjs',
-  'scripts/lib/board-maintenance.mjs',
-  'scripts/lib/board-validation.mjs',
-  'scripts/lib/communication-commands.mjs',
-  'scripts/lib/core-path-analysis.mjs',
-  'scripts/lib/doctor-command.mjs',
-  'scripts/lib/file-utils.mjs',
-  'scripts/lib/git-utils.mjs',
-  'scripts/lib/heartbeat-commands.mjs',
-  'scripts/lib/heartbeat-watch-commands.mjs',
-  'scripts/lib/package-json-utils.mjs',
-  'scripts/lib/path-utils.mjs',
-  'scripts/lib/planner-commands.mjs',
-  'scripts/lib/recovery-commands.mjs',
-  'scripts/lib/runtime-diagnostics.mjs',
-  'scripts/lib/status-commands.mjs',
-  'scripts/lib/support-operation-commands.mjs',
-  'scripts/lib/task-claim-commands.mjs',
-  'scripts/lib/task-completion-commands.mjs',
-  'scripts/lib/task-flow-commands.mjs',
-  'scripts/lib/task-lifecycle-commands.mjs',
-  'scripts/lib/watch-commands.mjs',
   'agent-coordination.schema.json',
   'agent-coordination.config.json',
   'docs/agent-coordination-portability.md',
@@ -136,6 +113,7 @@ const FILES_TO_COPY = [
   'docs/implementation-status.md',
   'docs/roadmap-status.md',
 ];
+const DIRECTORIES_TO_COPY = ['scripts/lib'];
 
 function isCliEntrypoint() {
   return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === __filename;
@@ -212,6 +190,35 @@ function copyFile(relativePath, targetRoot, options, operations) {
   if (!options.dryRun) {
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
     fs.copyFileSync(sourcePath, targetPath);
+  }
+}
+
+function listFilesRecursive(relativeDir) {
+  const sourceDir = path.join(PACKAGE_ROOT, relativeDir);
+  if (!fs.existsSync(sourceDir)) {
+    return [];
+  }
+
+  return fs.readdirSync(sourceDir, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const relativePath = path.join(relativeDir, entry.name).replaceAll('\\', '/');
+      if (entry.isDirectory()) {
+        return listFilesRecursive(relativePath);
+      }
+      return entry.isFile() ? [relativePath] : [];
+    });
+}
+
+function copyDirectory(relativeDir, targetRoot, options, operations) {
+  const files = listFilesRecursive(relativeDir);
+  if (!files.length) {
+    operations.push(`skip missing source ${relativeDir}`);
+    return;
+  }
+
+  for (const relativePath of files) {
+    copyFile(relativePath, targetRoot, options, operations);
   }
 }
 
@@ -317,6 +324,9 @@ export function bootstrap(targetRoot, options = {}) {
 
   for (const relativePath of FILES_TO_COPY) {
     copyFile(relativePath, targetRoot, normalizedOptions, operations);
+  }
+  for (const relativeDir of DIRECTORIES_TO_COPY) {
+    copyDirectory(relativeDir, targetRoot, normalizedOptions, operations);
   }
 
   updatePackageScripts(targetRoot, normalizedOptions, operations);

@@ -103,6 +103,15 @@ test('release-check gates done tasks on verification and docs review', () => {
   assert.equal(readyText.status, 0, readyText.stderr);
   assert.match(readyText.stdout, /# Release Check/);
   assert.match(readyText.stdout, /task-ready: ready/);
+
+  const missingText = run(root, coordinationRoot, ['release-check', 'fake-task']);
+  assert.equal(missingText.status, 1);
+  assert.match(missingText.stdout, /fake-task: blocked/);
+  assert.match(missingText.stdout, /Task fake-task was not found/);
+
+  const missingJson = run(root, coordinationRoot, ['release-check', 'fake-task', '--json']);
+  assert.equal(missingJson.status, 1);
+  assert.equal(JSON.parse(missingJson.stdout).checks[0].findings[0], 'Task fake-task was not found.');
 });
 
 test('run-check captures command output artifacts', () => {
