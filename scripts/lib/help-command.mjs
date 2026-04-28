@@ -2,6 +2,7 @@ import { printCommandError } from './error-formatting.mjs';
 
 export const COMMANDS = {
   help: ['help [command]', 'Show general help or command-specific help.'],
+  version: ['version [--json]', 'Show package, Node, config, coordination, and board schema versions.'],
   init: ['init', 'Create the coordination board, journal, messages, and runtime folders.'],
   status: ['status', 'Show active, blocked, review, waiting, handoff, planned, and stale work.'],
   summarize: ['summarize [--json] [--for-chat]', 'Print a transcript-friendly board summary.'],

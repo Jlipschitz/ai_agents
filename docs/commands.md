@@ -81,6 +81,16 @@ Shows command help.
 npm run agents -- help
 ```
 
+### `version`
+
+Shows package, Node, config, coordination, and board schema versions.
+
+```bash
+ai-agents --version
+npm run agents -- version
+npm run agents -- version --json
+```
+
 ### `status`
 
 Prints the current board state, active work, blockers, stale work, and task priority/due-date metadata.

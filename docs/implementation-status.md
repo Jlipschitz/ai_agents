@@ -1552,24 +1552,27 @@ Follow-up:
 
 ### Public CLI version output
 
-Status: partially implemented.
+Status: implemented.
 
 ```bash
 ai-agents --version
 ai-agents version
+npm run agents -- version --json
 ```
 
 Current behavior:
 
 - Prints the package name and package version.
-- Prints the active Node runtime version.
-- Runs from the dedicated public CLI entrypoint.
-
-Follow-up: expand output with config version, config path, coordination root, and board schema version.
+- Prints the active Node runtime version and package Node engine requirement.
+- Reports config path/existence/version, coordination root, board path/version, and supported board schema version.
+- Supports `--json`.
+- Works from the dedicated public CLI entrypoint and the copied coordinator wrappers.
 
 Main files:
 
 - `bin/ai-agents.mjs`
+- `scripts/lib/version-command.mjs`
+- `tests/version-command.test.mjs`
 
 ### CI workflow
 

@@ -50,6 +50,7 @@ import { runTaskSplitValidation } from './lib/task-split-validator.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
 import { runTimeline } from './lib/timeline-commands.mjs';
 import { runUpdateCoordinator } from './lib/update-commands.mjs';
+import { runVersionCommand } from './lib/version-command.mjs';
 import { runWorkSteal } from './lib/work-stealing-commands.mjs';
 import { runSnapshotWorkspace, writePreMutationWorkspaceSnapshot } from './lib/workspace-snapshot-commands.mjs';
 
@@ -109,6 +110,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'completions',
   'dashboard',
   'timeline',
+  'version',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -1483,6 +1485,10 @@ function shouldHandle(commandName, argv) {
 async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   const argv = process.argv.slice(2);
   const rawCommandName = argv[0] || 'help';
+  if (rawCommandName === '--version' || rawCommandName === '-v') {
+    process.exit(runVersionCommand(argv, { root: ROOT }));
+  }
+
   if (rawCommandName === '--help' || rawCommandName === '-h') {
     process.argv = [process.argv[0], process.argv[1], 'help'];
     await importCore();
@@ -1581,6 +1587,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'completions') status = runCompletionsCommand(commandArgs, getCompletionsCommandContext());
   else if (commandName === 'dashboard') status = runDashboard(commandArgs, getTemplateCommandContext());
   else if (commandName === 'timeline') status = runTimeline(commandArgs, getTemplateCommandContext());
+  else if (commandName === 'version') status = runVersionCommand(commandArgs, { root: ROOT });
   process.exit(status);
 }
 

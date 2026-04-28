@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { applyGlobalFlags } from '../scripts/lib/global-flags.mjs';
+import { runVersionCommand } from '../scripts/lib/version-command.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,10 +19,8 @@ applyGlobalFlags({
 const args = process.argv.slice(2);
 
 if (args.includes('--version') || args.includes('-v') || args[0] === 'version') {
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  console.log(`${packageJson.name} ${packageJson.version}`);
-  console.log(`node ${process.version}`);
-  process.exit(0);
+  const versionArgs = args[0] === 'version' ? args.slice(1) : args;
+  process.exit(runVersionCommand(versionArgs, { root: process.cwd(), packageRoot, packageJsonPath }));
 }
 
 if (args[0] === 'explain-config') {

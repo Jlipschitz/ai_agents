@@ -142,7 +142,7 @@ Next recommended work:
 - [x] Rename package for npm compatibility
 - [x] Add dedicated CLI entrypoint
 - [x] Keep existing wrappers as compatibility aliases
-- [~] Add version command — package, Node, config, and board schema versions exist; CLI version output can be expanded.
+- [x] Add version command
 - [~] Add installation documentation — basic docs exist; npm-published docs remain open.
 
 ## Phase 9: Watcher and Runtime Diagnostics
@@ -255,6 +255,7 @@ Next recommended work:
 - `scripts/lib/task-split-validator.mjs`
 - `scripts/lib/timeline-commands.mjs`
 - `scripts/lib/update-commands.mjs`
+- `scripts/lib/version-command.mjs`
 - `scripts/lib/workspace-snapshot-commands.mjs`
 - `agent-coordination.schema.json`
 - `.github/workflows/ci.yml`
@@ -307,6 +308,7 @@ Next recommended work:
 - `tests/task-metadata.test.mjs`
 - `tests/timeline-commands.test.mjs`
 - `tests/update-commands.test.mjs`
+- `tests/version-command.test.mjs`
 - `tests/workspace-snapshot-commands.test.mjs`
 - `docs/commands.md`
 - `docs/explain-config.md`
