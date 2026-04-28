@@ -864,6 +864,7 @@ Current coverage:
 - Config migration, policy pack dry-run/apply behavior, artifact retention dry-runs, and artifact pruning apply behavior have regression coverage.
 - Static fixture repo coverage exists under `tests/fixtures/basic-repo`.
 - Command snapshot coverage exists for representative ownership review and test-impact JSON output.
+- Concurrency stress coverage runs parallel progress/verify writes on one task and parallel claim/verify/done flows across multiple agents.
 
 Main files:
 
@@ -874,6 +875,7 @@ Main files:
 - `tests/check-syntax.test.mjs`
 - `tests/command-layer.test.mjs`
 - `tests/command-snapshots.test.mjs`
+- `tests/concurrency-stress.test.mjs`
 - `tests/core-mutation-safety.test.mjs`
 - `tests/error-formatting.test.mjs`
 - `tests/github-status.test.mjs`
@@ -1020,7 +1022,6 @@ These roadmap items still need core, command-layer, or documentation work.
 ### Safety, auditing, and recovery
 
 - Secrets and sensitive-data guardrails.
-- Concurrency stress tests for parallel claims, releases, waits, and verifies.
 - Shell completion generation.
 - Full policy enforcement mode with warn/block semantics across risky scopes.
 - Approval ledger.

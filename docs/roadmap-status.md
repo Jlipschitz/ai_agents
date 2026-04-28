@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add concurrency stress tests and continue normalizing older command-specific diagnostics.
+1. Continue normalizing older command-specific diagnostics.
 2. Start Phase 15 developer-experience work: contribution/security docs, a real formatter, and example repos.
 
 ---
@@ -92,7 +92,7 @@ Next recommended work:
 - [~] Command audit log — command-layer apply flows and legacy core mutations append `runtime/audit.ndjson`; richer per-command details remain open.
 - [~] State transactions - lock-protected core state mutations and command-layer multi-file apply flows restore prior state on write failure; external side effects such as Git branch deletion remain open.
 - [x] Schema migrations for board state
-- [ ] Concurrency stress tests
+- [x] Concurrency stress tests
 - [ ] Shell completions
 - [~] Policy enforcement mode — partially covered by Git branch policy and finish gates.
 - [~] CODEOWNERS integration — `ownership-review` reads CODEOWNERS-style files; claim-time enforcement remains open.
@@ -243,6 +243,7 @@ Next recommended work:
 - `tests/command-layer.test.mjs`
 - `tests/command-snapshots.test.mjs`
 - `tests/config-validation.test.mjs`
+- `tests/concurrency-stress.test.mjs`
 - `tests/core-mutation-safety.test.mjs`
 - `tests/error-formatting.test.mjs`
 - `tests/git-policy.test.mjs`

@@ -1628,6 +1628,27 @@ function isMutationLockStale(lock, referenceMs = Date.now()) {
   return !Number.isFinite(lockedAtMs) || referenceMs - lockedAtMs >= LOCK_STALE_AFTER_MS;
 }
 
+function isLockFileStaleByMtime(lockPath, referenceMs = Date.now()) {
+  try {
+    const stats = fs.statSync(lockPath);
+    return referenceMs - stats.mtimeMs >= LOCK_STALE_AFTER_MS;
+  } catch {
+    return true;
+  }
+}
+
+function readLockForDiagnostics() {
+  if (!fileExists(LOCK_PATH)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(LOCK_PATH, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
 async function acquireMutationLock() {
   ensureDirectory(RUNTIME_ROOT);
   const startedAt = Date.now();
@@ -1641,7 +1662,9 @@ async function acquireMutationLock() {
           fs.rmSync(LOCK_PATH, { force: true });
         }
       } catch {
-        fs.rmSync(LOCK_PATH, { force: true });
+        if (isLockFileStaleByMtime(LOCK_PATH)) {
+          fs.rmSync(LOCK_PATH, { force: true });
+        }
       }
     }
 
@@ -1666,7 +1689,7 @@ async function acquireMutationLock() {
     }
 
     if (Date.now() >= nextDiagnosticAt) {
-      const lock = readJson(LOCK_PATH, null);
+      const lock = readLockForDiagnostics();
       const board = getBoardSnapshot();
       const summary = buildLockContentionSummary(lock, board);
       console.error(
@@ -1680,7 +1703,7 @@ async function acquireMutationLock() {
     await delay(LOCK_POLL_INTERVAL_MS);
   }
 
-  const lock = readJson(LOCK_PATH, null);
+  const lock = readLockForDiagnostics();
   const board = getBoardSnapshot();
   const details = buildLockContentionSummary(lock, board);
   throw new Error(
@@ -1693,7 +1716,7 @@ function releaseMutationLock() {
     return;
   }
 
-  const lock = readJson(LOCK_PATH, null);
+  const lock = readLockForDiagnostics();
   if (lock?.pid !== process.pid) {
     return;
   }
