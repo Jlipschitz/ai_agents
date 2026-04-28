@@ -33,9 +33,14 @@ if (!process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT) {
   process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT = path.join(packageRoot, 'scripts', 'agent-watch-loop.mjs');
 }
 
-const { runCommandLayer } = await import('../scripts/agent-command-layer.mjs');
+if (args[0] === 'explain-config') {
+  const { runCli } = await import('../scripts/explain-config.mjs');
+  process.exitCode = runCli(args.slice(1));
+} else {
+  const { runCommandLayer } = await import('../scripts/agent-command-layer.mjs');
 
-await runCommandLayer({
-  coordinatorScriptPath: __filename,
-  importCore: async () => import('../scripts/agent-coordination-core.mjs'),
-});
+  await runCommandLayer({
+    coordinatorScriptPath: __filename,
+    importCore: async () => import('../scripts/agent-coordination-core.mjs'),
+  });
+}
