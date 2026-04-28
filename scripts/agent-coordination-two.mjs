@@ -1,9 +1,13 @@
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+
 if (!process.env.AGENT_COORDINATION_CLI_ENTRYPOINT) {
   process.env.AGENT_COORDINATION_CLI_ENTRYPOINT = 'agents2';
 }
 
 if (!process.env.AGENT_COORDINATION_SCRIPT) {
-  process.env.AGENT_COORDINATION_SCRIPT = 'scripts/agent-coordination-two.mjs';
+  process.env.AGENT_COORDINATION_SCRIPT = __filename;
 }
 
 if (!process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT) {
@@ -13,6 +17,6 @@ if (!process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT) {
 const { runCommandLayer } = await import('./agent-command-layer.mjs');
 
 await runCommandLayer({
-  coordinatorScriptPath: 'scripts/agent-coordination-two.mjs',
+  coordinatorScriptPath: __filename,
   importCore: async () => import('./agent-coordination-core.mjs'),
 });
