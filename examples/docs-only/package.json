@@ -1,0 +1,15 @@
+{
+  "name": "ai-agents-docs-only-example",
+  "private": true,
+  "scripts": {
+    "check": "node -e \"console.log('docs check placeholder')\"",
+    "test": "npm run check",
+    "agents": "node ./scripts/agent-coordination.mjs",
+    "agents:doctor": "node ./scripts/agent-coordination.mjs doctor",
+    "agents:plan": "node ./scripts/agent-coordination.mjs plan",
+    "agents:status": "node ./scripts/agent-coordination.mjs status"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

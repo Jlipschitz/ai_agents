@@ -192,7 +192,7 @@ Next recommended work:
 - [x] Add contribution guide
 - [x] Add security policy
 - [ ] Add license
-- [ ] Add examples directory
+- [x] Add examples directory
 
 ---
 
@@ -251,6 +251,7 @@ Next recommended work:
 - `.node-version`
 - `CONTRIBUTING.md`
 - `SECURITY.md`
+- `examples/README.md`
 - `tests/archive-commands.test.mjs`
 - `tests/agent-history-commands.test.mjs`
 - `tests/approval-ledger.test.mjs`
@@ -268,6 +269,7 @@ Next recommended work:
 - `tests/critical-path-commands.test.mjs`
 - `tests/core-mutation-safety.test.mjs`
 - `tests/error-formatting.test.mjs`
+- `tests/examples.test.mjs`
 - `tests/format-commands.test.mjs`
 - `tests/git-policy.test.mjs`
 - `tests/github-status.test.mjs`

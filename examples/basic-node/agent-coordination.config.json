@@ -1,0 +1,242 @@
+{
+  "configVersion": 1,
+  "projectName": "Basic Node Example",
+  "agentIds": [
+    "agent-1",
+    "agent-2"
+  ],
+  "docs": {
+    "roots": [
+      "docs"
+    ],
+    "appNotes": "docs/ai-agent-app-notes.md",
+    "visualWorkflow": "",
+    "apiPrefixes": [
+      "docs/api"
+    ]
+  },
+  "git": {
+    "allowMainBranchClaims": true,
+    "allowDetachedHead": false,
+    "allowedBranchPatterns": [],
+    "defaultBaseBranch": "main",
+    "staleBranchDays": 14,
+    "protectedBranchPatterns": [
+      "main",
+      "master",
+      "release/*"
+    ]
+  },
+  "capacity": {
+    "maxActiveTasksPerAgent": 1,
+    "maxBlockedTasksPerAgent": 1,
+    "preferredDomainsByAgent": {
+      "agent-1": [
+        "backend"
+      ],
+      "agent-2": [
+        "verify",
+        "docs"
+      ]
+    },
+    "enforcePreferredDomains": false
+  },
+  "conflictPrediction": {
+    "enabled": true,
+    "blockOnGitOverlap": true
+  },
+  "ownership": {
+    "codeownersFiles": [
+      ".github/CODEOWNERS"
+    ],
+    "broadPathPatterns": [
+      "src",
+      "lib",
+      "tests"
+    ]
+  },
+  "policyEnforcement": {
+    "mode": "warn",
+    "rules": {
+      "broadClaims": true,
+      "codeownersCrossing": true,
+      "finishRequiresApproval": false,
+      "finishRequiresDocsReview": false,
+      "finishApprovalScope": ""
+    }
+  },
+  "paths": {
+    "sharedRisk": [
+      "package.json",
+      "agent-coordination.config.json"
+    ],
+    "visualSuite": [],
+    "visualSuiteDefault": [],
+    "visualImpact": [],
+    "visualImpactFiles": []
+  },
+  "verification": {
+    "visualRequiredChecks": [],
+    "visualSuiteUpdateChecks": []
+  },
+  "artifacts": {
+    "roots": [
+      "artifacts"
+    ],
+    "keepDays": 14,
+    "keepFailedDays": 45,
+    "maxMb": 250,
+    "protectPatterns": []
+  },
+  "checks": {
+    "test": {
+      "command": "npm test",
+      "timeoutMs": 120000,
+      "artifactRoots": [
+        "artifacts"
+      ],
+      "requiredForPaths": [
+        "src",
+        "tests"
+      ],
+      "requireArtifacts": false
+    }
+  },
+  "notes": {
+    "categories": [
+      "change",
+      "decision",
+      "verification",
+      "setup"
+    ],
+    "sectionHeading": "Agent-Maintained Notes"
+  },
+  "pathClassification": {
+    "productPrefixes": [
+      "src"
+    ],
+    "dataPrefixes": [
+      "lib",
+      "scripts"
+    ],
+    "verifyPrefixes": [
+      "tests"
+    ],
+    "docsPrefixes": [
+      "docs"
+    ],
+    "docsFiles": [
+      "README.md",
+      "package.json",
+      "agent-coordination.config.json"
+    ]
+  },
+  "planning": {
+    "defaultDomains": [
+      "backend"
+    ],
+    "productFallbackPaths": [
+      "src"
+    ],
+    "dataFallbackPaths": [
+      "lib"
+    ],
+    "verifyFallbackPaths": [
+      "tests"
+    ],
+    "docsFallbackPaths": [
+      "README.md",
+      "docs"
+    ],
+    "agentSizing": {
+      "minAgents": 1,
+      "maxAgents": 2,
+      "mediumComplexityScore": 8,
+      "largeComplexityScore": 14,
+      "productKeywords": [
+        "api",
+        "feature",
+        "service"
+      ],
+      "dataKeywords": [
+        "lib",
+        "module",
+        "script"
+      ],
+      "verifyKeywords": [
+        "test",
+        "coverage",
+        "regression"
+      ],
+      "docsKeywords": [
+        "docs",
+        "readme",
+        "guide"
+      ]
+    }
+  },
+  "domainRules": [
+    {
+      "name": "backend",
+      "keywords": [
+        "api",
+        "service",
+        "node",
+        "backend"
+      ],
+      "scopes": {
+        "product": [
+          "src"
+        ],
+        "data": [
+          "lib",
+          "scripts"
+        ],
+        "verify": [
+          "tests"
+        ],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
+      }
+    },
+    {
+      "name": "verify",
+      "keywords": [
+        "test",
+        "coverage",
+        "regression"
+      ],
+      "scopes": {
+        "product": [],
+        "data": [],
+        "verify": [
+          "tests"
+        ],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
+      }
+    },
+    {
+      "name": "docs",
+      "keywords": [
+        "doc",
+        "docs",
+        "readme",
+        "guide"
+      ],
+      "scopes": {
+        "product": [],
+        "data": [],
+        "verify": [],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,192 @@
+{
+  "configVersion": 1,
+  "projectName": "Docs Only Example",
+  "agentIds": [
+    "agent-1",
+    "agent-2"
+  ],
+  "docs": {
+    "roots": [
+      "docs"
+    ],
+    "appNotes": "docs/ai-agent-app-notes.md",
+    "visualWorkflow": "",
+    "apiPrefixes": []
+  },
+  "git": {
+    "allowMainBranchClaims": true,
+    "allowDetachedHead": false,
+    "allowedBranchPatterns": [],
+    "defaultBaseBranch": "main",
+    "staleBranchDays": 30,
+    "protectedBranchPatterns": [
+      "main",
+      "master",
+      "release/*"
+    ]
+  },
+  "capacity": {
+    "maxActiveTasksPerAgent": 1,
+    "maxBlockedTasksPerAgent": 1,
+    "preferredDomainsByAgent": {
+      "agent-1": [
+        "docs"
+      ],
+      "agent-2": [
+        "review"
+      ]
+    },
+    "enforcePreferredDomains": false
+  },
+  "conflictPrediction": {
+    "enabled": true,
+    "blockOnGitOverlap": true
+  },
+  "ownership": {
+    "codeownersFiles": [
+      ".github/CODEOWNERS"
+    ],
+    "broadPathPatterns": [
+      "docs"
+    ]
+  },
+  "policyEnforcement": {
+    "mode": "warn",
+    "rules": {
+      "broadClaims": true,
+      "codeownersCrossing": true,
+      "finishRequiresApproval": false,
+      "finishRequiresDocsReview": true,
+      "finishApprovalScope": ""
+    }
+  },
+  "paths": {
+    "sharedRisk": [
+      "README.md",
+      "agent-coordination.config.json"
+    ],
+    "visualSuite": [],
+    "visualSuiteDefault": [],
+    "visualImpact": [],
+    "visualImpactFiles": []
+  },
+  "verification": {
+    "visualRequiredChecks": [],
+    "visualSuiteUpdateChecks": []
+  },
+  "artifacts": {
+    "roots": [
+      "artifacts"
+    ],
+    "keepDays": 14,
+    "keepFailedDays": 45,
+    "maxMb": 100,
+    "protectPatterns": []
+  },
+  "checks": {
+    "docs": {
+      "command": "npm run check",
+      "timeoutMs": 60000,
+      "artifactRoots": [
+        "artifacts"
+      ],
+      "requiredForPaths": [
+        "docs",
+        "README.md"
+      ],
+      "requireArtifacts": false
+    }
+  },
+  "notes": {
+    "categories": [
+      "change",
+      "decision",
+      "review"
+    ],
+    "sectionHeading": "Agent-Maintained Notes"
+  },
+  "pathClassification": {
+    "productPrefixes": [],
+    "dataPrefixes": [],
+    "verifyPrefixes": [],
+    "docsPrefixes": [
+      "docs"
+    ],
+    "docsFiles": [
+      "README.md",
+      "agent-coordination.config.json"
+    ]
+  },
+  "planning": {
+    "defaultDomains": [
+      "docs"
+    ],
+    "productFallbackPaths": [],
+    "dataFallbackPaths": [],
+    "verifyFallbackPaths": [],
+    "docsFallbackPaths": [
+      "README.md",
+      "docs"
+    ],
+    "agentSizing": {
+      "minAgents": 1,
+      "maxAgents": 2,
+      "mediumComplexityScore": 6,
+      "largeComplexityScore": 12,
+      "productKeywords": [
+        "site"
+      ],
+      "dataKeywords": [
+        "metadata"
+      ],
+      "verifyKeywords": [
+        "review",
+        "proofread"
+      ],
+      "docsKeywords": [
+        "docs",
+        "guide",
+        "readme",
+        "handbook"
+      ]
+    }
+  },
+  "domainRules": [
+    {
+      "name": "docs",
+      "keywords": [
+        "doc",
+        "docs",
+        "guide",
+        "handbook",
+        "readme"
+      ],
+      "scopes": {
+        "product": [],
+        "data": [],
+        "verify": [],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
+      }
+    },
+    {
+      "name": "review",
+      "keywords": [
+        "review",
+        "proofread",
+        "edit"
+      ],
+      "scopes": {
+        "product": [],
+        "data": [],
+        "verify": [],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
+      }
+    }
+  ]
+}

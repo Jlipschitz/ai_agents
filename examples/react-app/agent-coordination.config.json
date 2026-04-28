@@ -1,0 +1,306 @@
+{
+  "configVersion": 1,
+  "projectName": "React App Example",
+  "agentIds": [
+    "agent-1",
+    "agent-2",
+    "agent-3"
+  ],
+  "docs": {
+    "roots": [
+      "docs"
+    ],
+    "appNotes": "docs/ai-agent-app-notes.md",
+    "visualWorkflow": "docs/visual-workflow.md",
+    "apiPrefixes": [
+      "docs/api"
+    ]
+  },
+  "git": {
+    "allowMainBranchClaims": true,
+    "allowDetachedHead": false,
+    "allowedBranchPatterns": [],
+    "defaultBaseBranch": "main",
+    "staleBranchDays": 21,
+    "protectedBranchPatterns": [
+      "main",
+      "master",
+      "release/*"
+    ]
+  },
+  "capacity": {
+    "maxActiveTasksPerAgent": 1,
+    "maxBlockedTasksPerAgent": 1,
+    "preferredDomainsByAgent": {
+      "agent-1": [
+        "frontend"
+      ],
+      "agent-2": [
+        "verify"
+      ],
+      "agent-3": [
+        "docs"
+      ]
+    },
+    "enforcePreferredDomains": false
+  },
+  "conflictPrediction": {
+    "enabled": true,
+    "blockOnGitOverlap": true
+  },
+  "ownership": {
+    "codeownersFiles": [
+      ".github/CODEOWNERS"
+    ],
+    "broadPathPatterns": [
+      "src",
+      "components",
+      "pages",
+      "tests"
+    ]
+  },
+  "policyEnforcement": {
+    "mode": "warn",
+    "rules": {
+      "broadClaims": true,
+      "codeownersCrossing": true,
+      "finishRequiresApproval": false,
+      "finishRequiresDocsReview": false,
+      "finishApprovalScope": ""
+    }
+  },
+  "paths": {
+    "sharedRisk": [
+      "package.json",
+      "src/App.jsx",
+      "agent-coordination.config.json"
+    ],
+    "visualSuite": [
+      "tests/visual"
+    ],
+    "visualSuiteDefault": [
+      "tests/visual/app.spec.ts"
+    ],
+    "visualImpact": [
+      "src/components",
+      "src/pages",
+      "src/styles"
+    ],
+    "visualImpactFiles": [
+      "src/App.jsx"
+    ]
+  },
+  "verification": {
+    "visualRequiredChecks": [
+      "visual:test"
+    ],
+    "visualSuiteUpdateChecks": [
+      "visual:update"
+    ]
+  },
+  "artifacts": {
+    "roots": [
+      "artifacts",
+      "test-results"
+    ],
+    "keepDays": 14,
+    "keepFailedDays": 45,
+    "maxMb": 500,
+    "protectPatterns": [
+      "**/baseline/**"
+    ]
+  },
+  "checks": {
+    "test": {
+      "command": "npm test",
+      "timeoutMs": 120000,
+      "artifactRoots": [
+        "artifacts"
+      ],
+      "requiredForPaths": [
+        "src",
+        "tests"
+      ],
+      "requireArtifacts": false
+    },
+    "visual:test": {
+      "command": "npm run visual:test",
+      "timeoutMs": 180000,
+      "artifactRoots": [
+        "test-results"
+      ],
+      "requiredForPaths": [
+        "src/components",
+        "src/pages",
+        "tests/visual"
+      ],
+      "requireArtifacts": true
+    },
+    "visual:update": {
+      "command": "npm run visual:update",
+      "timeoutMs": 180000,
+      "artifactRoots": [
+        "test-results"
+      ],
+      "requiredForPaths": [
+        "tests/visual"
+      ],
+      "requireArtifacts": true
+    }
+  },
+  "notes": {
+    "categories": [
+      "change",
+      "decision",
+      "verification",
+      "visual"
+    ],
+    "sectionHeading": "Agent-Maintained Notes"
+  },
+  "pathClassification": {
+    "productPrefixes": [
+      "src",
+      "src/components",
+      "src/pages"
+    ],
+    "dataPrefixes": [
+      "src/hooks",
+      "src/lib",
+      "src/state"
+    ],
+    "verifyPrefixes": [
+      "tests",
+      "tests/visual"
+    ],
+    "docsPrefixes": [
+      "docs"
+    ],
+    "docsFiles": [
+      "README.md",
+      "package.json",
+      "agent-coordination.config.json"
+    ]
+  },
+  "planning": {
+    "defaultDomains": [
+      "frontend"
+    ],
+    "productFallbackPaths": [
+      "src",
+      "src/components"
+    ],
+    "dataFallbackPaths": [
+      "src/hooks",
+      "src/lib",
+      "src/state"
+    ],
+    "verifyFallbackPaths": [
+      "tests"
+    ],
+    "docsFallbackPaths": [
+      "README.md",
+      "docs"
+    ],
+    "agentSizing": {
+      "minAgents": 1,
+      "maxAgents": 3,
+      "mediumComplexityScore": 10,
+      "largeComplexityScore": 16,
+      "productKeywords": [
+        "ui",
+        "component",
+        "screen",
+        "layout",
+        "style"
+      ],
+      "dataKeywords": [
+        "state",
+        "hook",
+        "api",
+        "store"
+      ],
+      "verifyKeywords": [
+        "test",
+        "visual",
+        "playwright",
+        "snapshot"
+      ],
+      "docsKeywords": [
+        "docs",
+        "readme",
+        "guide"
+      ]
+    }
+  },
+  "domainRules": [
+    {
+      "name": "frontend",
+      "keywords": [
+        "ui",
+        "component",
+        "frontend",
+        "react",
+        "style"
+      ],
+      "scopes": {
+        "product": [
+          "src",
+          "src/components",
+          "src/pages"
+        ],
+        "data": [
+          "src/hooks",
+          "src/lib",
+          "src/state"
+        ],
+        "verify": [
+          "tests",
+          "tests/visual"
+        ],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
+      }
+    },
+    {
+      "name": "verify",
+      "keywords": [
+        "test",
+        "visual",
+        "playwright",
+        "snapshot"
+      ],
+      "scopes": {
+        "product": [],
+        "data": [],
+        "verify": [
+          "tests",
+          "tests/visual"
+        ],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
+      }
+    },
+    {
+      "name": "docs",
+      "keywords": [
+        "doc",
+        "docs",
+        "readme",
+        "guide"
+      ],
+      "scopes": {
+        "product": [],
+        "data": [],
+        "verify": [],
+        "docs": [
+          "README.md",
+          "docs"
+        ]
+      }
+    }
+  ]
+}
