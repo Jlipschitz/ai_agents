@@ -3,6 +3,7 @@ import path from 'node:path';
 import { nowIso } from './file-utils.mjs';
 
 export const CURRENT_BOARD_VERSION = 2;
+const FALLBACK_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -18,8 +19,10 @@ function normalizeWorkspaceLabel(root, coordinationRoot) {
 }
 
 function getConfiguredAgentIds(context) {
-  const { config, defaultAgentIds } = context;
-  return Array.isArray(config.agentIds) && config.agentIds.length ? config.agentIds.filter((entry) => typeof entry === 'string' && entry.trim()) : defaultAgentIds;
+  const config = context?.config ?? {};
+  const defaultAgentIds = Array.isArray(context?.defaultAgentIds) && context.defaultAgentIds.length ? context.defaultAgentIds : FALLBACK_AGENT_IDS;
+  const configuredAgentIds = Array.isArray(config.agentIds) && config.agentIds.length ? config.agentIds.filter((entry) => typeof entry === 'string' && entry.trim()) : [];
+  return configuredAgentIds.length ? configuredAgentIds : defaultAgentIds;
 }
 
 function ensureArray(board, key, changes) {
@@ -63,9 +66,13 @@ function ensureTaskDefaults(task, changes) {
 function ensureAgentSlots(board, context, timestamp, changes) {
   const agentIds = getConfiguredAgentIds(context);
   const agents = Array.isArray(board.agents) ? board.agents : [];
-  if (agents.length !== agentIds.length) changes.push('normalized agents');
-  const byId = new Map(agents.filter((agent) => agent?.id).map((agent) => [agent.id, agent]));
-  board.agents = agentIds.map((agentId) => {
+  const changeCountBefore = changes.length;
+  const byId = new Map();
+  for (const agent of agents) {
+    if (agent?.id && !byId.has(agent.id)) byId.set(agent.id, agent);
+  }
+  const seenAgentIds = new Set(agentIds);
+  const normalizedSlots = agentIds.map((agentId) => {
     const existing = byId.get(agentId);
     if (!existing) {
       changes.push(`added agent ${agentId}`);
@@ -82,10 +89,22 @@ function ensureAgentSlots(board, context, timestamp, changes) {
     }
     return normalized;
   });
+  const extraAgents = agents.filter((agent, index) => {
+    if (!agent?.id || typeof agent.id !== 'string') return true;
+    const firstIndex = agents.findIndex((candidate) => candidate?.id === agent.id);
+    return !seenAgentIds.has(agent.id) || firstIndex !== index;
+  });
+  const normalizedAgents = [...normalizedSlots, ...extraAgents];
+  if (changes.length === changeCountBefore && JSON.stringify(normalizedAgents) !== JSON.stringify(agents)) {
+    changes.push('normalized agents');
+  }
+  board.agents = normalizedAgents;
 }
 
 export function createStarterBoard(context) {
-  const { config, root, paths } = context;
+  const config = context?.config ?? {};
+  const root = context?.root ?? process.cwd();
+  const paths = context?.paths ?? { coordinationRoot: path.join(root, 'coordination') };
   const timestamp = nowIso();
   return {
     version: CURRENT_BOARD_VERSION,
@@ -144,7 +163,7 @@ export function migrateBoardObject(board, context) {
   ensureArray(migrated, 'agents', changes);
   ensureAgentSlots(migrated, context, timestamp, changes);
 
-  const validAgentIds = new Set(migrated.agents.map((agent) => agent.id));
+  const validAgentIds = new Set(migrated.agents.map((agent) => agent?.id).filter(Boolean));
   const taskIds = new Set();
   for (const task of migrated.tasks) {
     if (!task || typeof task !== 'object' || Array.isArray(task) || typeof task.id !== 'string' || !task.id) continue;
@@ -167,7 +186,7 @@ export function migrateBoardObject(board, context) {
   }
 
   for (const agent of migrated.agents) {
-    if (agent.taskId && !taskIds.has(agent.taskId)) {
+    if (agent?.taskId && !taskIds.has(agent.taskId)) {
       agent.taskId = null;
       agent.status = 'idle';
       changes.push(`cleared missing task pointer on ${agent.id}`);

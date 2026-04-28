@@ -72,8 +72,16 @@ test('migrate-board dry-runs and applies board schema migrations', () => {
     version: 1,
     projectName: 'Board Migration Test',
     updatedAt: '2026-01-01T00:00:00.000Z',
-    agents: [{ id: 'agent-1', status: 'active', taskId: 'task-old' }],
-    tasks: [{ id: 'task-old', status: 'active', ownerId: 'agent-1', claimedPaths: ['src/old'] }],
+    agents: [
+      { id: 'agent-1', status: 'active', taskId: 'task-old' },
+      { id: 'agent-1', status: 'idle', taskId: null },
+      { id: 'agent-custom', status: 'active', taskId: 'task-custom', updatedAt: '2026-01-01T00:00:00.000Z' },
+      null,
+    ],
+    tasks: [
+      { id: 'task-old', status: 'active', ownerId: 'agent-1', claimedPaths: ['src/old'] },
+      { id: 'task-custom', status: 'active', ownerId: 'agent-custom', claimedPaths: ['custom'] },
+    ],
     resources: [],
     incidents: [],
   });
@@ -102,6 +110,11 @@ test('migrate-board dry-runs and applies board schema migrations', () => {
   assert.equal(typeof board.createdAt, 'string');
   assert.equal(board.tasks[0].effort, 'unknown');
   assert.equal(board.tasks[0].lastOwnerId, 'agent-1');
+  assert.equal(board.agents[0].taskId, 'task-old');
+  assert.equal(board.agents.filter((agent) => agent?.id === 'agent-1').length, 2);
+  assert.equal(board.agents.some((agent) => agent?.id === 'agent-custom'), true);
+  assert.equal(board.agents.includes(null), true);
+  assert.equal(board.tasks.find((task) => task.id === 'task-custom').ownerId, 'agent-custom');
   assert.equal(fs.existsSync(appliedPayload.workspaceSnapshotPath), true);
   assert.equal(fs.existsSync(appliedPayload.snapshotPath), true);
   assert.match(fs.readFileSync(auditPath, 'utf8'), /"command":"migrate-board"/);
