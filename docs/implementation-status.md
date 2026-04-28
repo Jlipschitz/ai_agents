@@ -20,7 +20,7 @@ Implemented behavior:
 - Adds coordination runtime folders to `.gitignore`.
 - Creates starter app notes when missing.
 - Runs `npm run agents:doctor` unless `--skip-doctor` is passed.
-- Installs the command layer and the new command shortcuts into target repos.
+- Installs the command layer, lock diagnostics, and the new command shortcuts into target repos.
 
 Main files:
 
@@ -161,6 +161,32 @@ Helpers delegate to existing core commands:
 - `finish` -> `done`.
 - `handoff-ready` -> `handoff`.
 
+### Runtime lock diagnostics
+
+Status: implemented as a standalone utility and npm scripts.
+
+```bash
+npm run agents:lock:status
+npm run agents:lock:clear
+npm run agents2:lock:status
+npm run agents2:lock:clear
+node ./scripts/lock-runtime.mjs status --coordination-dir coordination --json
+node ./scripts/lock-runtime.mjs clear --stale-only --coordination-dir coordination --json
+```
+
+Current behavior:
+
+- Reports missing, valid, malformed, old, or dead-PID runtime locks.
+- Detects stale locks by age, malformed JSON, or a non-running PID.
+- Refuses to clear non-stale locks when `--stale-only` is used.
+- Requires `--stale-only` or `--force` to clear a lock.
+- Supports `--json`, `--coordination-dir`, `--coordination-root`, and `--stale-ms`.
+
+Main files:
+
+- `scripts/lock-runtime.mjs`
+- `tests/lock-runtime.test.mjs`
+
 ### Focused tests
 
 Status: expanded.
@@ -178,6 +204,7 @@ Current coverage:
 - Read-only command-layer commands do not mutate board, journal, or messages files.
 - Git policy blocks disallowed main-branch claims and non-matching branch patterns.
 - Git policy allows matching branch patterns.
+- Runtime lock diagnostics report missing locks, stale locks, stale lock clearing, and refusal to clear fresh locks.
 
 Main files:
 
@@ -186,11 +213,11 @@ Main files:
 - `tests/command-layer.test.mjs`
 - `tests/read-only-commands.test.mjs`
 - `tests/git-policy.test.mjs`
+- `tests/lock-runtime.test.mjs`
 
 Follow-up tests still needed:
 
 - Planner lane sizing.
-- Lock behavior.
 - Broader read-only mutation coverage for core read-only commands.
 
 ### Cross-platform watcher
@@ -249,5 +276,5 @@ These roadmap items still need core or deeper implementation work:
 - `doctor --json` integration inside the core implementation rather than the command layer.
 - More complete lifecycle helpers with verification/doc-review gates.
 - Broader read-only mutation tests for every core read-only command.
-- Lock diagnostics and lock repair commands.
 - `summarize` output that includes journal/message-derived stale-work context.
+- Core-native lock diagnostics instead of the standalone utility wrapper.
