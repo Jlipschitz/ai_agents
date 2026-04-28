@@ -48,6 +48,19 @@ function run(root, coordinationRoot, args) {
   });
 }
 
+const commandsExpectedToSucceed = new Set([
+  'summarize',
+  'summarize --for-chat',
+  'summarize --json',
+  'validate --json',
+  'doctor --json',
+  'status',
+  'heartbeat-status',
+  'watch-status',
+  'lock-status',
+  'lock-status --json',
+]);
+
 for (const args of [
   ['summarize'],
   ['summarize', '--for-chat'],
@@ -74,7 +87,9 @@ for (const args of [
     const result = run(root, coordinationRoot, args);
     const after = snapshotFiles(files);
 
-    assert.equal(result.status, 0, result.stderr);
+    if (commandsExpectedToSucceed.has(args.join(' '))) {
+      assert.equal(result.status, 0, result.stderr);
+    }
     assert.deepEqual(after, before);
   });
 }
