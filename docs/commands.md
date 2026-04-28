@@ -39,23 +39,48 @@ npm run agents:status
 npm run agents -- status
 ```
 
+### `summarize`
+
+Prints a compact board handoff summary.
+
+```bash
+npm run agents:summarize
+npm run agents -- summarize
+npm run agents -- summarize --for-chat
+npm run agents -- summarize --json
+```
+
+Useful modes:
+
+- `--for-chat`: compact paste-friendly status block.
+- `--json`: machine-readable payload containing the summary and board state.
+
 ### `validate`
 
-Validates the current coordination board and task records.
+Validates the current coordination board and task records. The command layer also validates `agent-coordination.config.json` before the core validator runs.
 
 ```bash
 npm run agents:validate
 npm run agents -- validate
+npm run agents -- validate --json
 ```
 
 ### `doctor`
 
-Runs setup and health checks for config, package scripts, ignored runtime folders, docs, visual checks, and board state.
+Runs setup and health checks for config, package scripts, ignored runtime folders, docs, visual checks, and board state. The command layer validates config before the core doctor runs.
 
 ```bash
 npm run agents:doctor
 npm run agents -- doctor
+npm run agents -- doctor --json
+npm run agents -- doctor --fix
+npm run agents -- doctor --json --fix
 ```
+
+Useful modes:
+
+- `--json`: prints machine-readable doctor output including config validation and Git state.
+- `--fix`: creates safe missing starter files/folders, updates `.gitignore`, adds missing package scripts, and creates starter app notes.
 
 ### `heartbeat-status`
 
@@ -129,10 +154,19 @@ npm run agents -- plan "Improve mobile task modal"
 
 ### `claim`
 
-Claims a task for an agent and records claimed paths.
+Claims a task for an agent and records claimed paths. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, and merge/rebase state. Merge or rebase-in-progress state blocks the claim.
 
 ```bash
 npm run agents -- claim agent-1 task-id --paths src/tasks,docs/tasks.md
+```
+
+### `start`
+
+Convenience lifecycle helper that claims a task and optionally records an initial progress note.
+
+```bash
+npm run agents:start -- agent-1 task-id --paths src/tasks "Starting task implementation."
+npm run agents -- start agent-1 task-id --paths src/tasks,docs/tasks.md "Starting task implementation."
 ```
 
 ### `progress`
@@ -167,6 +201,15 @@ Moves a task into review.
 npm run agents -- review agent-1 task-id "Ready for verification."
 ```
 
+### `handoff-ready`
+
+Convenience lifecycle helper that marks a task ready for handoff using the core handoff command.
+
+```bash
+npm run agents:handoff-ready -- agent-1 task-id "Ready for agent-2 to continue."
+npm run agents -- handoff-ready agent-1 task-id "Ready for agent-2 to continue."
+```
+
 ### `verify`
 
 Records manual verification evidence for a task.
@@ -182,6 +225,15 @@ Marks a task done when required verification is complete.
 
 ```bash
 npm run agents -- done agent-1 task-id "Implemented and verified."
+```
+
+### `finish`
+
+Convenience lifecycle helper that marks a task done using the core done command.
+
+```bash
+npm run agents:finish -- agent-1 task-id "Implemented and verified."
+npm run agents -- finish agent-1 task-id "Implemented and verified."
 ```
 
 ### `release`
@@ -214,7 +266,7 @@ npm run agents -- message agent-1 agent-2 "API contract is ready."
 
 ### `heartbeat-start`
 
-Starts an agent heartbeat process.
+Starts heartbeat tracking for an agent/session.
 
 ```bash
 npm run agents:heartbeat:start -- agent-1
@@ -222,7 +274,7 @@ npm run agents:heartbeat:start -- agent-1
 
 ### `heartbeat-stop`
 
-Stops an agent heartbeat process when supported by the runtime state.
+Stops heartbeat tracking.
 
 ```bash
 npm run agents:heartbeat:stop -- agent-1
@@ -230,15 +282,16 @@ npm run agents:heartbeat:stop -- agent-1
 
 ### `watch-start`
 
-Starts the configured watcher process.
+Starts the Node watcher loop by default.
 
 ```bash
 npm run agents:watch:start
+npm run agents -- watch-start --interval 30000
 ```
 
 ### `agents:watch:node`
 
-Runs the cross-platform Node watcher loop directly. This is useful on macOS/Linux or when PowerShell is not available.
+Runs the cross-platform Node watcher loop directly. This is useful for diagnostics or one-shot ticks.
 
 ```bash
 npm run agents:watch:node
