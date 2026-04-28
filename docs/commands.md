@@ -98,6 +98,18 @@ Shows watcher status, if the watcher has been started.
 npm run agents:watch:status
 ```
 
+### `lock-status`
+
+Inspects the runtime state lock without mutating it.
+
+```bash
+npm run agents:lock:status
+npm run agents2:lock:status
+node ./scripts/lock-runtime.mjs status --coordination-dir coordination --json
+```
+
+The status output reports whether the lock exists, whether it is stale, stale reasons, age, PID status, owner, and command when available.
+
 ## Setup Commands
 
 ### `init`
@@ -261,6 +273,25 @@ Marks a done task released.
 ```bash
 npm run agents -- release agent-1 task-id "Merged into main."
 ```
+
+## Runtime Lock Commands
+
+### `lock-clear`
+
+Clears stale runtime state locks safely.
+
+```bash
+npm run agents:lock:clear
+npm run agents2:lock:clear
+node ./scripts/lock-runtime.mjs clear --stale-only --coordination-dir coordination
+```
+
+Safety rules:
+
+- `clear --stale-only` removes only malformed, old, or dead-PID locks.
+- Non-stale locks are refused.
+- Use `--force` only when a human has confirmed the lock should be removed.
+- Use `--json` for machine-readable output.
 
 ## Notes and Messaging
 
