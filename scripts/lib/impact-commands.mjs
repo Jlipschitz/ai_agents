@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
 import { execGit } from './git-utils.mjs';
+import { buildWorkspaceImpact } from './monorepo-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 
 const DEFAULT_CODEOWNERS_FILES = ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS'];
@@ -130,6 +131,7 @@ export function buildTestImpact({ root, config, packageJson, argv }) {
   const git = explicitPaths.length ? { available: true, paths: explicitPaths } : gitChangedPaths(root);
   const checks = [];
   const configuredChecks = config.checks && typeof config.checks === 'object' ? config.checks : {};
+  const workspaceImpact = buildWorkspaceImpact(root, config, git.paths);
 
   for (const [name, check] of Object.entries(configuredChecks)) {
     const matchedPaths = checkMatchesPaths(check, git.paths);
@@ -148,7 +150,9 @@ export function buildTestImpact({ root, config, packageJson, argv }) {
     checks.push({ name: 'test', command: 'npm test', reason: 'fallback', matchedPaths: git.paths });
   }
 
-  return { ok: true, gitAvailable: git.available, paths: git.paths, checks, warnings: git.paths.length ? [] : ['No changed paths were provided or detected.'] };
+  const result = { ok: true, gitAvailable: git.available, paths: git.paths, checks, warnings: git.paths.length ? [] : ['No changed paths were provided or detected.'] };
+  if (workspaceImpact.configured) result.workspaces = workspaceImpact;
+  return result;
 }
 
 export function runOwnershipReview(argv, context) {
@@ -171,6 +175,7 @@ export function runTestImpact(argv, context) {
   else {
     console.log('# Test Impact');
     console.log(`Paths: ${result.paths.length ? result.paths.join(', ') : 'none'}`);
+    if (result.workspaces?.impacted?.length) console.log(`Workspaces: ${result.workspaces.impacted.map((entry) => entry.root).join(', ')}`);
     console.log(result.checks.length ? result.checks.map((check) => `- ${check.name}: ${check.command}`).join('\n') : '- no checks selected');
     if (result.warnings.length) console.log(result.warnings.map((entry) => `- warning: ${entry}`).join('\n'));
   }

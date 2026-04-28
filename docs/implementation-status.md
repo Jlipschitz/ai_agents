@@ -786,6 +786,7 @@ Current behavior:
 - Flags active tasks that claim broad paths such as `src`, `app`, or `lib`.
 - Flags tasks whose claimed paths cross multiple CODEOWNERS owner groups.
 - `test-impact` maps explicit `--paths` or the current Git diff to configured `checks.<name>.requiredForPaths`.
+- Reports impacted monorepo workspaces when `monorepo.workspaceRoots` is configured, including partial-checkout roots that are missing locally.
 - Adds visual required checks for configured visual-impact paths.
 - Falls back to `npm test` when paths changed but no more specific configured check matches.
 
@@ -902,13 +903,49 @@ Current behavior:
 - Finds package boundaries from nearest `package.json` files.
 - Assigns product/data/verify/docs/other categories from path prefixes.
 - Parses lightweight relative JS/TS import/export/require statements to report cross-group import edges.
+- Honors configured monorepo workspace roots, including one-level wildcards such as `packages/*`.
+- Keeps missing package roots as logical workspace groups when `monorepo.partialCheckout` is enabled.
 - Emits group dependencies and dependents in JSON or text output.
 - Is read-only and covered by mutation guard tests.
 
 Main files:
 
 - `scripts/lib/path-group-commands.mjs`
+- `scripts/lib/monorepo-utils.mjs`
 - `tests/path-group-commands.test.mjs`
+
+### Partial checkout and monorepo support
+
+Status: implemented in shared helpers and command-layer reports.
+
+```json
+{
+  "monorepo": {
+    "workspaceRoots": ["packages/*", "apps/web"],
+    "partialCheckout": true,
+    "fallbackRoot": "."
+  }
+}
+```
+
+Current behavior:
+
+- Config validation and JSON schema support `monorepo.workspaceRoots`, `monorepo.partialCheckout`, and `monorepo.fallbackRoot`.
+- Workspace roots support exact paths and one-level wildcards ending in `/*`.
+- `path-groups` uses configured workspace roots before falling back to nearest `package.json` discovery.
+- `test-impact` reports impacted workspace roots for explicit paths or Git-detected changes.
+- `explain-config` reports configured workspaces, discovered local workspaces, and missing workspace patterns.
+
+Main files:
+
+- `scripts/lib/monorepo-utils.mjs`
+- `scripts/lib/path-group-commands.mjs`
+- `scripts/lib/impact-commands.mjs`
+- `scripts/validate-config.mjs`
+- `scripts/explain-config.mjs`
+- `tests/path-group-commands.test.mjs`
+- `tests/command-layer.test.mjs`
+- `tests/config-validation.test.mjs`
 
 ### Task split validation
 
@@ -1547,7 +1584,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 ### Advanced coordination and scaling
 
-- Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
 - External calendar or reminder hooks.
 

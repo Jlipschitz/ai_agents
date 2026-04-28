@@ -341,6 +341,27 @@ test('test-impact selects configured checks from paths', () => {
   assert.ok(JSON.parse(visual.stdout).checks.some((check) => check.name === 'visual:test'));
 });
 
+test('test-impact reports impacted monorepo workspaces', () => {
+  const root = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.monorepo = { workspaceRoots: ['packages/*'], partialCheckout: true, fallbackRoot: '.' };
+  config.checks = {
+    api: { command: 'npm run api:test', requiredForPaths: ['packages/api'] },
+  };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = run(root, ['test-impact', '--paths', 'packages/api/src/route.js', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(payload.checks.map((check) => check.name), ['api']);
+  assert.equal(payload.workspaces.partialCheckout, true);
+  assert.equal(payload.workspaces.impacted[0].root, 'packages/api');
+  assert.equal(payload.workspaces.impacted[0].partial, true);
+  assert.deepEqual(payload.workspaces.impacted[0].matchedPaths, ['packages/api/src/route.js']);
+});
+
 test('validate --json returns machine-readable config validation', () => {
   const root = makeWorkspace();
   const result = run(root, ['validate', '--json']);

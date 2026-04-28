@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
+import { listConfiguredWorkspaces, workspaceForPath } from './monorepo-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 
 const SOURCE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'];
@@ -57,9 +58,10 @@ function categoryForSegments(segments) {
   return 'other';
 }
 
-function groupForPath(root, relativePath) {
+function groupForPath(root, config, relativePath) {
   const normalized = normalizePath(relativePath);
-  const packageRoot = findPackageRoot(root, normalized);
+  const workspace = workspaceForPath(root, config, normalized);
+  const packageRoot = workspace?.root ?? findPackageRoot(root, normalized);
   const packageRelative = packageRoot && packageRoot !== '.'
     ? normalizePath(path.relative(path.join(root, packageRoot), path.join(root, normalized)))
     : normalized;
@@ -74,7 +76,7 @@ function groupForPath(root, relativePath) {
   const label = packageRoot && packageRoot !== '.'
     ? `${packageRoot} / ${moduleName}`
     : moduleName;
-  return { id, label, category, packageRoot };
+  return { id, label, category, packageRoot, workspaceRoot: workspace?.root ?? null, workspaceExists: workspace?.exists ?? null };
 }
 
 function extractImports(content) {
@@ -105,14 +107,15 @@ function collectInputPaths(argv, board) {
   return unique(tasks.flatMap((task) => Array.isArray(task.claimedPaths) ? task.claimedPaths.map((entry) => normalizePath(entry)) : []));
 }
 
-export function buildPathGroups({ root, board }, argv = []) {
+export function buildPathGroups({ root, config = {}, board }, argv = []) {
   const inputPaths = collectInputPaths(argv, board);
   const groupsById = new Map();
   const pathToGroupId = new Map();
   const importEdges = [];
+  const workspaceReport = listConfiguredWorkspaces(root, config);
 
   for (const relativePath of inputPaths) {
-    const groupInfo = groupForPath(root, relativePath);
+    const groupInfo = groupForPath(root, config, relativePath);
     const group = groupsById.get(groupInfo.id) ?? {
       ...groupInfo,
       paths: [],
@@ -154,11 +157,17 @@ export function buildPathGroups({ root, board }, argv = []) {
     inputPaths,
     groups,
     importEdges,
+    workspaces: workspaceReport.workspaces,
+    missingWorkspacePatterns: workspaceReport.missingPatterns,
     summary: {
       paths: inputPaths.length,
       groups: groups.length,
       packageGroups: groups.filter((group) => group.packageRoot !== '.').length,
       importEdges: importEdges.length,
+      workspacePatterns: workspaceReport.patterns.length,
+      workspaces: workspaceReport.workspaces.length,
+      missingWorkspacePatterns: workspaceReport.missingPatterns.length,
+      partialCheckout: workspaceReport.partialCheckout,
     },
   };
 }
@@ -166,6 +175,9 @@ export function buildPathGroups({ root, board }, argv = []) {
 function renderPathGroups(report) {
   const lines = ['# Path Groups'];
   lines.push(`Paths: ${report.summary.paths}; groups: ${report.summary.groups}; import edges: ${report.summary.importEdges}`);
+  if (report.summary.workspacePatterns) {
+    lines.push(`Workspaces: ${report.summary.workspaces}; missing patterns: ${report.summary.missingWorkspacePatterns}; partial checkout: ${report.summary.partialCheckout ? 'yes' : 'no'}`);
+  }
   if (!report.groups.length) {
     lines.push('- none');
     return lines.join('\n');
@@ -174,6 +186,7 @@ function renderPathGroups(report) {
     lines.push('');
     lines.push(`${group.id} (${group.category})`);
     lines.push(`Package: ${group.packageRoot}`);
+    if (group.workspaceRoot) lines.push(`Workspace: ${group.workspaceRoot} (${group.workspaceExists ? 'exists' : 'missing'})`);
     lines.push(`Paths: ${group.paths.join(', ')}`);
     if (group.dependencies.length) lines.push(`Depends on: ${group.dependencies.join(', ')}`);
     if (group.dependents.length) lines.push(`Used by: ${group.dependents.join(', ')}`);

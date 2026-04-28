@@ -516,7 +516,7 @@ npm run agents:test-impact -- --paths app/page.tsx,tests/page.test.ts
 npm run agents -- test-impact --json
 ```
 
-Selection uses `checks.<name>.requiredForPaths`, visual-impact config, and the current Git diff when `--paths` is omitted.
+Selection uses `checks.<name>.requiredForPaths`, visual-impact config, and the current Git diff when `--paths` is omitted. When `monorepo.workspaceRoots` is configured, JSON output also reports impacted workspaces, including missing roots expected in `monorepo.partialCheckout` mode.
 
 ### `risk-score`
 
@@ -625,7 +625,7 @@ npm run agents:path:groups -- --paths app/page.tsx,components/Button.tsx
 npm run agents -- path-groups --json
 ```
 
-When `--paths` is omitted, the command groups claimed paths from the current board. JSON output includes group IDs, package roots, categories, grouped paths, import edges, dependencies, and dependents.
+When `--paths` is omitted, the command groups claimed paths from the current board. JSON output includes group IDs, package roots, categories, grouped paths, import edges, dependencies, and dependents. Configure `monorepo.workspaceRoots` with exact roots such as `apps/web` or one-level wildcards such as `packages/*` to group paths by logical workspace even when a partial checkout is missing that package locally.
 
 ### `split-validate`
 

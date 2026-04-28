@@ -184,6 +184,27 @@ function validateKnownStringArrays(parent, pathLabel, keys, errors) {
   }
 }
 
+function normalizeConfigPath(value) {
+  return String(value ?? '').trim().replaceAll('\\', '/').replace(/^\.\/+/, '').replace(/^\/+/, '').replace(/\/{2,}/g, '/');
+}
+
+function isSupportedWorkspaceRootPattern(value) {
+  const normalized = normalizeConfigPath(value);
+  if (!normalized.includes('*')) return true;
+  const starCount = [...normalized.matchAll(/\*/g)].length;
+  return starCount === 1 && normalized.endsWith('/*');
+}
+
+function workspacePatternHasLocalMatch(root, value) {
+  const normalized = normalizeConfigPath(value);
+  if (!normalized.includes('*')) return fs.existsSync(path.resolve(root, normalized));
+  if (!isSupportedWorkspaceRootPattern(normalized)) return false;
+  const prefix = normalized.slice(0, -2) || '.';
+  const prefixPath = path.resolve(root, prefix);
+  if (!fs.existsSync(prefixPath)) return false;
+  return fs.readdirSync(prefixPath, { withFileTypes: true }).some((entry) => entry.isDirectory());
+}
+
 export function validateAgentConfig(config, options = {}) {
   const errors = [];
   const warnings = [];
@@ -282,6 +303,22 @@ export function validateAgentConfig(config, options = {}) {
       addIssue(errors, 'privacy.mode', 'must be "standard", "redacted", or "local-only"');
     }
     if ('offline' in config.privacy) validateBoolean(config.privacy.offline, 'privacy.offline', errors);
+  }
+
+  if ('monorepo' in config && validateObject(config.monorepo, 'monorepo', errors)) {
+    if ('partialCheckout' in config.monorepo) validateBoolean(config.monorepo.partialCheckout, 'monorepo.partialCheckout', errors);
+    if ('fallbackRoot' in config.monorepo) validateString(config.monorepo.fallbackRoot, 'monorepo.fallbackRoot', errors);
+    if ('workspaceRoots' in config.monorepo) {
+      validateStringArray(config.monorepo.workspaceRoots, 'monorepo.workspaceRoots', errors);
+      for (const [index, workspaceRoot] of (Array.isArray(config.monorepo.workspaceRoots) ? config.monorepo.workspaceRoots : []).entries()) {
+        if (typeof workspaceRoot !== 'string' || !workspaceRoot.trim()) continue;
+        if (!isSupportedWorkspaceRootPattern(workspaceRoot)) {
+          addIssue(errors, `monorepo.workspaceRoots[${index}]`, 'must be an exact root or one-level wildcard ending in /*');
+        } else if (config.monorepo.partialCheckout !== true && !workspacePatternHasLocalMatch(root, workspaceRoot)) {
+          addIssue(warnings, `monorepo.workspaceRoots[${index}]`, `"${workspaceRoot}" has no local match; set monorepo.partialCheckout when this is expected`);
+        }
+      }
+    }
   }
 
   if ('paths' in config) {

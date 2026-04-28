@@ -14,8 +14,9 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Continue normalizing older command-specific diagnostics.
-2. Start Phase 15 developer-experience work: contribution/security docs, a real formatter, and example repos.
+1. Add lightweight dashboard surfaces for repo state.
+2. Add signed release verification.
+3. Add external calendar/reminder hooks.
 
 ---
 
@@ -107,7 +108,7 @@ Next recommended work:
 ## Phase 6: Advanced Coordination and Scaling
 
 - [x] Workspace health score
-- [ ] Partial checkout / monorepo support
+- [x] Partial checkout / monorepo support
 - [x] Task priority and deadlines
 - [x] Escalation routing
 - [x] Reusable runbooks
@@ -233,7 +234,9 @@ Next recommended work:
 - `scripts/lib/impact-commands.mjs`
 - `scripts/lib/interactive-commands.mjs`
 - `scripts/lib/install-manifest.mjs`
+- `scripts/lib/monorepo-utils.mjs`
 - `scripts/lib/onboarding-checklist.mjs`
+- `scripts/lib/path-group-commands.mjs`
 - `scripts/lib/policy-enforcement.mjs`
 - `scripts/lib/prompt-commands.mjs`
 - `scripts/lib/privacy-utils.mjs`
@@ -246,6 +249,7 @@ Next recommended work:
 - `scripts/lib/template-commands.mjs`
 - `scripts/lib/task-metadata.mjs`
 - `scripts/lib/task-metadata-commands.mjs`
+- `scripts/lib/task-split-validator.mjs`
 - `scripts/lib/update-commands.mjs`
 - `scripts/lib/workspace-snapshot-commands.mjs`
 - `agent-coordination.schema.json`
@@ -283,6 +287,7 @@ Next recommended work:
 - `tests/lock-runtime.test.mjs`
 - `tests/jsdoc-check.test.mjs`
 - `tests/lint.test.mjs`
+- `tests/path-group-commands.test.mjs`
 - `tests/policy-enforcement.test.mjs`
 - `tests/prompt-commands.test.mjs`
 - `tests/read-only-commands.test.mjs`

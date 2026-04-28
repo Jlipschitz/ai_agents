@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { listConfiguredWorkspaces } from './lib/monorepo-utils.mjs';
 import { loadAgentConfigWithSources, validateAgentConfig } from './validate-config.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -78,6 +79,7 @@ function explainConfig(config, configPath, root, configSources = []) {
   const ownership = config.ownership || {};
   const policyEnforcement = config.policyEnforcement || {};
   const policyRules = policyEnforcement.rules || {};
+  const monorepo = config.monorepo || {};
   const paths = config.paths || {};
   const verification = config.verification || {};
   const pathClassification = config.pathClassification || {};
@@ -87,6 +89,7 @@ function explainConfig(config, configPath, root, configSources = []) {
 
   const docsRoots = inspectPaths(root, docs.roots || []);
   const docsFiles = inspectPaths(root, [docs.appNotes, docs.visualWorkflow].filter(Boolean));
+  const workspaceReport = listConfiguredWorkspaces(root, config);
 
   const suggestions = [];
   if (!docsRoots.length) suggestions.push('Configure docs.roots so agents can discover project documentation.');
@@ -148,6 +151,13 @@ function explainConfig(config, configPath, root, configSources = []) {
         finishRequiresDocsReview: policyRules.finishRequiresDocsReview === true,
         finishApprovalScope: typeof policyRules.finishApprovalScope === 'string' ? policyRules.finishApprovalScope : '',
       },
+    },
+    monorepo: {
+      workspaceRoots: Array.isArray(monorepo.workspaceRoots) ? monorepo.workspaceRoots : [],
+      partialCheckout: monorepo.partialCheckout === true,
+      fallbackRoot: typeof monorepo.fallbackRoot === 'string' && monorepo.fallbackRoot ? monorepo.fallbackRoot : '.',
+      workspaces: workspaceReport.workspaces,
+      missingPatterns: workspaceReport.missingPatterns,
     },
     paths: {
       sharedRisk: paths.sharedRisk || [],
@@ -257,6 +267,12 @@ function printText(report) {
   console.log(`- finishRequiresApproval: ${report.policyEnforcement.rules.finishRequiresApproval}`);
   console.log(`- finishRequiresDocsReview: ${report.policyEnforcement.rules.finishRequiresDocsReview}`);
   console.log(`- finishApprovalScope: ${report.policyEnforcement.rules.finishApprovalScope || 'any'}`);
+  console.log('');
+  console.log('Monorepo:');
+  console.log(`- partialCheckout: ${report.monorepo.partialCheckout}`);
+  console.log(`- fallbackRoot: ${report.monorepo.fallbackRoot}`);
+  printList('- workspaceRoots:', report.monorepo.workspaceRoots);
+  printList('- missingPatterns:', report.monorepo.missingPatterns);
   console.log('');
   printList('Shared-risk paths:', report.paths.sharedRisk);
   printList('Visual-impact paths:', report.paths.visualImpact);

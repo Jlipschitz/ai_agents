@@ -48,3 +48,23 @@ test('path-groups defaults to board claimed paths', () => {
   assert.ok(payload.groups.some((group) => group.category === 'product'));
   assert.ok(payload.groups.some((group) => group.category === 'data'));
 });
+
+test('path-groups uses configured workspace roots for partial checkouts', () => {
+  const { root, coordinationRoot } = makeWorkspace({ prefix: 'ai-agents-path-groups-monorepo-', packageName: 'path-groups-test' });
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.monorepo = { workspaceRoots: ['packages/*'], partialCheckout: true, fallbackRoot: '.' };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+  writeFile(path.join(root, 'packages', 'web', 'package.json'), JSON.stringify({ name: '@app/web' }, null, 2));
+  writeBoard(root, { projectName: 'Path Groups Test', tasks: [] });
+
+  const result = runCli(root, ['path-groups', '--paths', 'packages/web/src/App.tsx,packages/api/src/route.ts', '--json'], { coordinationRoot });
+  const payload = JSON.parse(result.stdout);
+  const apiGroup = payload.groups.find((group) => group.packageRoot === 'packages/api');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(payload.summary.partialCheckout, true);
+  assert.ok(payload.workspaces.some((workspace) => workspace.root === 'packages/web' && workspace.packageName === '@app/web'));
+  assert.equal(apiGroup.workspaceRoot, 'packages/api');
+  assert.equal(apiGroup.workspaceExists, false);
+});

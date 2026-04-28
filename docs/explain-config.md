@@ -44,6 +44,7 @@ node ./scripts/explain-config.mjs --json
 - conflict prediction policy
 - ownership review policy
 - policy enforcement mode and rules
+- monorepo workspace roots and partial-checkout mode
 - shared-risk paths
 - visual-impact paths
 - visual-suite paths
@@ -134,6 +135,7 @@ Returns a JSON object with these top-level fields:
   "conflictPrediction": {},
   "ownership": {},
   "policyEnforcement": {},
+  "monorepo": {},
   "paths": {},
   "verification": {},
   "pathClassification": {},

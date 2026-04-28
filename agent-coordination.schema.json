@@ -172,6 +172,21 @@
         }
       }
     },
+    "monorepo": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "workspaceRoots": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "partialCheckout": {
+          "type": "boolean"
+        },
+        "fallbackRoot": {
+          "type": "string"
+        }
+      }
+    },
     "paths": {
       "type": "object",
       "additionalProperties": true,

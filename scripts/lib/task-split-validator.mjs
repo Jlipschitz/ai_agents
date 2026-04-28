@@ -119,7 +119,7 @@ function validateTaskShape(root, config, task) {
     findings.push(finding('missingVerification', `Task ${task.id} has no planned verification.`, { taskId: task.id }));
   }
 
-  const grouped = buildPathGroups({ root, board: { tasks: [task] } }, []);
+  const grouped = buildPathGroups({ root, config, board: { tasks: [task] } }, []);
   const categories = [...new Set(grouped.groups.map((group) => group.category))].filter((category) => category !== 'other');
   if (grouped.groups.length > 3) {
     findings.push(finding('tooManyPathGroups', `Task ${task.id} spans ${grouped.groups.length} path groups.`, { taskId: task.id, groups: grouped.groups.map((group) => group.id) }));

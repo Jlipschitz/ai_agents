@@ -71,6 +71,11 @@ function validConfig() {
       mode: 'standard',
       offline: false,
     },
+    monorepo: {
+      workspaceRoots: ['packages/*', 'apps/web'],
+      partialCheckout: true,
+      fallbackRoot: '.',
+    },
     checks: {
       unit: {
         command: 'npm test',
@@ -147,6 +152,9 @@ test('validateAgentConfig reports actionable errors', () => {
   config.policyEnforcement.rules.finishRequiresApproval = 'yes';
   config.privacy.mode = 'public';
   config.privacy.offline = 'yes';
+  config.monorepo.workspaceRoots = ['packages/*', 'packages/*', 'packages/**'];
+  config.monorepo.partialCheckout = 'yes';
+  config.monorepo.fallbackRoot = 1;
   config.checks.unit.timeoutMs = 500;
   config.checks.unit.requireArtifacts = 'yes';
 
@@ -168,6 +176,10 @@ test('validateAgentConfig reports actionable errors', () => {
   assert.ok(result.errors.some((entry) => entry.includes('policyEnforcement.rules.finishRequiresApproval')));
   assert.ok(result.errors.some((entry) => entry.includes('privacy.mode')));
   assert.ok(result.errors.some((entry) => entry.includes('privacy.offline')));
+  assert.ok(result.errors.some((entry) => entry.includes('monorepo.workspaceRoots[1]')));
+  assert.ok(result.errors.some((entry) => entry.includes('monorepo.workspaceRoots[2]')));
+  assert.ok(result.errors.some((entry) => entry.includes('monorepo.partialCheckout')));
+  assert.ok(result.errors.some((entry) => entry.includes('monorepo.fallbackRoot')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.timeoutMs')));
   assert.ok(result.errors.some((entry) => entry.includes('checks.unit.requireArtifacts')));
 });
