@@ -128,6 +128,24 @@ Wrappers using it:
 - `scripts/agent-coordination.mjs`
 - `scripts/agent-coordination-two.mjs`
 
+### Better error formatting
+
+Status: partially implemented for top-level command failures.
+
+Current behavior:
+
+- Command-layer and legacy core top-level catches use a shared formatter.
+- Text mode writes `error:` and optional `hint:` diagnostics to stderr.
+- Commands invoked with `--json` emit `{ ok: false, error, code, hint }` on stdout.
+- `--verbose` includes stack traces for formatted top-level errors.
+
+Follow-up: convert inline status-return errors that currently print directly inside individual command handlers.
+
+Main files:
+
+- `scripts/lib/error-formatting.mjs`
+- `tests/error-formatting.test.mjs`
+
 ### `doctor --fix`
 
 Status: implemented in the command layer.

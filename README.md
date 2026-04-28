@@ -20,6 +20,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Supports agent heartbeats and watcher status.
 - Provides `doctor`, `validate`, `status`, `plan`, and enhanced `summarize` commands.
 - Supports `doctor --fix` and `doctor --json` through the command layer.
+- Formats top-level CLI errors consistently in text and JSON modes.
 - Explains active config and environment overrides with `explain-config`.
 - Performs Git preflight checks before task claims.
 - Applies claim capacity/conflict policies and reports branch cleanup candidates.

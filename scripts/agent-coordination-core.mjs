@@ -7,6 +7,7 @@ import { createBoardValidation } from './lib/board-validation.mjs';
 import { createCommunicationCommands } from './lib/communication-commands.mjs';
 import { createCorePathAnalysis } from './lib/core-path-analysis.mjs';
 import { normalizeClaimPolicies } from './lib/claim-policy.mjs';
+import { exitCodeForError, printCliError } from './lib/error-formatting.mjs';
 import { ensureDirectory, fileExists, isPidAlive, nowIso } from './lib/file-utils.mjs';
 import { createDoctorCommand } from './lib/doctor-command.mjs';
 import { createHeartbeatWatchCommands } from './lib/heartbeat-watch-commands.mjs';
@@ -1979,6 +1980,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
+  printCliError(error, { argv: process.argv.slice(2) });
+  process.exit(exitCodeForError(error));
 });

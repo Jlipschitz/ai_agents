@@ -32,6 +32,26 @@ The CLI accepts these flags before or after the command, as long as they appear 
 --no-color
 ```
 
+Top-level command errors use a consistent shape. Text mode writes diagnostics to stderr:
+
+```text
+error: <message>
+hint: <next step>
+```
+
+Commands that receive `--json` emit structured errors on stdout:
+
+```json
+{
+  "ok": false,
+  "error": "<message>",
+  "code": "usage_error",
+  "hint": "<next step>"
+}
+```
+
+Use `--verbose` to include stack traces on formatted top-level errors.
+
 Every command can show focused help:
 
 ```bash

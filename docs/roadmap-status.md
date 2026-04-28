@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add automatic workspace snapshots before legacy core lifecycle mutations.
+1. Convert inline status-return errors to the shared error formatter.
 
 ---
 
@@ -160,7 +160,7 @@ Next recommended work:
 
 - [x] Add per-command help
 - [~] Add consistent global flags — global parser supports the requested flags; verbose/quiet behavior can become richer.
-- [ ] Add better error formatting
+- [~] Add better error formatting - top-level command-layer and core failures now use consistent text/JSON formatting; inline status-return paths remain open.
 - [x] Add short command aliases
 - [ ] Add interactive mode
 

@@ -11,6 +11,7 @@ import { runBacklogImport } from './lib/backlog-import-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-maintenance.mjs';
+import { exitCodeForError, printCliError } from './lib/error-formatting.mjs';
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
 import { runGitHubStatus } from './lib/github-commands.mjs';
@@ -1179,7 +1180,7 @@ function shouldHandle(commandName, argv) {
   return false;
 }
 
-export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
+async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   const argv = process.argv.slice(2);
   const rawCommandName = argv[0] || 'help';
   if (rawCommandName === '--help' || rawCommandName === '-h') {
@@ -1253,4 +1254,13 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'snapshot-workspace') status = runSnapshotWorkspace(commandArgs, getCoordinationPaths());
   else if (commandName === 'backlog-import') status = runBacklogImport(commandArgs, getBacklogImportContext());
   process.exit(status);
+}
+
+export async function runCommandLayer(options) {
+  try {
+    await runCommandLayerInner(options);
+  } catch (error) {
+    printCliError(error, { argv: process.argv.slice(2) });
+    process.exit(exitCodeForError(error));
+  }
 }
