@@ -191,7 +191,7 @@ Next recommended work:
 - [x] Add type checking or JSDoc validation
 - [x] Add contribution guide
 - [x] Add security policy
-- [ ] Add license
+- [x] Add license
 - [x] Add examples directory
 
 ---
@@ -253,6 +253,7 @@ Next recommended work:
 - `package-lock.json`
 - `.nvmrc`
 - `.node-version`
+- `LICENSE`
 - `CONTRIBUTING.md`
 - `SECURITY.md`
 - `examples/README.md`

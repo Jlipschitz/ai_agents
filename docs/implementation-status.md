@@ -1489,13 +1489,15 @@ Current behavior:
 - `SECURITY.md` documents supported versions, private vulnerability reporting, local guardrails, and disclosure expectations.
 - `examples/` contains copyable starter repos for basic Node, React app, and docs-only coordination setups.
 - Node version hints are checked into `.nvmrc` and `.node-version`.
-- The package lock marks the package as `UNLICENSED`.
+- `LICENSE`, `package.json`, and `package-lock.json` mark the project as MIT licensed.
 
-Follow-up: add a license file.
+Follow-up: continue deeper distribution polish such as signed releases.
 
 Main files:
 
 - `package.json`
+- `package-lock.json`
+- `LICENSE`
 - `CONTRIBUTING.md`
 - `SECURITY.md`
 - `examples/README.md`
@@ -1550,5 +1552,3 @@ These roadmap items still need core, command-layer, or documentation work.
 - External calendar or reminder hooks.
 
 ### Developer experience and repo maintenance
-
-- `LICENSE`.
