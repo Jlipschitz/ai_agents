@@ -4,7 +4,7 @@ import { COMMANDS } from './help-command.mjs';
 
 const SHELLS = ['powershell', 'bash', 'zsh'];
 const STATUSES = ['planned', 'active', 'blocked', 'waiting', 'review', 'handoff', 'done', 'released'];
-const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color'];
+const COMMON_FLAGS = ['--json', '--help', '--config', '--root', '--coordination-dir', '--coordination-root', '--verbose', '--quiet', '--no-color', '--priority', '--due-at', '--due', '--severity'];
 const AGENT_COMMANDS = new Set([
   'claim',
   'start',
@@ -46,6 +46,7 @@ const TASK_COMMANDS = new Set([
   'release',
   'verify',
   'review-docs',
+  'prioritize',
   'prompt',
   'release-check',
   'pr-summary',
@@ -108,6 +109,7 @@ _ai_agents_complete() {
   if [[ "$cur" == --* ]]; then COMPREPLY=( $(compgen -W "$flags" -- "$cur") ); return 0; fi
   if [[ $COMP_CWORD -eq 1 ]]; then COMPREPLY=( $(compgen -W "$commands" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "completions" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$shells" -- "$cur") ); return 0; fi
+  if [[ "$cmd" == "prioritize" && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$tasks" -- "$cur") ); return 0; fi
   if [[ " $agent_commands " == *" $cmd "* && $COMP_CWORD -eq 2 ]]; then COMPREPLY=( $(compgen -W "$agents" -- "$cur") ); return 0; fi
   if [[ " $task_commands " == *" $cmd "* && $COMP_CWORD -eq 3 ]]; then COMPREPLY=( $(compgen -W "$tasks" -- "$cur") ); return 0; fi
   if [[ "$cmd" == "verify" && $COMP_CWORD -eq 4 ]]; then COMPREPLY=( $(compgen -W "$checks" -- "$cur") ); return 0; fi
@@ -137,7 +139,7 @@ _ai_agents_complete() {
       if [[ CURRENT -eq 3 ]]; then _describe 'agent' agents; return; fi
       if [[ CURRENT -eq 4 ]]; then _describe 'task' tasks; return; fi
       ;;
-    release-check|pr-summary|release-bundle)
+    prioritize|release-check|pr-summary|release-bundle)
       _describe 'task' tasks ;;
   esac
   if [[ "$words[2]" == "verify" && CURRENT -eq 5 ]]; then _describe 'check' checks; return; fi
@@ -168,7 +170,7 @@ $scriptBlock = {
   elseif ($words.Count -eq 2) { $items = $commands }
   elseif ($cmd -eq 'completions' -and $words.Count -le 3) { $items = $shells }
   elseif (@('claim','start','finish','handoff-ready','pick','progress','wait','resume','blocked','review','done','release','verify','review-docs','prompt','inbox','heartbeat','heartbeat-start','heartbeat-stop','message','app-note','request-access','reserve-resource','renew-resource','release-resource') -contains $cmd -and $words.Count -le 3) { $items = $agents }
-  elseif (@('claim','start','finish','handoff-ready','progress','wait','resume','blocked','review','done','release','verify','review-docs','prompt','release-check','pr-summary','release-bundle','app-note','request-access') -contains $cmd -and $words.Count -le 4) { $items = $tasks }
+  elseif (@('claim','start','finish','handoff-ready','progress','wait','resume','blocked','review','done','release','verify','review-docs','prioritize','prompt','release-check','pr-summary','release-bundle','app-note','request-access') -contains $cmd -and $words.Count -le 4) { $items = $tasks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 5) { $items = $checks }
   elseif ($cmd -eq 'verify' -and $words.Count -le 6) { $items = @('pass', 'fail') }
   $items | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {

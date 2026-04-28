@@ -54,7 +54,7 @@ Use `--verbose` to include stack traces on formatted top-level errors.
 
 ## Mutation Dry Runs
 
-Most command-layer apply flows are dry-run by default and write only when `--apply` is passed. Legacy core mutation commands such as `claim`, `progress`, `wait`, `resume`, `blocked`, `review`, `verify`, `message`, `app-note`, `handoff`, `done`, `release`, access requests, incidents, resource leases, heartbeat, and watcher commands also accept `--dry-run` to validate inputs and report the intended action without changing coordination state or starting/stopping background processes.
+Most command-layer apply flows are dry-run by default and write only when `--apply` is passed. Legacy core mutation commands such as `claim`, `prioritize`, `progress`, `wait`, `resume`, `blocked`, `review`, `verify`, `message`, `app-note`, `handoff`, `done`, `release`, access requests, incidents, resource leases, heartbeat, and watcher commands also accept `--dry-run` to validate inputs and report the intended action without changing coordination state or starting/stopping background processes.
 
 ```bash
 npm run agents -- claim agent-1 task-ui --paths app/page.tsx --summary "UI fix" --dry-run
@@ -83,7 +83,7 @@ npm run agents -- help
 
 ### `status`
 
-Prints the current board state, active work, blockers, and stale work.
+Prints the current board state, active work, blockers, stale work, and task priority/due-date metadata.
 
 ```bash
 npm run agents:status
@@ -328,10 +328,10 @@ Lists built-in config and task templates, applies config template patches, or cr
 npm run agents:templates -- list
 npm run agents -- templates show react
 npm run agents -- templates apply react --apply
-npm run agents -- templates create-task ui-change --id task-ui --paths app/page.tsx --apply
+npm run agents -- templates create-task ui-change --id task-ui --paths app/page.tsx --priority high --due-at 2026-05-01 --apply
 ```
 
-Config template application and task creation are dry-run by default. Use `--apply` to write changes. Applied config and board changes create snapshots first.
+Config template application and task creation are dry-run by default. Use `--apply` to write changes. Applied config and board changes create snapshots first. Task templates accept `--priority`, `--due-at` or `--due`, and `--severity`.
 
 ### `update-coordinator`
 
@@ -351,10 +351,10 @@ Imports Markdown TODOs into planned tasks.
 
 ```bash
 npm run agents:backlog:import -- --from BACKLOG.md
-npm run agents -- backlog-import --from README.md,docs --owner agent-2 --apply --json
+npm run agents -- backlog-import --from README.md,docs --owner agent-2 --priority normal --severity none --apply --json
 ```
 
-The default mode is a dry run. The importer recognizes unchecked Markdown task-list items and `TODO:` lines, skips existing imports by stable source metadata, and writes a compressed pre-mutation workspace snapshot before applied board changes.
+The default mode is a dry run. The importer recognizes unchecked Markdown task-list items and `TODO:` lines, skips existing imports by stable source metadata, carries optional priority/due/severity flags onto new tasks, and writes a compressed pre-mutation workspace snapshot before applied board changes.
 
 Applied command-layer mutations and lock-protected legacy core mutations append machine-readable audit entries to `coordination/runtime/audit.ndjson`.
 
@@ -401,7 +401,7 @@ npm run agents -- prompt agent-1 task-ui
 npm run agents -- prompt agent-1 --json
 ```
 
-The prompt includes the assigned task, objective, claimed paths, dependency status, relevant docs, docs-review state, verification expectations, recent task notes, and next actions. If a task ID is omitted, the command uses the agent's recorded assignment or active owned task.
+The prompt includes the assigned task, priority, due date, severity, objective, claimed paths, dependency status, relevant docs, docs-review state, verification expectations, recent task notes, and next actions. If a task ID is omitted, the command uses the agent's recorded assignment or active owned task.
 
 ### `ask`
 
@@ -483,7 +483,7 @@ By default the command is local-only and does not contact GitHub. `--live` runs 
 
 ### `claim`
 
-Claims a task for an agent and records claimed paths. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, merge/rebase state, and configured branch policies. Merge/rebase-in-progress state and configured branch policy violations block the claim.
+Claims a task for an agent and records claimed paths. Claims can also set priority metadata with `--priority low|normal|high|urgent`, `--due-at <iso|YYYY-MM-DD>`, and `--severity none|low|medium|high|critical`. Before delegating to the core claim command, the command layer performs a Git preflight check for branch, upstream, ahead/behind state, dirty files, untracked files, merge/rebase state, and configured branch policies. Merge/rebase-in-progress state and configured branch policy violations block the claim.
 
 The claim command also applies coordination policies from config:
 
@@ -495,6 +495,7 @@ The claim command also applies coordination policies from config:
 
 ```bash
 npm run agents -- claim agent-1 task-id --paths src/tasks,docs/tasks.md
+npm run agents -- claim agent-1 task-id --paths src/tasks --priority high --due-at 2026-05-01 --severity medium
 ```
 
 Configure branch claim policies in `agent-coordination.config.json`:
@@ -535,7 +536,26 @@ Convenience lifecycle helper that claims a task and optionally records an initia
 ```bash
 npm run agents:start -- agent-1 task-id --paths src/tasks "Starting task implementation."
 npm run agents -- start agent-1 task-id --paths src/tasks,docs/tasks.md "Starting task implementation."
+npm run agents -- start agent-1 task-id --paths src/tasks --priority urgent --due-at 2026-05-01 "Starting hotfix."
 ```
+
+### `prioritize`
+
+Updates task priority, due date, or severity on an existing task.
+
+```bash
+npm run agents:prioritize -- task-id --priority high --due-at 2026-05-01 --severity medium
+npm run agents -- prioritize task-id --due-at none --by agent-1
+npm run agents -- prioritize task-id --priority urgent --json --dry-run
+```
+
+Supported values:
+
+- Priority: `low`, `normal`, `high`, `urgent`.
+- Severity: `none`, `low`, `medium`, `high`, `critical`.
+- Due dates: ISO timestamps, `YYYY-MM-DD`, or `none` to clear.
+
+Priority and due-date metadata appears in `status`, `summarize`, `prompt`, `ask`, task docs under `coordination/tasks/`, and `pick` scoring.
 
 ### `progress`
 

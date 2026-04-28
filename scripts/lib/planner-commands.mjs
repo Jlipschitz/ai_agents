@@ -1,5 +1,6 @@
 import { nowIso } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
+import { formatTaskDueAt, taskMetadataFromOptions } from './task-metadata.mjs';
 
 function normalizePaths(inputs) {
   return [...new Set(inputs.map((entry) => normalizePath(entry)).filter(Boolean))].sort();
@@ -184,6 +185,7 @@ export function createPlannerCommands(context) {
     const dataEffort = complexityScore >= 14 ? 'large' : 'medium';
     const verifyEffort = complexityScore >= 10 ? 'medium' : 'small';
     const docsEffort = gitBuckets.docs.length > 3 ? 'medium' : 'small';
+    const taskMetadata = taskMetadataFromOptions(options, { includeDefaults: true });
     const sizing = buildPlanSizing({
       goal,
       gitBuckets,
@@ -209,6 +211,7 @@ export function createPlannerCommands(context) {
         docsReviewedBy: null,
         rationale: `UI-facing work was grouped around ${focusLabel}. ${gitSummary}`,
         effort: productEffort,
+        ...taskMetadata,
         createdAt,
         updatedAt: createdAt,
         lastHandoff: null,
@@ -238,6 +241,7 @@ export function createPlannerCommands(context) {
         docsReviewedBy: null,
         rationale: `State and API files were isolated so contract changes stay coordinated in one lane before verification starts. ${gitSummary}`,
         effort: dataEffort,
+        ...taskMetadata,
         createdAt,
         updatedAt: createdAt,
         lastHandoff: null,
@@ -267,6 +271,7 @@ export function createPlannerCommands(context) {
         docsReviewedBy: null,
         rationale: `Visual routes, fixtures, and snapshots were grouped separately so intentional UI changes refresh the visual suite before final verification. ${gitSummary}`,
         effort: verifyEffort,
+        ...taskMetadata,
         createdAt,
         updatedAt: createdAt,
         lastHandoff: null,
@@ -296,6 +301,7 @@ export function createPlannerCommands(context) {
         docsReviewedBy: null,
         rationale: `Docs and coordination updates are split out so delivery notes can track the final merged behavior rather than drafts. ${gitSummary}`,
         effort: docsEffort,
+        ...taskMetadata,
         createdAt,
         updatedAt: createdAt,
         lastHandoff: null,
@@ -351,6 +357,9 @@ export function createPlannerCommands(context) {
       lines.push(`  Paths: ${task.claimedPaths.join(', ') || 'none'}`);
       lines.push(`  Depends on: ${task.dependencies.join(', ') || 'none'}`);
       lines.push(`  Effort: ${task.effort}`);
+      lines.push(`  Priority: ${task.priority}`);
+      lines.push(`  Due: ${formatTaskDueAt(task.dueAt)}`);
+      lines.push(`  Severity: ${task.severity}`);
       lines.push(`  Verify: ${task.verification.join(', ') || 'none'}`);
       lines.push(`  Docs: ${task.relevantDocs.join(', ') || 'none suggested'}`);
       lines.push(`  Why: ${task.rationale}`);
@@ -363,12 +372,14 @@ export function createPlannerCommands(context) {
     const goal = positionals.join(' ').trim();
 
     if (!goal) {
-      throw new Error('Usage: plan <goal> [--apply] [--git-changes]');
+      throw new Error('Usage: plan <goal> [--apply] [--git-changes] [--priority <level>] [--due-at <date>] [--severity <level>]');
     }
 
-    const plan = buildPlanProposal(goal, {
-      gitChanges: Boolean(options['git-changes']),
-    });
+    const planOptions = { gitChanges: Boolean(options['git-changes']) };
+    for (const key of ['priority', 'severity', 'due-at', 'due']) {
+      if (Object.prototype.hasOwnProperty.call(options, key)) planOptions[key] = options[key];
+    }
+    const plan = buildPlanProposal(goal, planOptions);
 
     if (!options.apply) {
       console.log(renderPlan(plan));

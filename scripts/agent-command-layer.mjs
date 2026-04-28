@@ -27,6 +27,7 @@ import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoP
 import { runPromptCommand } from './lib/prompt-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
+import { taskMetadataLabels } from './lib/task-metadata.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
 import { runUpdateCoordinator } from './lib/update-commands.mjs';
 import { runSnapshotWorkspace, writePreMutationWorkspaceSnapshot } from './lib/workspace-snapshot-commands.mjs';
@@ -326,6 +327,7 @@ function expectedPackageScripts() {
       'agents:prompt': 'ai-agents prompt',
       'agents:ask': 'ai-agents ask',
       'agents:changelog': 'ai-agents changelog',
+      'agents:prioritize': 'ai-agents prioritize',
       'agents:completions': 'ai-agents completions',
       'validate:agents-config': 'ai-agents validate --json',
     };
@@ -378,6 +380,7 @@ function expectedPackageScripts() {
     'agents:prompt': 'node ./scripts/agent-coordination.mjs prompt',
     'agents:ask': 'node ./scripts/agent-coordination.mjs ask',
     'agents:changelog': 'node ./scripts/agent-coordination.mjs changelog',
+    'agents:prioritize': 'node ./scripts/agent-coordination.mjs prioritize',
     'agents:completions': 'node ./scripts/agent-coordination.mjs completions',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
@@ -421,6 +424,7 @@ function expectedPackageScripts() {
     'agents2:prompt': 'node ./scripts/agent-coordination-two.mjs prompt',
     'agents2:ask': 'node ./scripts/agent-coordination-two.mjs ask',
     'agents2:changelog': 'node ./scripts/agent-coordination-two.mjs changelog',
+    'agents2:prioritize': 'node ./scripts/agent-coordination-two.mjs prioritize',
     'agents2:completions': 'node ./scripts/agent-coordination-two.mjs completions',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
@@ -455,7 +459,9 @@ function taskSummary(task) {
   const owner = task.ownerId || task.suggestedOwnerId || 'unowned';
   const title = task.title || task.summary || task.id;
   const paths = Array.isArray(task.claimedPaths) && task.claimedPaths.length ? ` paths: ${task.claimedPaths.join(', ')}` : '';
-  return `- ${task.id}: ${title} [${task.status || 'unknown'} / ${owner}]${paths}`;
+  const labels = taskMetadataLabels(task);
+  const metadata = labels.length ? ` ${labels.join(', ')}` : '';
+  return `- ${task.id}: ${title} [${task.status || 'unknown'} / ${owner}]${metadata}${paths}`;
 }
 
 function isTaskStale(task, staleHours = DEFAULT_STALE_TASK_HOURS) {
@@ -1191,7 +1197,7 @@ function parseLifecycleRest(rest) {
   const messageParts = [];
   const flags = {};
   const booleanFlags = new Set(['--require-verification', '--require-doc-review']);
-  const valuedFlags = new Set(['--paths']);
+  const valuedFlags = new Set(['--paths', '--priority', '--due-at', '--due', '--severity']);
   for (let index = 0; index < rest.length; index += 1) {
     const entry = rest[index];
     if (!entry.startsWith('--')) {
@@ -1228,6 +1234,9 @@ function runLifecycle(commandName, argv, coordinatorScriptPath) {
     const args = ['claim', agentId, taskId];
     if (paths) args.push('--paths', paths);
     if (message) args.push('--summary', message);
+    for (const flag of ['priority', 'due-at', 'due', 'severity']) {
+      if (typeof flags[flag] === 'string') args.push(`--${flag}`, flags[flag]);
+    }
     if (flags['dry-run']) args.push('--dry-run');
     const status = run(args);
     if (status !== 0) return status;

@@ -7,6 +7,7 @@ import { createStarterBoard } from './board-migration.mjs';
 import { nowIso, readJsonSafe, writeJson } from './file-utils.mjs';
 import { normalizePath, resolveRepoPath } from './path-utils.mjs';
 import { withStateTransactionSync } from './state-transaction.mjs';
+import { taskMetadataFromArgv } from './task-metadata.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 const DEFAULT_SOURCES = ['README.md', 'docs'];
@@ -61,7 +62,7 @@ function taskIdFor(relativePath, lineNumber, text) {
   return `backlog-${slugify(relativePath.replace(/\.md$/i, ''))}-${lineNumber}-${slugify(text, 'todo').slice(0, 24)}`;
 }
 
-function taskFromTodo(todo, ownerId) {
+function taskFromTodo(todo, ownerId, metadata) {
   const timestamp = nowIso();
   return {
     id: todo.taskId,
@@ -72,6 +73,7 @@ function taskFromTodo(todo, ownerId) {
     suggestedOwnerId: ownerId || null,
     rationale: '',
     effort: 'unknown',
+    ...metadata,
     issueKey: null,
     claimedPaths: [todo.path],
     dependencies: [],
@@ -114,9 +116,10 @@ export function buildBacklogImportPlan(argv, context) {
   const board = readJsonSafe(context.paths.boardPath, createStarterBoard(context));
   board.tasks = Array.isArray(board.tasks) ? board.tasks : [];
   const ownerId = getFlagValue(argv, '--owner', '');
+  const metadata = taskMetadataFromArgv(argv, { getFlagValue, hasFlag, includeDefaults: true });
   const todos = collectTodos(context.root, argv);
   const candidates = todos.map((todo) => ({ ...todo, exists: hasExistingImport(board.tasks, todo) }));
-  const newTasks = candidates.filter((todo) => !todo.exists).map((todo) => taskFromTodo(todo, ownerId));
+  const newTasks = candidates.filter((todo) => !todo.exists).map((todo) => taskFromTodo(todo, ownerId, metadata));
 
   return {
     ok: true,

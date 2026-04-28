@@ -1,5 +1,7 @@
 import { nowIso } from './file-utils.mjs';
 
+import { isValidTaskDueAt, isValidTaskPriority, isValidTaskSeverity } from './task-metadata.mjs';
+
 export function createBoardValidation(context) {
   const {
     activeTaskStatuses,
@@ -82,6 +84,18 @@ export function createBoardValidation(context) {
 
       if (!validTaskStatuses.has(task.status)) {
         findings.push(`Task "${task.id}" has unknown status "${task.status}".`);
+      }
+
+      if (!isValidTaskPriority(task.priority)) {
+        findings.push(`Task "${task.id}" has invalid priority "${task.priority}".`);
+      }
+
+      if (!isValidTaskSeverity(task.severity)) {
+        findings.push(`Task "${task.id}" has invalid severity "${task.severity}".`);
+      }
+
+      if (!isValidTaskDueAt(task.dueAt)) {
+        findings.push(`Task "${task.id}" has invalid dueAt "${task.dueAt}".`);
       }
 
       if (activeTaskStatuses.has(task.status) && !task.ownerId) {

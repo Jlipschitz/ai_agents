@@ -1,4 +1,5 @@
 import { nowIso } from './file-utils.mjs';
+import { taskMetadataLabels } from './task-metadata.mjs';
 
 export function createStatusCommands(context) {
   const {
@@ -256,9 +257,10 @@ export function createStatusCommands(context) {
     ensureTaskDefaults(task);
     const dependencyLabel = task.dependencies.length ? ` | depends on ${task.dependencies.join(', ')}` : '';
     const effortLabel = task.effort ? ` | effort ${task.effort}` : '';
+    const metadataLabel = taskMetadataLabels(task, { includeDefaultPriority: true }).map((entry) => ` | ${entry}`).join('');
     const unattendedStale = isTaskStale(task, referenceIso) && !hasLiveAgentHeartbeat(task.ownerId, liveHeartbeats);
     const staleLabel = unattendedStale ? ' | stale' : '';
-    return `- ${task.id}: ${ownerLabel} -> ${task.claimedPaths.join(', ') || 'no paths'}${dependencyLabel}${effortLabel}${staleLabel} | ${
+    return `- ${task.id}: ${ownerLabel} -> ${task.claimedPaths.join(', ') || 'no paths'}${dependencyLabel}${effortLabel}${metadataLabel}${staleLabel} | ${
       task.summary || 'No summary'
     }`;
   }

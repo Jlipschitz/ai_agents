@@ -1,4 +1,5 @@
 import { nowIso } from './file-utils.mjs';
+import { formatTaskDueAt, taskUrgencyScore } from './task-metadata.mjs';
 
 export function createTaskFlowCommands(context) {
   const {
@@ -178,6 +179,7 @@ export function createTaskFlowCommands(context) {
     if (isTaskStale(task)) {
       score += 3;
     }
+    score += taskUrgencyScore(task);
 
     return score;
   }
@@ -229,6 +231,9 @@ export function createTaskFlowCommands(context) {
 
     console.log(`Recommended for ${agentId}: ${bestTask.id}`);
     console.log(`Status: ${bestTask.status}`);
+    console.log(`Priority: ${bestTask.priority || 'normal'}`);
+    console.log(`Due: ${formatTaskDueAt(bestTask.dueAt)}`);
+    console.log(`Severity: ${bestTask.severity || 'none'}`);
     console.log(`Summary: ${bestTask.summary || 'No summary'}`);
     console.log(`Paths: ${bestTask.claimedPaths.join(', ') || 'none'}`);
     console.log(`Dependencies: ${bestTask.dependencies.join(', ') || 'none'}`);

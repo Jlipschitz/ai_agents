@@ -1,6 +1,7 @@
 import path from 'node:path';
 
 import { nowIso } from './file-utils.mjs';
+import { ensureTaskMetadataDefaults } from './task-metadata.mjs';
 
 export const CURRENT_BOARD_VERSION = 2;
 const FALLBACK_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
@@ -61,6 +62,7 @@ function ensureTaskDefaults(task, changes) {
       changes.push(`initialized ${task.id}.${key}`);
     }
   }
+  ensureTaskMetadataDefaults(task, changes);
 }
 
 function ensureAgentSlots(board, context, timestamp, changes) {

@@ -108,7 +108,7 @@ Next recommended work:
 
 - [ ] Workspace health score
 - [ ] Partial checkout / monorepo support
-- [ ] Task priority and deadlines
+- [x] Task priority and deadlines
 - [ ] Escalation routing
 - [ ] Reusable runbooks
 - [ ] Semantic path grouping
@@ -229,6 +229,8 @@ Next recommended work:
 - `scripts/lib/runtime-diagnostics.mjs`
 - `scripts/lib/state-transaction.mjs`
 - `scripts/lib/template-commands.mjs`
+- `scripts/lib/task-metadata.mjs`
+- `scripts/lib/task-metadata-commands.mjs`
 - `scripts/lib/update-commands.mjs`
 - `scripts/lib/workspace-snapshot-commands.mjs`
 - `agent-coordination.schema.json`
@@ -255,6 +257,7 @@ Next recommended work:
 - `tests/read-only-commands.test.mjs`
 - `tests/roadmap-commands.test.mjs`
 - `tests/template-commands.test.mjs`
+- `tests/task-metadata.test.mjs`
 - `tests/update-commands.test.mjs`
 - `tests/workspace-snapshot-commands.test.mjs`
 - `docs/commands.md`

@@ -1,5 +1,6 @@
 import { getPositionals, hasFlag } from './args-utils.mjs';
 import { printCommandError } from './error-formatting.mjs';
+import { ensureTaskMetadataDefaults, formatTaskDueAt, taskMetadataLabels, taskUrgencyScore } from './task-metadata.mjs';
 
 const ACTIVE_STATUSES = new Set(['active', 'blocked', 'review', 'waiting', 'handoff']);
 const TERMINAL_STATUSES = new Set(['done', 'released']);
@@ -22,7 +23,7 @@ function pathsOverlap(left, right) {
 }
 
 function normalizeTask(task) {
-  return {
+  const normalized = {
     ...task,
     claimedPaths: array(task?.claimedPaths),
     dependencies: array(task?.dependencies),
@@ -32,13 +33,17 @@ function normalizeTask(task) {
     relevantDocs: array(task?.relevantDocs),
     notes: array(task?.notes),
   };
+  ensureTaskMetadataDefaults(normalized);
+  return normalized;
 }
 
 function taskSummary(task) {
   const owner = task.ownerId ? `owner ${task.ownerId}` : 'unowned';
   const title = task.title ? ` - ${task.title}` : '';
   const summary = task.summary ? ` | ${task.summary}` : '';
-  return `${task.id}${title}: ${task.status}, ${owner}${summary}`;
+  const metadata = taskMetadataLabels(task, { includeDefaultPriority: true, includeDefaultSeverity: true }).join(', ');
+  const metadataSuffix = metadata ? ` | ${metadata}` : '';
+  return `${task.id}${title}: ${task.status}, ${owner}${metadataSuffix}${summary}`;
 }
 
 function boardTasks(board) {
@@ -123,6 +128,7 @@ function readyCandidates(board, agentId = '') {
       if (task.status === 'review') score += 6;
       if (task.status === 'planned') score += 4;
       if (!task.dependencies.length || task.dependencies.every((dependencyId) => dependencySatisfied(tasks, dependencyId))) score += 5;
+      score += taskUrgencyScore(task);
       return { task, score };
     })
     .sort((left, right) => {
@@ -203,10 +209,11 @@ function answerTask(board, question) {
   const dependencies = task.dependencies.length ? ` Dependencies: ${task.dependencies.join(', ')}.` : '';
   const waiting = task.waitingOn.length ? ` Waiting on: ${task.waitingOn.join(', ')}.` : '';
   const paths = task.claimedPaths.length ? ` Paths: ${task.claimedPaths.join(', ')}.` : '';
+  const due = ` Due: ${formatTaskDueAt(task.dueAt)}.`;
   return {
     intent: 'task',
     items: [task],
-    answer: `${taskSummary(task)}${paths}${dependencies}${waiting}`,
+    answer: `${taskSummary(task)}${paths}${dependencies}${waiting}${due}`,
   };
 }
 
@@ -262,6 +269,9 @@ export function answerBoardQuestion(board, rawQuestion) {
       ownerId: task.ownerId ?? null,
       claimedPaths: task.claimedPaths,
       summary: task.summary ?? '',
+      priority: task.priority ?? 'normal',
+      dueAt: task.dueAt ?? null,
+      severity: task.severity ?? 'none',
     })),
     suggestions: supportedQuestions(),
     matchedFallback: result.intent === 'summary' && !/\b(summary|status|board)\b/i.test(lowered),

@@ -72,6 +72,9 @@ test('templates create-task writes planned task only with --apply', () => {
   assert.equal(payload.applied, true);
   assert.equal(task.status, 'planned');
   assert.equal(task.summary, 'Update docs');
+  assert.equal(task.priority, 'normal');
+  assert.equal(task.dueAt, null);
+  assert.equal(task.severity, 'none');
   assert.deepEqual(task.claimedPaths, ['README.md', 'docs']);
   assert.equal(fs.existsSync(payload.snapshotPath), true);
   assert.equal(fs.existsSync(payload.workspaceSnapshotPath), true);

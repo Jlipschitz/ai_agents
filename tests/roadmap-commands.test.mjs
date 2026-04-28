@@ -109,6 +109,9 @@ test('migrate-board dry-runs and applies board schema migrations', () => {
   assert.equal(Array.isArray(board.plans), true);
   assert.equal(typeof board.createdAt, 'string');
   assert.equal(board.tasks[0].effort, 'unknown');
+  assert.equal(board.tasks[0].priority, 'normal');
+  assert.equal(board.tasks[0].dueAt, null);
+  assert.equal(board.tasks[0].severity, 'none');
   assert.equal(board.tasks[0].lastOwnerId, 'agent-1');
   assert.equal(board.agents[0].taskId, 'task-old');
   assert.equal(board.agents.filter((agent) => agent?.id === 'agent-1').length, 2);

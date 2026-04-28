@@ -580,6 +580,30 @@ Main files:
 - `scripts/lib/ask-commands.mjs`
 - `tests/ask-commands.test.mjs`
 
+### Task priority and deadlines
+
+Status: implemented in the core lifecycle path with shared command-layer display support.
+
+```bash
+npm run agents -- claim agent-1 task-ui --paths app --priority high --due-at 2026-05-01
+npm run agents:prioritize -- task-ui --priority urgent --severity critical
+npm run agents -- prioritize task-ui --due-at none --dry-run
+```
+
+Current behavior:
+
+- Tasks default to `priority: normal`, `dueAt: null`, and `severity: none`.
+- `claim`, `start`, `plan`, `templates create-task`, and `backlog-import` can set initial metadata.
+- `prioritize` updates existing tasks, supports `--dry-run` and `--json`, writes task docs, journal entries, and audit entries on apply.
+- `status`, `summarize`, `prompt`, `ask`, and task Markdown docs surface the metadata.
+- `pick` scores priority, severity, and approaching or overdue due dates.
+
+Main files:
+
+- `scripts/lib/task-metadata.mjs`
+- `scripts/lib/task-metadata-commands.mjs`
+- `tests/task-metadata.test.mjs`
+
 ### Human-readable changelog
 
 Status: implemented in the command layer.
@@ -1056,7 +1080,7 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Workspace health score.
 - Partial checkout and monorepo support.
-- Task priority, due date, severity, and escalation metadata.
+- Escalation metadata beyond task priority, due date, and severity.
 - Escalation routing.
 - Reusable runbooks.
 - Semantic path grouping.

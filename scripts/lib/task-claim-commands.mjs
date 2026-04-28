@@ -1,5 +1,6 @@
 import { nowIso } from './file-utils.mjs';
 import { evaluateCapacityPolicy, predictClaimConflicts } from './claim-policy.mjs';
+import { applyTaskMetadata, taskMetadataFromOptions } from './task-metadata.mjs';
 
 export function createTaskClaimCommands(context) {
   const {
@@ -67,6 +68,8 @@ export function createTaskClaimCommands(context) {
     const [agentId, taskId] = positionals;
     const claimedPaths = parsePathsOption(options.paths);
     const issueKey = typeof options.issue === 'string' ? slugify(options.issue) : null;
+    const defaultMetadata = taskMetadataFromOptions(options, { includeDefaults: true });
+    const metadataUpdates = taskMetadataFromOptions(options);
 
     if (!agentId || !taskId) {
       throw new Error('Usage: claim <agent> <task-id> --paths <path[,path...]> [--summary <text>] [--force]');
@@ -133,6 +136,7 @@ export function createTaskClaimCommands(context) {
         notes: [],
         rationale: '',
         effort: 'unknown',
+        ...defaultMetadata,
         waitingOn: [],
         summary: typeof options.summary === 'string' ? options.summary : '',
       };
@@ -180,6 +184,7 @@ export function createTaskClaimCommands(context) {
           verificationLog: [],
           rationale: '',
           effort: 'unknown',
+          ...defaultMetadata,
           issueKey,
           waitingOn: [],
           relevantDocs: inferRelevantDocs(claimedPaths, options.summary && typeof options.summary === 'string' ? options.summary : '', []),
@@ -201,6 +206,7 @@ export function createTaskClaimCommands(context) {
         if (typeof options.summary === 'string') {
           task.summary = options.summary;
         }
+        applyTaskMetadata(task, metadataUpdates);
         task.relevantDocs = inferRelevantDocs(task.claimedPaths, task.summary, task.verification);
         task.updatedAt = startedAt;
       }

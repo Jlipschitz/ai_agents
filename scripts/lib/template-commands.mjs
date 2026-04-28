@@ -6,6 +6,7 @@ import { appendAuditLog, auditLogPath } from './audit-log.mjs';
 import { fileTimestamp, nowIso, writeJson } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 import { withStateTransactionSync } from './state-transaction.mjs';
+import { taskMetadataFromArgv } from './task-metadata.mjs';
 import { writePreMutationWorkspaceSnapshot } from './workspace-snapshot-commands.mjs';
 
 const CONFIG_TEMPLATES = {
@@ -111,12 +112,13 @@ function createTaskFromTemplate(templateName, argv) {
   const template = TASK_TEMPLATES[templateName];
   if (!template) throw new Error(`Unknown task template "${templateName}".`);
   const taskId = getFlagValue(argv, '--id', '');
-  if (!taskId) throw new Error('Usage: templates create-task <template> --id <task-id> [--summary <text>] [--paths <path[,path...]>] [--apply]');
+  if (!taskId) throw new Error('Usage: templates create-task <template> --id <task-id> [--summary <text>] [--paths <path[,path...]>] [--priority <level>] [--due-at <date>] [--severity <level>] [--apply]');
   const claimedPaths = getFlagValue(argv, '--paths', '')
     .split(',')
     .map((entry) => normalizePath(entry))
     .filter(Boolean);
   const timestamp = nowIso();
+  const metadata = taskMetadataFromArgv(argv, { getFlagValue, hasFlag, includeDefaults: true });
   return {
     id: taskId,
     status: 'planned',
@@ -130,6 +132,7 @@ function createTaskFromTemplate(templateName, argv) {
     notes: [],
     rationale: `Created from task template "${templateName}".`,
     effort: template.effort,
+    ...metadata,
     waitingOn: [],
     relevantDocs: [],
     docsReviewedAt: null,
@@ -142,7 +145,7 @@ function createTaskFromTemplate(templateName, argv) {
 export function runTemplates(argv, context) {
   const json = hasFlag(argv, '--json');
   const apply = hasFlag(argv, '--apply');
-  const positionals = getPositionals(argv, new Set(['--id', '--summary', '--paths', '--owner']));
+  const positionals = getPositionals(argv, new Set(['--id', '--summary', '--paths', '--owner', '--priority', '--due-at', '--due', '--severity']));
   const [subcommand = 'list', name] = positionals;
 
   if (subcommand === 'list') {

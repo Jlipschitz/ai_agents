@@ -1,5 +1,6 @@
 import { getPositionals, hasFlag } from './args-utils.mjs';
 import { printCommandError } from './error-formatting.mjs';
+import { ensureTaskMetadataDefaults, formatTaskDueAt } from './task-metadata.mjs';
 
 const ACTIVE_STATUSES = new Set(['active', 'blocked', 'review', 'waiting', 'handoff']);
 
@@ -22,7 +23,7 @@ function latestVerificationByCheck(task) {
 }
 
 function normalizeTask(task) {
-  return {
+  const normalized = {
     ...task,
     claimedPaths: array(task?.claimedPaths),
     dependencies: array(task?.dependencies),
@@ -32,6 +33,8 @@ function normalizeTask(task) {
     relevantDocs: array(task?.relevantDocs),
     notes: array(task?.notes),
   };
+  ensureTaskMetadataDefaults(normalized);
+  return normalized;
 }
 
 function dependencyRows(board, task) {
@@ -212,6 +215,9 @@ function renderAgentPrompt({ agent, agentId, dependencies, notes, projectName, r
     `Assigned task: ${taskLabel(task)}`,
     `Task status: ${task.status ?? 'unknown'}`,
     `Owner: ${task.ownerId ?? 'unowned'}`,
+    `Priority: ${task.priority}`,
+    `Due: ${formatTaskDueAt(task.dueAt)}`,
+    `Severity: ${task.severity}`,
     '',
     '## Objective',
     '',

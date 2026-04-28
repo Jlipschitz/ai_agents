@@ -21,6 +21,8 @@ import { withStateTransaction } from './lib/state-transaction.mjs';
 import { createSupportOperationCommands } from './lib/support-operation-commands.mjs';
 import { createTaskCompletionCommands } from './lib/task-completion-commands.mjs';
 import { createTaskLifecycleCommands } from './lib/task-lifecycle-commands.mjs';
+import { createTaskMetadataCommands } from './lib/task-metadata-commands.mjs';
+import { ensureTaskMetadataDefaults, formatTaskDueAt } from './lib/task-metadata.mjs';
 
 const ROOT = process.cwd();
 const COORDINATION_ROOT_OVERRIDE = String(process.env.AGENT_COORDINATION_ROOT ?? '').trim();
@@ -525,6 +527,15 @@ const {
   terminalTaskStatuses: TERMINAL_TASK_STATUSES,
   withMutationLock,
 });
+const { prioritizeCommand } = createTaskMetadataCommands({
+  appendJournalLine,
+  ensureTask,
+  getAgent,
+  getBoard,
+  note,
+  saveBoard,
+  withMutationLock,
+});
 const { appNoteCommand, inboxCommand, messageCommand } = createCommunicationCommands({
   appAgentNotesDoc: APP_AGENT_NOTES_DOC,
   appNoteCategories: APP_NOTE_CATEGORIES,
@@ -896,6 +907,7 @@ function ensureTaskDefaults(task) {
   if (!('effort' in task)) {
     task.effort = 'unknown';
   }
+  ensureTaskMetadataDefaults(task);
   if (!('issueKey' in task)) {
     task.issueKey = null;
   }
@@ -1089,6 +1101,9 @@ function formatTaskDoc(task) {
 - Git branch: ${task.gitBranch ? `\`${task.gitBranch}\`${task.gitUpstream ? ` tracking \`${task.gitUpstream}\`` : ''}` : 'not recorded'}
 - Waiting on: ${task.waitingOn.length ? task.waitingOn.map((entry) => `\`${entry}\``).join(', ') : 'none'}
 - Effort: ${task.effort}
+- Priority: ${task.priority}
+- Due: ${formatTaskDueAt(task.dueAt)}
+- Severity: ${task.severity}
 - Docs reviewed: ${task.docsReviewedAt ? `${task.docsReviewedAt}${task.docsReviewedBy ? ` by \`${task.docsReviewedBy}\`` : ''}` : 'not yet'}
 - Rationale: ${task.rationale || 'No rationale recorded.'}
 - Created: ${task.createdAt}
@@ -1865,7 +1880,8 @@ Commands:
   watch-stop
   watch-status
   plan <goal> [--apply] [--git-changes]
-  claim <agent> <task-id> --paths <path[,path...]> [--summary <text>] [--force]
+  claim <agent> <task-id> --paths <path[,path...]> [--summary <text>] [--priority <level>] [--due-at <date>] [--severity <level>] [--force]
+  prioritize <task-id> [--priority <level>] [--due-at <date|none>] [--severity <level>] [--by <agent>]
   pick <agent>
   review-docs <agent> <task-id> [--docs <path[,path...]>] [--note <text>]
   progress <agent> <task-id> <note>
@@ -1905,6 +1921,7 @@ Examples:
   ${cliRunLabel(' -- plan "Add task improvements and update verification coverage"')}
   ${cliRunLabel(' -- plan "Polish current branch work" --git-changes')}
   ${cliRunLabel(` -- claim ${agentOne} task-shell --paths ${exampleClaimPaths} --summary "Primary shell polish"`)}
+  ${cliRunLabel(' -- prioritize task-shell --priority high --due-at 2026-05-01 --severity medium')}
   ${cliRunLabel(` -- pick ${agentThree}`)}
   ${cliRunLabel(` -- review-docs ${agentOne} task-shell --note "Checked app notes and relevant workflow docs."`)}
   ${cliRunLabel(` -- wait ${agentTwo} task-api --on task-shell --reason "Shared button API is in flux."`)}
@@ -2009,6 +2026,9 @@ async function main() {
       return;
     case 'claim':
       await claimCommand(positionals, options);
+      return;
+    case 'prioritize':
+      await prioritizeCommand(positionals, options);
       return;
     case 'pick':
       pickCommand(positionals);
