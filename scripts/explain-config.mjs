@@ -75,6 +75,7 @@ function explainConfig(config, configPath, root) {
   const git = config.git || {};
   const capacity = config.capacity || {};
   const conflictPrediction = config.conflictPrediction || {};
+  const ownership = config.ownership || {};
   const paths = config.paths || {};
   const verification = config.verification || {};
   const pathClassification = config.pathClassification || {};
@@ -130,6 +131,10 @@ function explainConfig(config, configPath, root) {
     conflictPrediction: {
       enabled: conflictPrediction.enabled !== false,
       blockOnGitOverlap: conflictPrediction.blockOnGitOverlap !== false,
+    },
+    ownership: {
+      codeownersFiles: Array.isArray(ownership.codeownersFiles) ? ownership.codeownersFiles : ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS'],
+      broadPathPatterns: Array.isArray(ownership.broadPathPatterns) ? ownership.broadPathPatterns : ['app', 'src', 'components', 'features', 'lib', 'api', 'server', 'packages'],
     },
     paths: {
       sharedRisk: paths.sharedRisk || [],
@@ -229,6 +234,8 @@ function printText(report) {
   console.log('Conflict prediction:');
   console.log(`- enabled: ${report.conflictPrediction.enabled}`);
   console.log(`- blockOnGitOverlap: ${report.conflictPrediction.blockOnGitOverlap}`);
+  printList('CODEOWNERS files:', report.ownership.codeownersFiles);
+  printList('Broad claim paths:', report.ownership.broadPathPatterns);
   console.log('');
   printList('Shared-risk paths:', report.paths.sharedRisk);
   printList('Visual-impact paths:', report.paths.visualImpact);

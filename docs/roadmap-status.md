@@ -15,7 +15,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 Next recommended work:
 
 1. Add broader command snapshot tests and fixture repos.
-2. Add CODEOWNERS ownership reviews and test-impact selection.
+2. Add deeper GitHub/PR integration and merge queue awareness.
 
 ---
 
@@ -78,8 +78,8 @@ Next recommended work:
 - [ ] GitHub integration
 - [ ] State compaction
 - [~] Agent SLA warnings — stale active work appears in `summarize`.
-- [ ] Ownership reviews
-- [ ] Test impact selection
+- [~] Ownership reviews — `ownership-review` flags broad claims and CODEOWNERS boundary crossings; periodic automation remains open.
+- [~] Test impact selection — `test-impact` maps paths to configured checks; deeper dependency-aware selection remains open.
 - [ ] Repo bootstrap profiles
 - [~] Portable npm package — package shape and bin exist; publishing remains open.
 - [ ] TUI dashboard
@@ -95,7 +95,7 @@ Next recommended work:
 - [ ] Concurrency stress tests
 - [ ] Shell completions
 - [~] Policy enforcement mode — partially covered by Git branch policy and finish gates.
-- [ ] CODEOWNERS integration
+- [~] CODEOWNERS integration — `ownership-review` reads CODEOWNERS-style files; claim-time enforcement remains open.
 - [ ] Approval ledger
 - [x] Release artifact bundle
 - [~] Command aliases - built-in short aliases exist; repo-defined aliases remain open.

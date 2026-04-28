@@ -174,6 +174,11 @@ export function validateAgentConfig(config, options = {}) {
     if ('blockOnGitOverlap' in config.conflictPrediction) validateBoolean(config.conflictPrediction.blockOnGitOverlap, 'conflictPrediction.blockOnGitOverlap', errors);
   }
 
+  if ('ownership' in config && validateObject(config.ownership, 'ownership', errors)) {
+    if ('codeownersFiles' in config.ownership) validateStringArray(config.ownership.codeownersFiles, 'ownership.codeownersFiles', errors);
+    if ('broadPathPatterns' in config.ownership) validateStringArray(config.ownership.broadPathPatterns, 'ownership.broadPathPatterns', errors);
+  }
+
   if ('paths' in config) {
     validateKnownStringArrays(config.paths, 'paths', ['sharedRisk', 'visualSuite', 'visualSuiteDefault', 'visualImpact', 'visualImpactFiles'], errors);
   }

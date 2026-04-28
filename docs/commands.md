@@ -318,6 +318,28 @@ npm run agents -- ownership-map --json
 
 The command exits non-zero when active path overlaps are detected.
 
+### `ownership-review`
+
+Reviews active claims for broad ownership and CODEOWNERS boundary crossings.
+
+```bash
+npm run agents:ownership:review
+npm run agents -- ownership-review --json
+```
+
+The command reads `.github/CODEOWNERS`, `CODEOWNERS`, or `docs/CODEOWNERS` by default. Configure alternate files or broad-claim paths with `ownership.codeownersFiles` and `ownership.broadPathPatterns`.
+
+### `test-impact`
+
+Selects the smallest configured verification set for changed paths.
+
+```bash
+npm run agents:test-impact -- --paths app/page.tsx,tests/page.test.ts
+npm run agents -- test-impact --json
+```
+
+Selection uses `checks.<name>.requiredForPaths`, visual-impact config, and the current Git diff when `--paths` is omitted.
+
 ### `branches`
 
 Shows local Git branches, active task branch ownership, merged/gone/stale status, and dry-run cleanup candidates.

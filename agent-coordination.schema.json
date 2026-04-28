@@ -56,6 +56,14 @@
         "blockOnGitOverlap": { "type": "boolean" }
       }
     },
+    "ownership": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "codeownersFiles": { "$ref": "#/$defs/stringArray" },
+        "broadPathPatterns": { "$ref": "#/$defs/stringArray" }
+      }
+    },
     "paths": {
       "type": "object",
       "additionalProperties": true,

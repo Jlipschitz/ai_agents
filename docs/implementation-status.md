@@ -368,6 +368,31 @@ Current behavior:
 - `ownership-map` reports active task ownership by agent and exits non-zero when claimed paths overlap.
 - `graph` emits a Mermaid dependency graph or JSON nodes/edges.
 
+### Ownership reviews and test-impact selection
+
+Status: partially implemented in the command layer.
+
+```bash
+npm run agents:ownership:review
+npm run agents -- ownership-review --json
+npm run agents:test-impact -- --paths src/file.js
+npm run agents -- test-impact --json
+```
+
+Current behavior:
+
+- `ownership-review` reads CODEOWNERS-style files from configured ownership paths.
+- Flags active tasks that claim broad paths such as `src`, `app`, or `lib`.
+- Flags tasks whose claimed paths cross multiple CODEOWNERS owner groups.
+- `test-impact` maps explicit `--paths` or the current Git diff to configured `checks.<name>.requiredForPaths`.
+- Adds visual required checks for configured visual-impact paths.
+- Falls back to `npm test` when paths changed but no more specific configured check matches.
+
+Main files:
+
+- `scripts/lib/impact-commands.mjs`
+- `tests/command-layer.test.mjs`
+
 ### Branch awareness and stale branch cleanup
 
 Status: partially implemented in the command layer and claim path.

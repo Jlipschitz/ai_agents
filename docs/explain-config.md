@@ -42,6 +42,7 @@ node ./scripts/explain-config.mjs --json
 - Git claim policy
 - capacity policy
 - conflict prediction policy
+- ownership review policy
 - shared-risk paths
 - visual-impact paths
 - visual-suite paths
@@ -130,6 +131,7 @@ Returns a JSON object with these top-level fields:
   "git": {},
   "capacity": {},
   "conflictPrediction": {},
+  "ownership": {},
   "paths": {},
   "verification": {},
   "pathClassification": {},

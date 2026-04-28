@@ -25,6 +25,10 @@
     "enabled": true,
     "blockOnGitOverlap": true
   },
+  "ownership": {
+    "codeownersFiles": [".github/CODEOWNERS", "CODEOWNERS", "docs/CODEOWNERS"],
+    "broadPathPatterns": ["app", "src", "components", "features", "lib", "api", "server", "packages"]
+  },
   "paths": {
     "sharedRisk": ["scripts", "package.json", "agent-coordination.config.json"],
     "visualSuite": [],

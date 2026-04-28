@@ -11,6 +11,7 @@ import { runInspectBoard, runRepairBoard, runRollbackState } from './lib/board-m
 import { appendUniqueLines, ensureFile, fileTimestamp, hoursSince, nowIso, readJsonSafe, writeJson } from './lib/file-utils.mjs';
 import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
 import { hasHelpFlag, runCommandHelp } from './lib/help-command.mjs';
+import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
@@ -37,6 +38,8 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'migrate-config',
   'policy-packs',
   'branches',
+  'ownership-review',
+  'test-impact',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -51,6 +54,7 @@ const CURRENT_CONFIG_VERSION = 1;
 const DEFAULT_ARTIFACT_POLICY = { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] };
 const DEFAULT_CAPACITY_POLICY = { maxActiveTasksPerAgent: 1, maxBlockedTasksPerAgent: 1, preferredDomainsByAgent: {}, enforcePreferredDomains: false };
 const DEFAULT_CONFLICT_PREDICTION = { enabled: true, blockOnGitOverlap: true };
+const DEFAULT_OWNERSHIP_POLICY = { codeownersFiles: ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS'], broadPathPatterns: ['app', 'src', 'components', 'features', 'lib', 'api', 'server', 'packages'] };
 const POLICY_PACKS = {
   'docs-light': {
     description: 'Lightweight docs-focused coordination defaults.',
@@ -154,6 +158,18 @@ function getBranchCommandContext() {
   };
 }
 
+function getImpactCommandContext() {
+  const { config } = loadConfig();
+  const { packageJson } = loadPackageJson();
+  return {
+    root: ROOT,
+    config,
+    packageJson,
+    board: readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] }),
+    activeStatuses: ACTIVE_STATUSES,
+  };
+}
+
 function createStarterConfig(configPath) {
   writeJson(configPath, {
     configVersion: 1,
@@ -163,6 +179,7 @@ function createStarterConfig(configPath) {
     git: DEFAULT_GIT_POLICY,
     capacity: DEFAULT_CAPACITY_POLICY,
     conflictPrediction: DEFAULT_CONFLICT_PREDICTION,
+    ownership: DEFAULT_OWNERSHIP_POLICY,
     paths: { sharedRisk: ['scripts', 'package.json', 'agent-coordination.config.json'], visualSuite: [], visualSuiteDefault: [], visualImpact: [], visualImpactFiles: [] },
     verification: { visualRequiredChecks: [], visualSuiteUpdateChecks: [] },
     artifacts: { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] },
@@ -216,6 +233,8 @@ function expectedPackageScripts() {
       'agents:state:rollback': 'ai-agents rollback-state',
       'agents:run-check': 'ai-agents run-check',
       'agents:branches': 'ai-agents branches',
+      'agents:ownership:review': 'ai-agents ownership-review',
+      'agents:test-impact': 'ai-agents test-impact',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -255,6 +274,8 @@ function expectedPackageScripts() {
     'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
     'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
     'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
+    'agents:ownership:review': 'node ./scripts/agent-coordination.mjs ownership-review',
+    'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -285,6 +306,8 @@ function expectedPackageScripts() {
     'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
     'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
     'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
+    'agents2:ownership:review': 'node ./scripts/agent-coordination-two.mjs ownership-review',
+    'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -592,6 +615,7 @@ function buildMigratedConfig(config) {
     git: DEFAULT_GIT_POLICY,
     capacity: DEFAULT_CAPACITY_POLICY,
     conflictPrediction: DEFAULT_CONFLICT_PREDICTION,
+    ownership: DEFAULT_OWNERSHIP_POLICY,
     artifacts: DEFAULT_ARTIFACT_POLICY,
     checks: {},
   });
@@ -1145,5 +1169,7 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'migrate-config') status = runMigrateConfig(commandArgs);
   else if (commandName === 'policy-packs') status = runPolicyPacks(commandArgs);
   else if (commandName === 'branches') status = runBranchStatus(commandArgs, getBranchCommandContext());
+  else if (commandName === 'ownership-review') status = runOwnershipReview(commandArgs, getImpactCommandContext());
+  else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());
   process.exit(status);
 }

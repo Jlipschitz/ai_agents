@@ -54,6 +54,8 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:state:rollback': 'node ./scripts/agent-coordination.mjs rollback-state',
   'agents:run-check': 'node ./scripts/agent-coordination.mjs run-check',
   'agents:branches': 'node ./scripts/agent-coordination.mjs branches',
+  'agents:ownership:review': 'node ./scripts/agent-coordination.mjs ownership-review',
+  'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
   'agents2': 'node ./scripts/agent-coordination-two.mjs',
   'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
   'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -84,6 +86,8 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:state:rollback': 'node ./scripts/agent-coordination-two.mjs rollback-state',
   'agents2:run-check': 'node ./scripts/agent-coordination-two.mjs run-check',
   'agents2:branches': 'node ./scripts/agent-coordination-two.mjs branches',
+  'agents2:ownership:review': 'node ./scripts/agent-coordination-two.mjs ownership-review',
+  'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
   'validate:agents-config': 'node ./scripts/validate-config.mjs',
 };
 

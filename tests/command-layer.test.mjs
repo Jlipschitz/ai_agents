@@ -291,6 +291,53 @@ test('claim enforces preferred domains when configured', () => {
   assert.match(result.stderr, /prefers domain/);
 });
 
+test('ownership-review reports broad claims and CODEOWNERS boundary crossings', () => {
+  const root = makeWorkspace();
+  fs.mkdirSync(path.join(root, '.github'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.github', 'CODEOWNERS'), [
+    '/app/ @frontend',
+    '/api/ @backend',
+    '',
+  ].join('\n'));
+  writeBoard(root, {
+    projectName: 'Ownership Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [
+      { id: 'task-broad', status: 'active', ownerId: 'agent-1', title: 'Broad task', claimedPaths: ['src'] },
+      { id: 'task-cross', status: 'active', ownerId: 'agent-2', title: 'Cross task', claimedPaths: ['app/page.js', 'api/route.js'] },
+    ],
+  });
+
+  const result = run(root, ['ownership-review', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(payload.codeownersPath, '.github/CODEOWNERS');
+  assert.ok(payload.findings.some((entry) => entry.includes('task-broad')));
+  assert.ok(payload.findings.some((entry) => entry.includes('task-cross')));
+});
+
+test('test-impact selects configured checks from paths', () => {
+  const root = makeWorkspace();
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.checks = {
+    unit: { command: 'npm run unit', requiredForPaths: ['src', 'lib'] },
+    api: { command: 'npm run api:test', requiredForPaths: ['api'] },
+  };
+  config.paths.visualImpact = ['app'];
+  config.verification.visualRequiredChecks = ['visual:test'];
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const api = run(root, ['test-impact', '--paths', 'api/route.js', '--json']);
+  const visual = run(root, ['test-impact', '--paths', 'app/page.js', '--json']);
+
+  assert.equal(api.status, 0, api.stderr);
+  assert.deepEqual(JSON.parse(api.stdout).checks.map((check) => check.name), ['api']);
+  assert.equal(visual.status, 0, visual.stderr);
+  assert.ok(JSON.parse(visual.stdout).checks.some((check) => check.name === 'visual:test'));
+});
+
 test('validate --json returns machine-readable config validation', () => {
   const root = makeWorkspace();
   const result = run(root, ['validate', '--json']);
