@@ -10,7 +10,7 @@
   "scripts": {
     "ai-agents": "node ./bin/ai-agents.mjs",
     "bootstrap": "node ./scripts/bootstrap.mjs",
-    "check": "node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/explain-config.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/planner-sizing.mjs && node --check ./scripts/validate-config.mjs",
+    "check": "node ./scripts/check-syntax.mjs",
     "validate:agents-config": "node ./scripts/validate-config.mjs",
     "lint": "npm run check",
     "test": "npm run check && node --test",

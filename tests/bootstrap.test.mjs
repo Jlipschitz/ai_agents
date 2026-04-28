@@ -26,6 +26,9 @@ test('bootstrap creates package scripts and gitignore entries', () => {
   const gitignore = fs.readFileSync(path.join(target, '.gitignore'), 'utf8');
 
   assert.ok(operations.some((entry) => entry.includes('copy bin/ai-agents.mjs')));
+  assert.ok(operations.some((entry) => entry.includes('copy scripts/check-syntax.mjs')));
+  assert.ok(operations.some((entry) => entry.includes('copy scripts/lib/file-utils.mjs')));
+  assert.equal(packageJson.scripts.check, 'node ./scripts/check-syntax.mjs');
   assert.equal(packageJson.scripts['agents:doctor'], 'node ./scripts/agent-coordination.mjs doctor');
   assert.equal(packageJson.scripts['validate:agents-config'], 'node ./scripts/validate-config.mjs');
   assert.match(gitignore, /\/coordination\//);

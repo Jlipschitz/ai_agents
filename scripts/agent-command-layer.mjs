@@ -43,7 +43,7 @@ const COMMAND_ALIASES = new Map([
 ]);
 const DEFAULT_STALE_TASK_HOURS = 6;
 const DEFAULT_RECENT_CONTEXT_LINES = 8;
-const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/explain-config.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/planner-sizing.mjs && node --check ./scripts/validate-config.mjs';
+const CHECK_COMMAND = 'node ./scripts/check-syntax.mjs';
 const CURRENT_CONFIG_VERSION = 1;
 const DEFAULT_ARTIFACT_POLICY = { roots: ['artifacts'], keepDays: 14, keepFailedDays: 45, maxMb: 500, protectPatterns: [] };
 const POLICY_PACKS = {
@@ -159,8 +159,11 @@ function createStarterConfig(configPath) {
 
 function hasLocalCoordinatorFiles() {
   return fs.existsSync(path.join(ROOT, 'bin', 'ai-agents.mjs'))
+    && fs.existsSync(path.join(ROOT, 'scripts', 'agent-command-layer.mjs'))
     && fs.existsSync(path.join(ROOT, 'scripts', 'agent-coordination.mjs'))
-    && fs.existsSync(path.join(ROOT, 'scripts', 'agent-coordination-two.mjs'));
+    && fs.existsSync(path.join(ROOT, 'scripts', 'agent-coordination-two.mjs'))
+    && fs.existsSync(path.join(ROOT, 'scripts', 'check-syntax.mjs'))
+    && fs.existsSync(path.join(ROOT, 'scripts', 'lib'));
 }
 
 function expectedPackageScripts() {

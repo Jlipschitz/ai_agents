@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 
-const CHECK_COMMAND = 'node --check ./bin/ai-agents.mjs && node --check ./scripts/agent-command-layer.mjs && node --check ./scripts/agent-coordination-core.mjs && node --check ./scripts/agent-coordination.mjs && node --check ./scripts/agent-coordination-two.mjs && node --check ./scripts/agent-watch-loop.mjs && node --check ./scripts/bootstrap.mjs && node --check ./scripts/explain-config.mjs && node --check ./scripts/lock-runtime.mjs && node --check ./scripts/planner-sizing.mjs && node --check ./scripts/validate-config.mjs';
+const CHECK_COMMAND = 'node ./scripts/check-syntax.mjs';
 
 const DEFAULT_GITIGNORE_ENTRIES = [
   '',
@@ -95,10 +95,34 @@ const FILES_TO_COPY = [
   'scripts/agent-watch-loop.ps1',
   'scripts/agent-watch-loop-two.ps1',
   'scripts/bootstrap.mjs',
+  'scripts/check-syntax.mjs',
   'scripts/explain-config.mjs',
   'scripts/lock-runtime.mjs',
   'scripts/planner-sizing.mjs',
   'scripts/validate-config.mjs',
+  'scripts/lib/args-utils.mjs',
+  'scripts/lib/artifact-commands.mjs',
+  'scripts/lib/board-maintenance.mjs',
+  'scripts/lib/board-validation.mjs',
+  'scripts/lib/communication-commands.mjs',
+  'scripts/lib/core-path-analysis.mjs',
+  'scripts/lib/doctor-command.mjs',
+  'scripts/lib/file-utils.mjs',
+  'scripts/lib/git-utils.mjs',
+  'scripts/lib/heartbeat-commands.mjs',
+  'scripts/lib/heartbeat-watch-commands.mjs',
+  'scripts/lib/package-json-utils.mjs',
+  'scripts/lib/path-utils.mjs',
+  'scripts/lib/planner-commands.mjs',
+  'scripts/lib/recovery-commands.mjs',
+  'scripts/lib/runtime-diagnostics.mjs',
+  'scripts/lib/status-commands.mjs',
+  'scripts/lib/support-operation-commands.mjs',
+  'scripts/lib/task-claim-commands.mjs',
+  'scripts/lib/task-completion-commands.mjs',
+  'scripts/lib/task-flow-commands.mjs',
+  'scripts/lib/task-lifecycle-commands.mjs',
+  'scripts/lib/watch-commands.mjs',
   'agent-coordination.schema.json',
   'agent-coordination.config.json',
   'docs/agent-coordination-portability.md',

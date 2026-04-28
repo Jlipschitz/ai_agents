@@ -46,15 +46,18 @@ test('doctor --fix uses copied coordinator scripts when present', () => {
   const root = makeWorkspace();
   fs.mkdirSync(path.join(root, 'bin'), { recursive: true });
   fs.mkdirSync(path.join(root, 'scripts'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'scripts', 'lib'), { recursive: true });
   fs.writeFileSync(path.join(root, 'bin', 'ai-agents.mjs'), '');
+  fs.writeFileSync(path.join(root, 'scripts', 'agent-command-layer.mjs'), '');
   fs.writeFileSync(path.join(root, 'scripts', 'agent-coordination.mjs'), '');
   fs.writeFileSync(path.join(root, 'scripts', 'agent-coordination-two.mjs'), '');
+  fs.writeFileSync(path.join(root, 'scripts', 'check-syntax.mjs'), '');
 
   const result = run(root, ['doctor', '--fix']);
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
   assert.equal(result.status, 0, result.stderr);
-  assert.ok(packageJson.scripts.check.includes('node --check ./bin/ai-agents.mjs'));
+  assert.equal(packageJson.scripts.check, 'node ./scripts/check-syntax.mjs');
   assert.equal(packageJson.scripts['agents:doctor'], 'node ./scripts/agent-coordination.mjs doctor');
   assert.equal(packageJson.scripts['agents2:doctor:json'], 'node ./scripts/agent-coordination-two.mjs doctor --json');
 });
