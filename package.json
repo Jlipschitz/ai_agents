@@ -1,0 +1,35 @@
+{
+  "name": "ai_agents",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "agents": "node ./scripts/agent-coordination.mjs",
+    "agents:init": "node ./scripts/agent-coordination.mjs init",
+    "agents:plan": "node ./scripts/agent-coordination.mjs plan",
+    "agents:status": "node ./scripts/agent-coordination.mjs status",
+    "agents:validate": "node ./scripts/agent-coordination.mjs validate",
+    "agents:doctor": "node ./scripts/agent-coordination.mjs doctor",
+    "agents:heartbeat:start": "node ./scripts/agent-coordination.mjs heartbeat-start",
+    "agents:heartbeat:stop": "node ./scripts/agent-coordination.mjs heartbeat-stop",
+    "agents:heartbeat:status": "node ./scripts/agent-coordination.mjs heartbeat-status",
+    "agents:watch:start": "node ./scripts/agent-coordination.mjs watch-start",
+    "agents:watch:status": "node ./scripts/agent-coordination.mjs watch-status",
+    "agents:watch:stop": "node ./scripts/agent-coordination.mjs watch-stop",
+    "agents2": "node ./scripts/agent-coordination-two.mjs",
+    "agents2:init": "node ./scripts/agent-coordination-two.mjs init",
+    "agents2:plan": "node ./scripts/agent-coordination-two.mjs plan",
+    "agents2:status": "node ./scripts/agent-coordination-two.mjs status",
+    "agents2:validate": "node ./scripts/agent-coordination-two.mjs validate",
+    "agents2:doctor": "node ./scripts/agent-coordination-two.mjs doctor",
+    "agents2:heartbeat:start": "node ./scripts/agent-coordination-two.mjs heartbeat-start",
+    "agents2:heartbeat:stop": "node ./scripts/agent-coordination-two.mjs heartbeat-stop",
+    "agents2:heartbeat:status": "node ./scripts/agent-coordination-two.mjs heartbeat-status",
+    "agents2:watch:start": "node ./scripts/agent-coordination-two.mjs watch-start",
+    "agents2:watch:status": "node ./scripts/agent-coordination-two.mjs watch-status",
+    "agents2:watch:stop": "node ./scripts/agent-coordination-two.mjs watch-stop"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

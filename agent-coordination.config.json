@@ -1,0 +1,81 @@
+{
+  "projectName": "AI Agents",
+  "agentIds": ["agent-1", "agent-2", "agent-3", "agent-4"],
+  "docs": {
+    "roots": ["docs"],
+    "appNotes": "docs/agent-coordination-portability.md",
+    "visualWorkflow": "",
+    "apiPrefixes": ["docs/api"]
+  },
+  "paths": {
+    "sharedRisk": ["scripts", "package.json", "agent-coordination.config.json"],
+    "visualSuite": [],
+    "visualSuiteDefault": [],
+    "visualImpact": [],
+    "visualImpactFiles": []
+  },
+  "verification": {
+    "visualRequiredChecks": [],
+    "visualSuiteUpdateChecks": []
+  },
+  "notes": {
+    "categories": ["error", "inconsistency", "change", "gotcha", "decision", "verification", "setup"],
+    "sectionHeading": "Agent-Maintained Notes"
+  },
+  "pathClassification": {
+    "productPrefixes": ["app", "src", "components", "features", "packages"],
+    "dataPrefixes": ["api", "db", "database", "hooks", "lib", "migrations", "server", "store", "types"],
+    "verifyPrefixes": ["tests", "test", "__tests__", "spec"],
+    "docsPrefixes": ["docs", "scripts"],
+    "docsFiles": ["README.md", "agent-coordination.config.json", "package.json"]
+  },
+  "planning": {
+    "defaultDomains": ["app"],
+    "productFallbackPaths": ["app", "src", "components", "features"],
+    "dataFallbackPaths": ["api", "lib", "server", "types"],
+    "verifyFallbackPaths": ["tests"],
+    "docsFallbackPaths": ["README.md", "docs"],
+    "agentSizing": {
+      "minAgents": 1,
+      "maxAgents": 4,
+      "mediumComplexityScore": 10,
+      "largeComplexityScore": 16,
+      "productKeywords": ["app", "ui", "screen", "page", "view", "component", "layout", "modal", "button", "nav", "mobile", "desktop", "polish", "feature"],
+      "dataKeywords": ["api", "backend", "server", "database", "db", "schema", "migration", "auth", "state", "store", "query", "cache", "sync", "integration"],
+      "verifyKeywords": ["test", "tests", "verify", "verification", "snapshot", "playwright", "coverage", "qa"],
+      "docsKeywords": ["doc", "docs", "documentation", "readme", "notes", "guide", "roadmap", "changelog"]
+    }
+  },
+  "domainRules": [
+    {
+      "name": "app",
+      "keywords": ["app", "ui", "screen", "page", "component", "frontend", "feature"],
+      "scopes": {
+        "product": ["app", "src", "components", "features", "packages"],
+        "data": ["lib", "hooks", "store", "types"],
+        "verify": ["tests"],
+        "docs": ["README.md", "docs"]
+      }
+    },
+    {
+      "name": "backend",
+      "keywords": ["api", "server", "backend", "database", "db", "schema", "migration", "auth"],
+      "scopes": {
+        "product": ["app", "src"],
+        "data": ["api", "server", "lib", "db", "database", "migrations", "types"],
+        "verify": ["tests"],
+        "docs": ["README.md", "docs"]
+      }
+    },
+    {
+      "name": "docs",
+      "keywords": ["doc", "docs", "documentation", "readme", "notes", "guide"],
+      "scopes": {
+        "product": [],
+        "data": [],
+        "verify": [],
+        "docs": ["README.md", "docs"]
+      }
+    }
+  ]
+}
