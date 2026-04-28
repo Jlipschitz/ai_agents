@@ -40,6 +40,7 @@ import { runRiskScore } from './lib/risk-score-commands.mjs';
 import { runReviewQueue } from './lib/review-queue-commands.mjs';
 import { runRunbooks } from './lib/runbook-commands.mjs';
 import { runSecretsScan } from './lib/secrets-scan-commands.mjs';
+import { buildReleaseSigningPlan, runReleaseSign } from './lib/release-signing-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { runCompactState } from './lib/state-compaction-commands.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
@@ -71,6 +72,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'ownership-map',
   'pr-summary',
   'release-bundle',
+  'release-sign',
   'migrate-config',
   'policy-packs',
   'policy-check',
@@ -358,6 +360,7 @@ function expectedPackageScripts() {
       'agents:watch:diagnose': 'ai-agents watch-diagnose',
       'agents:runtime:cleanup': 'ai-agents cleanup-runtime',
       'agents:release:check': 'ai-agents release-check',
+      'agents:release:sign': 'ai-agents release-sign',
       'agents:board:inspect': 'ai-agents inspect-board',
       'agents:board:repair': 'ai-agents repair-board',
       'agents:board:migrate': 'ai-agents migrate-board',
@@ -433,6 +436,7 @@ function expectedPackageScripts() {
     'agents:watch:diagnose': 'node ./scripts/agent-coordination.mjs watch-diagnose',
     'agents:runtime:cleanup': 'node ./scripts/agent-coordination.mjs cleanup-runtime',
     'agents:release:check': 'node ./scripts/agent-coordination.mjs release-check',
+    'agents:release:sign': 'node ./scripts/agent-coordination.mjs release-sign',
     'agents:board:inspect': 'node ./scripts/agent-coordination.mjs inspect-board',
     'agents:board:repair': 'node ./scripts/agent-coordination.mjs repair-board',
     'agents:board:migrate': 'node ./scripts/agent-coordination.mjs migrate-board',
@@ -496,6 +500,7 @@ function expectedPackageScripts() {
     'agents2:watch:diagnose': 'node ./scripts/agent-coordination-two.mjs watch-diagnose',
     'agents2:runtime:cleanup': 'node ./scripts/agent-coordination-two.mjs cleanup-runtime',
     'agents2:release:check': 'node ./scripts/agent-coordination-two.mjs release-check',
+    'agents2:release:sign': 'node ./scripts/agent-coordination-two.mjs release-sign',
     'agents2:board:inspect': 'node ./scripts/agent-coordination-two.mjs inspect-board',
     'agents2:board:repair': 'node ./scripts/agent-coordination-two.mjs repair-board',
     'agents2:board:migrate': 'node ./scripts/agent-coordination-two.mjs migrate-board',
@@ -1138,6 +1143,9 @@ function runPrSummary(argv) {
 function runReleaseBundle(argv) {
   const json = hasFlag(argv, '--json');
   const apply = hasFlag(argv, '--apply');
+  const sign = hasFlag(argv, '--sign');
+  const privateKeyPath = getFlagValue(argv, '--private-key', '');
+  if (sign && !privateKeyPath) return printCommandError('release-bundle --sign requires --private-key <path>.', { json });
   const outputRoot = resolveRepoPath(getFlagValue(argv, '--out-dir', ''), path.join('artifacts', 'releases', fileTimestamp()));
   const prSummary = buildPrSummary(argv);
   const releaseCheck = buildReleaseCheckReport(argv);
@@ -1148,17 +1156,31 @@ function runReleaseBundle(argv) {
     { name: 'release-check.json', path: path.join(outputRoot, 'release-check.json'), content: `${JSON.stringify(releaseCheck, null, 2)}\n` },
     { name: 'artifacts.json', path: path.join(outputRoot, 'artifacts.json'), content: `${JSON.stringify({ items: artifactItems }, null, 2)}\n` },
   ];
+  let signingPlan = null;
   if (apply) {
     withStateTransactionSync([outputRoot], () => {
       fs.mkdirSync(outputRoot, { recursive: true });
       for (const file of files) fs.writeFileSync(file.path, file.content);
+      if (sign) {
+        signingPlan = buildReleaseSigningPlan(outputRoot, { privateKeyPem: fs.readFileSync(resolveRepoPath(privateKeyPath, privateKeyPath), 'utf8') });
+        for (const file of signingPlan.files) fs.writeFileSync(file.path, file.content);
+      }
     });
   }
-  const result = { ok: releaseCheck.ok, applied: apply, outputRoot, files: files.map((file) => ({ name: file.name, path: file.path })), releaseCheck };
+  const signing = sign
+    ? {
+        requested: true,
+        applied: apply,
+        files: signingPlan ? signingPlan.files.map((file) => ({ name: file.name, path: file.path })) : [],
+        signature: signingPlan?.signature ? { algorithm: signingPlan.signature.algorithm } : null,
+      }
+    : null;
+  const result = { ok: releaseCheck.ok, applied: apply, outputRoot, files: files.map((file) => ({ name: file.name, path: file.path })), releaseCheck, signing };
   if (json) console.log(JSON.stringify(result, null, 2));
   else {
     console.log(apply ? `Release bundle written to ${normalizePath(outputRoot) || outputRoot}.` : `Release bundle dry run for ${normalizePath(outputRoot) || outputRoot}.`);
     console.log(files.map((file) => `- ${normalizePath(file.path) || file.path}`).join('\n'));
+    if (sign) console.log(apply ? '- signed release manifest written' : '- signing requested');
   }
   return releaseCheck.ok ? 0 : 1;
 }
@@ -1514,6 +1536,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'ownership-map') status = runOwnershipMap(commandArgs);
   else if (commandName === 'pr-summary') status = runPrSummary(commandArgs);
   else if (commandName === 'release-bundle') status = runReleaseBundle(commandArgs);
+  else if (commandName === 'release-sign') status = runReleaseSign(commandArgs, getTemplateCommandContext());
   else if (commandName === 'migrate-config') status = runMigrateConfig(commandArgs);
   else if (commandName === 'policy-packs') status = runPolicyPacks(commandArgs);
   else if (commandName === 'policy-check') status = runPolicyCheck(commandArgs, getImpactCommandContext());

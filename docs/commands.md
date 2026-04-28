@@ -237,10 +237,24 @@ Creates a release handoff bundle containing PR summary, board summary, release-c
 ```bash
 npm run agents -- release-bundle task-id
 npm run agents -- release-bundle task-id --apply
+npm run agents -- release-bundle task-id --sign --private-key release-private.pem --apply
 npm run agents -- release-bundle task-id --out-dir artifacts/releases/manual --apply --json
 ```
 
 By default this is a dry run. With `--apply`, files are written under `artifacts/releases/<timestamp>/` unless `--out-dir` is provided.
+Pass `--sign --private-key <path>` to add `checksums.sha256` and `checksums.sha256.sig` to the bundle.
+
+### `release-sign`
+
+Creates or verifies release checksum manifests and optional signatures.
+
+```bash
+npm run agents:release:sign -- --dir artifacts/releases/manual --private-key release-private.pem --apply
+npm run agents -- release-sign --dir artifacts/releases/manual --verify --public-key release-public.pem
+npm run agents -- release-sign --dir artifacts/releases/manual --json
+```
+
+The command is a dry run unless `--apply` is passed. Signing writes `checksums.sha256` for every file in the release directory except the manifest and signature file. When a private key is provided, it also writes `checksums.sha256.sig`. Verification checks hashes, rejects missing or added unsigned files, and verifies the signature when `--public-key` is provided.
 
 ### `changelog`
 

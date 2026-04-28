@@ -15,8 +15,8 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 Next recommended work:
 
 1. Add lightweight dashboard surfaces for repo state.
-2. Add signed release verification.
-3. Continue normalizing older command-specific diagnostics.
+2. Continue normalizing older command-specific diagnostics.
+3. Expand package publishing documentation and automation.
 
 ---
 
@@ -102,7 +102,7 @@ Next recommended work:
 - [~] Command aliases - built-in short aliases exist; repo-defined aliases remain open.
 - [~] Natural-language query — `ask` answers common deterministic board questions; open-ended model-backed querying remains open.
 - [ ] Local web dashboard
-- [ ] Signed releases
+- [x] Signed releases
 - [x] Self-update safety
 
 ## Phase 6: Advanced Coordination and Scaling
@@ -242,6 +242,7 @@ Next recommended work:
 - `scripts/lib/prompt-commands.mjs`
 - `scripts/lib/privacy-utils.mjs`
 - `scripts/lib/review-queue-commands.mjs`
+- `scripts/lib/release-signing-commands.mjs`
 - `scripts/lib/risk-score-commands.mjs`
 - `scripts/lib/secrets-scan-commands.mjs`
 - `scripts/lib/runtime-diagnostics.mjs`
@@ -293,6 +294,7 @@ Next recommended work:
 - `tests/policy-enforcement.test.mjs`
 - `tests/prompt-commands.test.mjs`
 - `tests/read-only-commands.test.mjs`
+- `tests/release-signing-commands.test.mjs`
 - `tests/review-queue-commands.test.mjs`
 - `tests/risk-score-commands.test.mjs`
 - `tests/secrets-scan-commands.test.mjs`

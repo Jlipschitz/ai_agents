@@ -582,6 +582,8 @@ Status: implemented in the command layer.
 npm run agents -- pr-summary
 npm run agents -- pr-summary task-id --json
 npm run agents -- release-bundle task-id --apply
+npm run agents -- release-bundle task-id --sign --private-key release-private.pem --apply
+npm run agents -- release-sign --dir artifacts/releases/manual --verify --public-key release-public.pem
 ```
 
 Current behavior:
@@ -589,6 +591,14 @@ Current behavior:
 - `pr-summary` produces PR-ready Markdown or JSON with changes, verification, risks, and follow-ups.
 - `release-bundle` is dry-run by default.
 - `release-bundle --apply` writes `pr-summary.md`, `board-summary.md`, `release-check.json`, and `artifacts.json`.
+- `release-bundle --sign --private-key <path>` adds `checksums.sha256` and `checksums.sha256.sig` to applied bundles.
+- `release-sign` can dry-run or apply release checksums, sign manifests with a private key, and verify hashes/signatures with a public key.
+- Verification fails on changed, missing, or extra unsigned files.
+
+Main files:
+
+- `scripts/lib/release-signing-commands.mjs`
+- `tests/release-signing-commands.test.mjs`
 
 ### Agent prompt generator
 
@@ -1551,7 +1561,7 @@ Current behavior:
 - Node version hints are checked into `.nvmrc` and `.node-version`.
 - `LICENSE`, `package.json`, and `package-lock.json` mark the project as MIT licensed.
 
-Follow-up: continue deeper distribution polish such as signed releases.
+Follow-up: continue deeper distribution polish such as package publishing automation.
 
 Main files:
 
@@ -1603,7 +1613,6 @@ These roadmap items still need core, command-layer, or documentation work.
 
 - Open-ended model-backed natural-language query mode.
 - Local web dashboard.
-- Signed releases.
 
 ### Advanced coordination and scaling
 
