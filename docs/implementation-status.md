@@ -27,6 +27,28 @@ Main files:
 - `scripts/bootstrap.mjs`
 - `tests/bootstrap.test.mjs`
 
+### Import/update command
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:update
+npm run agents -- update-coordinator --source C:\path\to\ai_agents --apply
+```
+
+Current behavior:
+
+- Dry-run by default.
+- Copies coordinator scripts, the public CLI, schema, and `scripts/lib/` helpers from a source package or checkout.
+- Preserves `agent-coordination.config.json`, runtime state, artifacts, and local docs by default.
+- Can include bundled docs only when `--include-docs` is passed.
+
+Main files:
+
+- `scripts/lib/update-commands.mjs`
+- `scripts/lib/install-manifest.mjs`
+- `tests/update-commands.test.mjs`
+
 ### Runtime and CI baseline
 
 Status: implemented.

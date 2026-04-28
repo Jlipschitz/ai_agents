@@ -278,6 +278,18 @@ npm run agents -- templates create-task ui-change --id task-ui --paths app/page.
 
 Config template application and task creation are dry-run by default. Use `--apply` to write changes. Applied config and board changes create snapshots first.
 
+### `update-coordinator`
+
+Updates copied coordinator/tooling files in the current repo from an installed package or source checkout while preserving repo-specific config, runtime state, and local docs by default.
+
+```bash
+npm run agents:update
+npm run agents -- update-coordinator --source C:\path\to\ai_agents
+npm run agents -- update-coordinator --source C:\path\to\ai_agents --apply --json
+```
+
+The default mode is a dry run. The command copies coordinator scripts, the public CLI, the schema, and `scripts/lib/` helper files. It does not copy `agent-coordination.config.json`, `coordination/`, `coordination-two/`, runtime files, artifacts, or docs unless `--include-docs` is passed.
+
 ### `policy-packs`
 
 Lists, inspects, or applies reusable config policy packs.

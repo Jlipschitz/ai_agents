@@ -27,6 +27,7 @@ The repo includes both `.nvmrc` and `.node-version` set to `24`.
 - Reports local GitHub remote and merge queue workflow awareness.
 - Provides config and task templates with dry-run/apply flows.
 - Archives old completed work out of the active board with snapshots.
+- Updates copied coordinator files from a source package or checkout while preserving local config and runtime state.
 - Provides lifecycle helpers: `start`, `finish`, and `handoff-ready`.
 - Supports optional `finish` safety gates for verification and docs review.
 - Provides routed runtime lock diagnostics via `lock-status` and `lock-clear`.
@@ -164,6 +165,7 @@ npm run agents:branches
 npm run agents:github:status
 npm run agents:templates -- list
 npm run agents:archive:completed
+npm run agents:update
 npm run agents:board:inspect
 npm run agents:board:repair
 npm run agents:state:rollback -- --list
@@ -197,6 +199,8 @@ The `agents2` scripts mirror the same commands but use the `coordination-two` wo
 - `scripts/agent-coordination.mjs`: `agents` workspace wrapper.
 - `scripts/agent-coordination-two.mjs`: `agents2` workspace wrapper.
 - `scripts/bootstrap.mjs`: installer for copying `ai_agents` into another repo.
+- `scripts/lib/update-commands.mjs`: copied-coordinator update command.
+- `scripts/lib/install-manifest.mjs`: shared install/update file manifest.
 - `scripts/validate-config.mjs`: config validator with text and JSON output.
 - `scripts/explain-config.mjs`: active config explanation, suggestions, and environment override reporting.
 - `scripts/lock-runtime.mjs`: runtime lock inspection and safe stale-lock cleanup.

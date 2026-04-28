@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add import/update flows and workspace snapshots.
+1. Add workspace snapshots before broader mutation commands.
 
 ---
 
@@ -39,7 +39,7 @@ Next recommended work:
 - [~] `doctor --json` — implemented through the command layer; core-native integration remains open.
 - [x] CI workflow
 - [~] Templates — config templates and task templates are available through `templates`; external/custom templates remain open.
-- [ ] Import/update command
+- [x] Import/update command
 - [ ] Conflict-safe resource leases
 - [x] Transcript-friendly summaries
 - [x] Archive completed work

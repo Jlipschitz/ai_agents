@@ -18,6 +18,7 @@ import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
+import { runUpdateCoordinator } from './lib/update-commands.mjs';
 
 const ROOT = process.cwd();
 const DEFAULT_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
@@ -46,6 +47,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'github-status',
   'templates',
   'archive-completed',
+  'update-coordinator',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -260,6 +262,7 @@ function expectedPackageScripts() {
       'agents:github:status': 'ai-agents github-status',
       'agents:templates': 'ai-agents templates',
       'agents:archive:completed': 'ai-agents archive-completed',
+      'agents:update': 'ai-agents update-coordinator',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -304,6 +307,7 @@ function expectedPackageScripts() {
     'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
     'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
     'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
+    'agents:update': 'node ./scripts/agent-coordination.mjs update-coordinator',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -339,6 +343,7 @@ function expectedPackageScripts() {
     'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
     'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
     'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
+    'agents2:update': 'node ./scripts/agent-coordination-two.mjs update-coordinator',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -1205,5 +1210,6 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
   else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());
+  else if (commandName === 'update-coordinator') status = runUpdateCoordinator(commandArgs, { root: ROOT });
   process.exit(status);
 }

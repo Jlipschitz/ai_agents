@@ -5,6 +5,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { buildInstallManifest, COORDINATOR_DIRECTORIES } from './lib/install-manifest.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
@@ -59,6 +61,7 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
   'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
   'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
+  'agents:update': 'node ./scripts/agent-coordination.mjs update-coordinator',
   'agents2': 'node ./scripts/agent-coordination-two.mjs',
   'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
   'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -94,38 +97,13 @@ const DEFAULT_PACKAGE_SCRIPTS = {
   'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
   'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
   'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
+  'agents2:update': 'node ./scripts/agent-coordination-two.mjs update-coordinator',
   'validate:agents-config': 'node ./scripts/validate-config.mjs',
 };
 
-const FILES_TO_COPY = [
-  'bin/ai-agents.mjs',
-  'scripts/agent-command-layer.mjs',
-  'scripts/agent-coordination-core.mjs',
-  'scripts/agent-coordination.mjs',
-  'scripts/agent-coordination-two.mjs',
-  'scripts/agent-watch-loop.mjs',
-  'scripts/agent-watch-loop.ps1',
-  'scripts/agent-watch-loop-two.ps1',
-  'scripts/bootstrap.mjs',
-  'scripts/check-syntax.mjs',
-  'scripts/explain-config.mjs',
-  'scripts/lock-runtime.mjs',
-  'scripts/planner-sizing.mjs',
-  'scripts/validate-config.mjs',
-  'agent-coordination.schema.json',
-  'agent-coordination.config.json',
-  'docs/agent-coordination-portability.md',
-  'docs/commands.md',
-  'docs/workflows.md',
-  'docs/architecture.md',
-  'docs/state-files.md',
-  'docs/troubleshooting.md',
-  'docs/explain-config.md',
-  'docs/terminal-output-examples.md',
-  'docs/implementation-status.md',
-  'docs/roadmap-status.md',
-];
-const DIRECTORIES_TO_COPY = ['scripts/lib'];
+const FILES_TO_COPY = buildInstallManifest(PACKAGE_ROOT, { includeConfig: true, includeDocs: true })
+  .filter((relativePath) => !COORDINATOR_DIRECTORIES.some((relativeDir) => relativePath.startsWith(`${relativeDir}/`)));
+const DIRECTORIES_TO_COPY = COORDINATOR_DIRECTORIES;
 
 function isCliEntrypoint() {
   return Boolean(process.argv[1]) && path.resolve(process.argv[1]) === __filename;
@@ -205,25 +183,9 @@ function copyFile(relativePath, targetRoot, options, operations) {
   }
 }
 
-function listFilesRecursive(relativeDir) {
-  const sourceDir = path.join(PACKAGE_ROOT, relativeDir);
-  if (!fs.existsSync(sourceDir)) {
-    return [];
-  }
-
-  return fs.readdirSync(sourceDir, { withFileTypes: true })
-    .sort((left, right) => left.name.localeCompare(right.name))
-    .flatMap((entry) => {
-      const relativePath = path.join(relativeDir, entry.name).replaceAll('\\', '/');
-      if (entry.isDirectory()) {
-        return listFilesRecursive(relativePath);
-      }
-      return entry.isFile() ? [relativePath] : [];
-    });
-}
-
 function copyDirectory(relativeDir, targetRoot, options, operations) {
-  const files = listFilesRecursive(relativeDir);
+  const files = buildInstallManifest(PACKAGE_ROOT, {})
+    .filter((relativePath) => relativePath.startsWith(`${relativeDir}/`));
   if (!files.length) {
     operations.push(`skip missing source ${relativeDir}`);
     return;
