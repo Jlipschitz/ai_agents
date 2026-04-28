@@ -14,7 +14,7 @@ The project has completed most of the setup, bootstrap, command routing, CI, doc
 
 Next recommended work:
 
-1. Add task templates and import/update flows.
+1. Add import/update flows and archive completed work.
 
 ---
 
@@ -38,7 +38,7 @@ Next recommended work:
 - [~] Remote sync checks — ahead/behind warnings are partially covered before claim.
 - [~] `doctor --json` — implemented through the command layer; core-native integration remains open.
 - [x] CI workflow
-- [ ] Templates
+- [~] Templates — config templates and task templates are available through `templates`; external/custom templates remain open.
 - [ ] Import/update command
 - [ ] Conflict-safe resource leases
 - [x] Transcript-friendly summaries
@@ -118,7 +118,7 @@ Next recommended work:
 - [ ] Review queue
 - [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; deeper storage policy and reporting remain open.
 - [ ] Human-readable changelog
-- [ ] Task templates
+- [x] Task templates
 - [ ] External calendar/reminder hooks
 - [ ] Config inheritance
 - [~] Multi-branch awareness — claims record Git branch metadata and `branches` reports task ownership by branch; cross-worktree awareness remains open.

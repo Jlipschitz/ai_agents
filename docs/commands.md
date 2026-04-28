@@ -265,6 +265,19 @@ npm run agents -- migrate-config --json
 npm run agents -- migrate-config --apply
 ```
 
+### `templates`
+
+Lists built-in config and task templates, applies config template patches, or creates planned tasks from task templates.
+
+```bash
+npm run agents:templates -- list
+npm run agents -- templates show react
+npm run agents -- templates apply react --apply
+npm run agents -- templates create-task ui-change --id task-ui --paths app/page.tsx --apply
+```
+
+Config template application and task creation are dry-run by default. Use `--apply` to write changes. Applied config and board changes create snapshots first.
+
 ### `policy-packs`
 
 Lists, inspects, or applies reusable config policy packs.

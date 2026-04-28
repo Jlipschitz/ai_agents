@@ -48,6 +48,7 @@ const COMMANDS = {
   'ownership-review': ['ownership-review [--json]', 'Review active claims for broad paths and CODEOWNERS boundary crossings.'],
   'test-impact': ['test-impact [--paths <path[,path...]>] [--json]', 'Select the smallest configured verification checks for changed paths.'],
   'github-status': ['github-status [--json] [--live]', 'Inspect GitHub remote, branch, PR, and merge queue workflow status.'],
+  templates: ['templates list|show <name>|apply <config-template>|create-task <task-template> [--apply] [--json]', 'List, inspect, apply config templates, or create planned tasks from templates.'],
   'explain-config': ['explain-config [--json] [--config <path>] [--root <path>]', 'Explain active config and environment overrides.'],
   'request-access': ['request-access <agent> <task-id> <scope> <reason>', 'Request shared resource or elevated operation access.'],
   'grant-access': ['grant-access <request-id> [--by <agent>] [--note <text>]', 'Grant an access request.'],

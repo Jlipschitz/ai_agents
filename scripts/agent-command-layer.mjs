@@ -16,6 +16,7 @@ import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
+import { runTemplates } from './lib/template-commands.mjs';
 
 const ROOT = process.cwd();
 const DEFAULT_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4'];
@@ -42,6 +43,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'ownership-review',
   'test-impact',
   'github-status',
+  'templates',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -176,6 +178,18 @@ function getGitHubCommandContext() {
   return { root: ROOT };
 }
 
+function getTemplateCommandContext() {
+  const { configPath, config } = loadConfig();
+  const paths = getCoordinationPaths();
+  return {
+    root: ROOT,
+    configPath,
+    config,
+    paths,
+    board: readJsonSafe(paths.boardPath, { tasks: [] }),
+  };
+}
+
 function createStarterConfig(configPath) {
   writeJson(configPath, {
     configVersion: 1,
@@ -242,6 +256,7 @@ function expectedPackageScripts() {
       'agents:ownership:review': 'ai-agents ownership-review',
       'agents:test-impact': 'ai-agents test-impact',
       'agents:github:status': 'ai-agents github-status',
+      'agents:templates': 'ai-agents templates',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -284,6 +299,7 @@ function expectedPackageScripts() {
     'agents:ownership:review': 'node ./scripts/agent-coordination.mjs ownership-review',
     'agents:test-impact': 'node ./scripts/agent-coordination.mjs test-impact',
     'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
+    'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -317,6 +333,7 @@ function expectedPackageScripts() {
     'agents2:ownership:review': 'node ./scripts/agent-coordination-two.mjs ownership-review',
     'agents2:test-impact': 'node ./scripts/agent-coordination-two.mjs test-impact',
     'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
+    'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -1181,5 +1198,6 @@ export async function runCommandLayer({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'ownership-review') status = runOwnershipReview(commandArgs, getImpactCommandContext());
   else if (commandName === 'test-impact') status = runTestImpact(commandArgs, getImpactCommandContext());
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
+  else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
   process.exit(status);
 }

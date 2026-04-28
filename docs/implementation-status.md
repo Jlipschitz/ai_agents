@@ -485,6 +485,29 @@ Current behavior:
 - `policy-packs` lists and inspects reusable packs.
 - `policy-packs apply` is dry-run by default and can apply `docs-light`, `strict-ui`, `backend-safe`, or `release-heavy`.
 
+### Config and task templates
+
+Status: partially implemented in the command layer.
+
+```bash
+npm run agents:templates -- list
+npm run agents -- templates show react
+npm run agents -- templates apply react --apply
+npm run agents -- templates create-task ui-change --id task-ui --apply
+```
+
+Current behavior:
+
+- Built-in config templates: `generic-node`, `react`, `expo`, `supabase`, and `docs-only`.
+- Built-in task templates: `ui-change`, `migration`, `api-endpoint`, `test-only`, `docs-only`, and `refactor`.
+- Config template application is dry-run by default and snapshots config before applied writes.
+- Task creation is dry-run by default and snapshots the board before applied writes.
+
+Main files:
+
+- `scripts/lib/template-commands.mjs`
+- `tests/template-commands.test.mjs`
+
 ### Artifact retention
 
 Status: partially implemented in the command layer.
