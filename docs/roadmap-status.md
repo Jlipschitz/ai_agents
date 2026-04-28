@@ -102,7 +102,7 @@ Next recommended work:
 - [~] Natural-language query — `ask` answers common deterministic board questions; open-ended model-backed querying remains open.
 - [ ] Local web dashboard
 - [ ] Signed releases
-- [ ] Self-update safety
+- [x] Self-update safety
 
 ## Phase 6: Advanced Coordination and Scaling
 

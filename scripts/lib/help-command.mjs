@@ -75,7 +75,7 @@ export const COMMANDS = {
   'github-status': ['github-status [--json] [--live]', 'Inspect GitHub remote, branch, PR, and merge queue workflow status.'],
   templates: ['templates list|show <name>|apply <config-template>|create-task <task-template> [--apply] [--json]', 'List, inspect, apply config templates, or create planned tasks from templates.'],
   'archive-completed': ['archive-completed [--older-than-days <days>] [--apply] [--json]', 'Archive old done/released tasks out of board.json.'],
-  'update-coordinator': ['update-coordinator [--source <path>] [--include-docs] [--apply] [--json]', 'Update copied coordinator files while preserving config and runtime state.'],
+  'update-coordinator': ['update-coordinator [--source <path>] [--include-docs] [--apply --reviewed] [--json]', 'Update copied coordinator files while preserving config and runtime state.'],
   'snapshot-workspace': ['snapshot-workspace [--apply] [--json]', 'Write a compressed snapshot of board, journal, messages, and runtime state.'],
   'backlog-import': ['backlog-import [--from <path[,path...]>] [--owner <agent>] [--apply] [--json]', 'Import Markdown TODOs as planned tasks.'],
   completions: ['completions <powershell|bash|zsh> [--json]', 'Generate shell completion scripts for this repo.'],

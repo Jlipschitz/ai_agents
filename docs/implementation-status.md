@@ -37,7 +37,7 @@ Status: implemented in the command layer.
 
 ```bash
 npm run agents:update
-npm run agents -- update-coordinator --source C:\path\to\ai_agents --apply
+npm run agents -- update-coordinator --source C:\path\to\ai_agents --apply --reviewed
 ```
 
 Current behavior:
@@ -46,6 +46,8 @@ Current behavior:
 - Copies coordinator scripts, the public CLI, schema, and `scripts/lib/` helpers from a source package or checkout.
 - Preserves `agent-coordination.config.json`, runtime state, artifacts, and local docs by default.
 - Can include bundled docs only when `--include-docs` is passed.
+- Dry-run output includes a review summary with changed files and changed line sections.
+- Applied updates that create or replace files require `--reviewed` after reviewing the dry-run plan.
 
 Main files:
 
@@ -1536,7 +1538,6 @@ These roadmap items still need core, command-layer, or documentation work.
 - Open-ended model-backed natural-language query mode.
 - Local web dashboard.
 - Signed releases.
-- Self-update safety with diff review.
 
 ### Advanced coordination and scaling
 

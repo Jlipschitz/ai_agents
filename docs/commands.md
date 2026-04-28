@@ -361,10 +361,10 @@ Updates copied coordinator/tooling files in the current repo from an installed p
 ```bash
 npm run agents:update
 npm run agents -- update-coordinator --source C:\path\to\ai_agents
-npm run agents -- update-coordinator --source C:\path\to\ai_agents --apply --json
+npm run agents -- update-coordinator --source C:\path\to\ai_agents --apply --reviewed --json
 ```
 
-The default mode is a dry run. The command copies coordinator scripts, the public CLI, the schema, and `scripts/lib/` helper files. It does not copy `agent-coordination.config.json`, `coordination/`, `coordination-two/`, runtime files, artifacts, or docs unless `--include-docs` is passed.
+The default mode is a dry run. The command copies coordinator scripts, the public CLI, the schema, and `scripts/lib/` helper files. It does not copy `agent-coordination.config.json`, `coordination/`, `coordination-two/`, runtime files, artifacts, or docs unless `--include-docs` is passed. Dry-run output includes a review summary; applied updates that create or replace files require `--reviewed`.
 
 ### `backlog-import`
 

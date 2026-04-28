@@ -25,8 +25,23 @@ test('update-coordinator dry-runs without copying coordinator files', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(payload.applied, false);
   assert.equal(payload.counts.create > 0, true);
+  assert.equal(payload.review.changedFiles > 0, true);
+  assert.equal(payload.reviewRequired, false);
+  assert.equal(payload.warnings.some((warning) => warning.includes('--reviewed')), true);
   assert.equal(fs.existsSync(path.join(root, 'scripts', 'agent-command-layer.mjs')), false);
   assert.equal(fs.readFileSync(path.join(root, 'docs', 'commands.md'), 'utf8'), '# Local commands\n');
+});
+
+test('update-coordinator requires reviewed acknowledgement before applying changed files', () => {
+  const { root } = makeWorkspace();
+  const result = run(root, ['update-coordinator', '--source', repoRoot, '--apply', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(payload.ok, false);
+  assert.equal(payload.applied, false);
+  assert.equal(payload.reviewRequired, true);
+  assert.equal(fs.existsSync(path.join(root, 'scripts', 'agent-command-layer.mjs')), false);
 });
 
 test('update-coordinator applies tool updates while preserving config, docs, and runtime state', () => {
@@ -34,11 +49,12 @@ test('update-coordinator applies tool updates while preserving config, docs, and
   const configBefore = fs.readFileSync(configPath, 'utf8');
   const runtimePath = path.join(coordinationRoot, 'runtime', 'state.lock.json');
 
-  const result = run(root, ['update-coordinator', '--source', repoRoot, '--apply', '--json']);
+  const result = run(root, ['update-coordinator', '--source', repoRoot, '--apply', '--reviewed', '--json']);
   const payload = JSON.parse(result.stdout);
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(payload.applied, true);
+  assert.equal(payload.reviewAcknowledged, true);
   assert.equal(payload.includeDocs, false);
   assert.equal(fs.existsSync(path.join(root, 'bin', 'ai-agents.mjs')), true);
   assert.equal(fs.existsSync(path.join(root, 'scripts', 'agent-command-layer.mjs')), true);
@@ -52,7 +68,7 @@ test('update-coordinator only updates bundled docs when requested', () => {
   const { root } = makeWorkspace();
   const docsPath = path.join(root, 'docs', 'commands.md');
 
-  const result = run(root, ['update-coordinator', '--source', repoRoot, '--include-docs', '--apply', '--json']);
+  const result = run(root, ['update-coordinator', '--source', repoRoot, '--include-docs', '--apply', '--reviewed', '--json']);
   const payload = JSON.parse(result.stdout);
 
   assert.equal(result.status, 0, result.stderr);
