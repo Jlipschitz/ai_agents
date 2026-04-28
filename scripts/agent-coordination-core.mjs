@@ -4,6 +4,7 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 import { createBoardValidation } from './lib/board-validation.mjs';
+import { createCommunicationCommands } from './lib/communication-commands.mjs';
 import { createCorePathAnalysis } from './lib/core-path-analysis.mjs';
 import { ensureDirectory, fileExists, isPidAlive, nowIso } from './lib/file-utils.mjs';
 import { createDoctorCommand } from './lib/doctor-command.mjs';
@@ -508,6 +509,29 @@ const {
   slugify,
   terminalTaskStatuses: TERMINAL_TASK_STATUSES,
   withMutationLock,
+});
+const { appNoteCommand, inboxCommand, messageCommand } = createCommunicationCommands({
+  appAgentNotesDoc: APP_AGENT_NOTES_DOC,
+  appNoteCategories: APP_NOTE_CATEGORIES,
+  appNotesSectionHeading: APP_NOTES_SECTION_HEADING,
+  appendJournalLine,
+  appendMessage,
+  assertAgentSessionAvailable,
+  ensureTask,
+  getAgent,
+  getBoard,
+  getCommandAgent,
+  getCurrentCommandName: () => currentCommandName,
+  getReadOnlyBoard,
+  getTask,
+  note,
+  parsePathsOption,
+  projectName: PROJECT_NAME,
+  readMessages,
+  root: ROOT,
+  saveBoard,
+  withMutationLock,
+  writeTextAtomicSync,
 });
 
 function resolveCliEntrypoint() {
@@ -1191,64 +1215,6 @@ function appendMessage(message) {
   fs.appendFileSync(MESSAGES_PATH, `${JSON.stringify(message)}\n`, 'utf8');
 }
 
-function sanitizeAppNoteText(value) {
-  return String(value ?? '')
-    .replace(/`/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function formatAppNotePaths(paths) {
-  return paths.length ? paths.map((entry) => `\`${sanitizeAppNoteText(entry)}\``).join(', ') : 'none';
-}
-
-function getAppNotesSectionHeading() {
-  return `## ${APP_NOTES_SECTION_HEADING}`;
-}
-
-function ensureAppNotesSection(content) {
-  const normalizedContent = content.trimEnd();
-  const heading = getAppNotesSectionHeading();
-
-  if (normalizedContent.includes(heading)) {
-    return normalizedContent;
-  }
-
-  return `${normalizedContent}\n\n${heading}\n\nAgents append durable discoveries here when they find errors, inconsistencies, gotchas, decisions, or behavior changes that should survive beyond one task.\n`;
-}
-
-function formatAppNoteEntry(entry) {
-  const parts = [
-    `- ${entry.timestamp}`,
-    `agent: \`${sanitizeAppNoteText(entry.agentId)}\``,
-    `category: \`${sanitizeAppNoteText(entry.category)}\``,
-  ];
-
-  if (entry.taskId) {
-    parts.push(`task: \`${sanitizeAppNoteText(entry.taskId)}\``);
-  }
-
-  parts.push(`paths: ${formatAppNotePaths(entry.paths)}`);
-  parts.push(sanitizeAppNoteText(entry.body));
-
-  return parts.join(' | ');
-}
-
-function appendAppNoteEntry(entry) {
-  if (!APP_AGENT_NOTES_DOC) {
-    throw new Error('No app notes document is configured. Set docs.appNotes in agent-coordination.config.json.');
-  }
-
-  const appNotesPath = path.join(ROOT, APP_AGENT_NOTES_DOC);
-  ensureDirectory(path.dirname(appNotesPath));
-
-  const initialContent = fileExists(appNotesPath)
-    ? fs.readFileSync(appNotesPath, 'utf8')
-    : `# ${PROJECT_NAME} AI Agent App Notes\n\nUse this as the compact handoff document for agents working in this repository.\n`;
-  const contentWithSection = ensureAppNotesSection(initialContent);
-  writeTextAtomicSync(appNotesPath, `${contentWithSection}\n${formatAppNoteEntry(entry)}\n`);
-}
-
 function getAgentHeartbeatPath(agentId) {
   return path.join(AGENT_HEARTBEATS_ROOT, `${agentId}.json`);
 }
@@ -1833,122 +1799,6 @@ ${visualPolicyLines.join('\n')}
 
 Set AGENT_TERMINAL_ID in each terminal for stricter same-agent protection when you run multiple terminals outside Windows Terminal.
 `);
-}
-
-async function messageCommand(positionals, options) {
-  const [fromAgent, toAgent, ...bodyParts] = positionals;
-  const body = bodyParts.join(' ').trim();
-
-  if (!fromAgent || !toAgent || !body) {
-    throw new Error('Usage: message <from-agent> <to-agent|all> <message> [--task <task-id>]');
-  }
-
-  if (toAgent !== 'all') {
-    getAgent(getBoard(), toAgent);
-  }
-
-  assertAgentSessionAvailable(fromAgent);
-  getAgent(getBoard(), fromAgent);
-
-  await withMutationLock(async () => {
-    const timestamp = nowIso();
-    const message = {
-      at: timestamp,
-      from: fromAgent,
-      to: toAgent,
-      taskId: typeof options.task === 'string' ? options.task : null,
-      body,
-    };
-
-    appendMessage(message);
-    appendJournalLine(`- ${timestamp} | message ${fromAgent} -> ${toAgent}${message.taskId ? ` on \`${message.taskId}\`` : ''}: ${body}`);
-
-    if (message.taskId) {
-      const board = getBoard();
-      const task = getTask(board, message.taskId);
-
-      if (task) {
-        task.updatedAt = timestamp;
-        note(task, fromAgent, 'message', body, { to: toAgent });
-        await saveBoard(board);
-      }
-    }
-
-    console.log(`Message logged from ${fromAgent} to ${toAgent}.`);
-  });
-}
-
-async function appNoteCommand(positionals, options) {
-  const [agentId, rawCategory, ...bodyParts] = positionals;
-  const category = String(rawCategory ?? '').trim().toLowerCase();
-  const body = bodyParts.join(' ').trim();
-  const paths = parsePathsOption(options.paths ?? options.path);
-  const taskId = typeof options.task === 'string' && options.task.trim() ? options.task.trim() : null;
-
-  if (!agentId || !category || !body) {
-    throw new Error(`Usage: app-note <agent> <${[...APP_NOTE_CATEGORIES].join('|')}> <note> [--task <task-id>] [--paths <path[,path...]>]`);
-  }
-
-  if (!APP_NOTE_CATEGORIES.has(category)) {
-    throw new Error(`Unknown app-note category "${category}". Expected one of: ${[...APP_NOTE_CATEGORIES].join(', ')}.`);
-  }
-
-  await withMutationLock(async () => {
-    const board = getBoard();
-    getCommandAgent(board, agentId);
-    const timestamp = nowIso();
-
-    if (taskId) {
-      const task = ensureTask(board, taskId);
-      task.updatedAt = timestamp;
-      note(task, agentId, 'app-note', body, { category, paths });
-    }
-
-    appendAppNoteEntry({
-      timestamp,
-      agentId,
-      category,
-      taskId,
-      paths,
-      body,
-    });
-    appendJournalLine(
-      `- ${timestamp} | ${agentId} recorded app note (${category})${taskId ? ` for \`${taskId}\`` : ''}${paths.length ? ` on ${paths.join(', ')}` : ''}: ${body}`
-    );
-
-    if (taskId) {
-      await saveBoard(board);
-    }
-
-    console.log(`Recorded app note in ${APP_AGENT_NOTES_DOC}.`);
-  });
-}
-
-function inboxCommand(positionals, options) {
-  const [agentId] = positionals;
-  const limit = Number.parseInt(String(options.limit ?? '10'), 10);
-
-  if (!agentId) {
-    throw new Error('Usage: inbox <agent> [--limit <count>]');
-  }
-
-  assertAgentSessionAvailable(agentId, currentCommandName, { cleanupStale: false });
-  getAgent(getReadOnlyBoard(), agentId);
-
-  const messages = readMessages()
-    .filter((message) => message.to === 'all' || message.to === agentId || message.from === agentId)
-    .slice(-Math.max(limit, 1));
-
-  if (!messages.length) {
-    console.log(`No messages for ${agentId}.`);
-    return;
-  }
-
-  console.log(
-    messages
-      .map((message) => `- ${message.at} | ${message.from} -> ${message.to}${message.taskId ? ` [${message.taskId}]` : ''}: ${message.body}`)
-      .join('\n')
-  );
 }
 
 function slugify(value) {
