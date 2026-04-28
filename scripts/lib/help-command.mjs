@@ -61,6 +61,7 @@ export const COMMANDS = {
   'critical-path': ['critical-path [--json]', 'Find the longest remaining dependency chain and ready critical work.'],
   'health-score': ['health-score [--fail-under <score>] [--json]', 'Score workspace health from setup, work risk, verification, and runtime state.'],
   contracts: ['contracts list|show <id>|create <id>|check [options]', 'Manage contract files for shared API, schema, and cross-task interfaces.'],
+  runbooks: ['runbooks list|show <id>|suggest|create <id> [options]', 'List, suggest, or create reusable coordination runbooks.'],
   'github-status': ['github-status [--json] [--live]', 'Inspect GitHub remote, branch, PR, and merge queue workflow status.'],
   templates: ['templates list|show <name>|apply <config-template>|create-task <task-template> [--apply] [--json]', 'List, inspect, apply config templates, or create planned tasks from templates.'],
   'archive-completed': ['archive-completed [--older-than-days <days>] [--apply] [--json]', 'Archive old done/released tasks out of board.json.'],

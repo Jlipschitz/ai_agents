@@ -30,6 +30,7 @@ import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoP
 import { DEFAULT_POLICY_ENFORCEMENT, buildClaimPolicyPreflight, buildFinishPolicyPreflight, renderPolicyFindings, runPolicyCheck } from './lib/policy-enforcement.mjs';
 import { runPromptCommand } from './lib/prompt-commands.mjs';
 import { runRiskScore } from './lib/risk-score-commands.mjs';
+import { runRunbooks } from './lib/runbook-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { runCompactState } from './lib/state-compaction-commands.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
@@ -69,6 +70,7 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'critical-path',
   'health-score',
   'contracts',
+  'runbooks',
   'github-status',
   'templates',
   'archive-completed',
@@ -339,6 +341,7 @@ function expectedPackageScripts() {
       'agents:critical:path': 'ai-agents critical-path',
       'agents:health:score': 'ai-agents health-score',
       'agents:contracts': 'ai-agents contracts',
+      'agents:runbooks': 'ai-agents runbooks',
       'agents:github:status': 'ai-agents github-status',
       'agents:templates': 'ai-agents templates',
       'agents:archive:completed': 'ai-agents archive-completed',
@@ -399,6 +402,7 @@ function expectedPackageScripts() {
     'agents:critical:path': 'node ./scripts/agent-coordination.mjs critical-path',
     'agents:health:score': 'node ./scripts/agent-coordination.mjs health-score',
     'agents:contracts': 'node ./scripts/agent-coordination.mjs contracts',
+    'agents:runbooks': 'node ./scripts/agent-coordination.mjs runbooks',
     'agents:github:status': 'node ./scripts/agent-coordination.mjs github-status',
     'agents:templates': 'node ./scripts/agent-coordination.mjs templates',
     'agents:archive:completed': 'node ./scripts/agent-coordination.mjs archive-completed',
@@ -450,6 +454,7 @@ function expectedPackageScripts() {
     'agents2:critical:path': 'node ./scripts/agent-coordination-two.mjs critical-path',
     'agents2:health:score': 'node ./scripts/agent-coordination-two.mjs health-score',
     'agents2:contracts': 'node ./scripts/agent-coordination-two.mjs contracts',
+    'agents2:runbooks': 'node ./scripts/agent-coordination-two.mjs runbooks',
     'agents2:github:status': 'node ./scripts/agent-coordination-two.mjs github-status',
     'agents2:templates': 'node ./scripts/agent-coordination-two.mjs templates',
     'agents2:archive:completed': 'node ./scripts/agent-coordination-two.mjs archive-completed',
@@ -1453,6 +1458,7 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'critical-path') status = runCriticalPath(commandArgs, getImpactCommandContext());
   else if (commandName === 'health-score') status = runHealthScore(commandArgs, getImpactCommandContext());
   else if (commandName === 'contracts') status = runContracts(commandArgs, getTemplateCommandContext());
+  else if (commandName === 'runbooks') status = runRunbooks(commandArgs, getTemplateCommandContext());
   else if (commandName === 'github-status') status = runGitHubStatus(commandArgs, getGitHubCommandContext());
   else if (commandName === 'templates') status = runTemplates(commandArgs, getTemplateCommandContext());
   else if (commandName === 'archive-completed') status = runArchiveCompleted(commandArgs, getCoordinationPaths());

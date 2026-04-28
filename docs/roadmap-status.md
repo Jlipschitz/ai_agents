@@ -110,7 +110,7 @@ Next recommended work:
 - [ ] Partial checkout / monorepo support
 - [x] Task priority and deadlines
 - [ ] Escalation routing
-- [ ] Reusable runbooks
+- [x] Reusable runbooks
 - [ ] Semantic path grouping
 - [ ] Task split validator
 - [ ] Work stealing

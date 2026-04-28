@@ -527,6 +527,20 @@ npm run agents -- health-score --fail-under 80
 
 The command is read-only. It returns a 0-100 score, `healthy`/`watch`/`degraded`/`critical` level, section scores, top issues, and critical-path signals. `--fail-under <score>` makes the command exit non-zero when the score is below a CI threshold.
 
+### `runbooks`
+
+Lists built-in runbooks, suggests matching runbooks for a task or path set, and creates custom runbooks under `coordination/runbooks/`.
+
+```bash
+npm run agents:runbooks -- list
+npm run agents -- runbooks show migration
+npm run agents -- runbooks suggest --task task-id --json
+npm run agents -- runbooks suggest --paths migrations/001.sql --summary "auth migration"
+npm run agents -- runbooks create custom-release --title "Custom release" --keywords release,deploy --paths deploy --steps "Check status|Deploy|Verify" --apply
+```
+
+Built-in runbooks cover migrations, auth changes, releases, incidents, and visual updates. Custom runbooks use JSON files with `id`, `title`, `summary`, `triggers.keywords`, `triggers.paths`, `steps`, `checks`, and `docs`. `create` is a dry run unless `--apply` is passed.
+
 ### `contracts`
 
 Manages contract files for shared API, schema, and cross-task interfaces under `coordination/contracts/`.

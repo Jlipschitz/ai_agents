@@ -831,6 +831,31 @@ Main files:
 - `scripts/lib/health-score-commands.mjs`
 - `tests/health-score-commands.test.mjs`
 
+### Reusable runbooks
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:runbooks -- list
+npm run agents -- runbooks show migration
+npm run agents -- runbooks suggest --task task-id --json
+npm run agents -- runbooks create custom-release --title "Custom release" --keywords release,deploy --steps "Check status|Deploy|Verify" --apply
+```
+
+Current behavior:
+
+- Ships built-in runbooks for migrations, auth changes, releases, incidents, and visual updates.
+- Loads custom JSON runbooks from `coordination/runbooks/`.
+- Suggests runbooks from task summaries, claimed paths, explicit `--paths`, and explicit `--summary` text.
+- Supports dry-run custom runbook creation by default, with writes only when `--apply` is passed.
+- Validates custom runbook IDs, triggers, title, and steps.
+- Is covered by read-only mutation guard tests.
+
+Main files:
+
+- `scripts/lib/runbook-commands.mjs`
+- `tests/runbook-commands.test.mjs`
+
 ### Contract files
 
 Status: implemented in the command layer.
@@ -1260,7 +1285,6 @@ These roadmap items still need core, command-layer, or documentation work.
 - Partial checkout and monorepo support.
 - Escalation metadata beyond task priority, due date, and severity.
 - Escalation routing.
-- Reusable runbooks.
 - Semantic path grouping.
 - Task split validation.
 - Work stealing.
