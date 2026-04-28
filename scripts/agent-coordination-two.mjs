@@ -7,7 +7,7 @@ if (!process.env.AGENT_COORDINATION_SCRIPT) {
 }
 
 if (!process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT) {
-  process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT = 'scripts/agent-watch-loop-two.ps1';
+  process.env.AGENT_COORDINATION_WATCH_LOOP_SCRIPT = 'scripts/agent-watch-loop.mjs';
 }
 
 await import('./agent-coordination-core.mjs');
