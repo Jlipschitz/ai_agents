@@ -141,6 +141,8 @@ npm run agents -- explain-config --json
 npm run agents -- migrate-config
 npm run agents -- policy-packs list
 npm run agents:plan
+npm run agents:prompt -- agent-1
+npm run agents:ask -- "what is blocked?"
 npm run agents:status
 npm run agents:summarize
 npm run agents -- summarize --for-chat
@@ -164,6 +166,7 @@ npm run agents:runtime:cleanup
 npm run agents:release:check -- task-id
 npm run agents -- pr-summary task-id
 npm run agents -- release-bundle task-id --apply
+npm run agents:changelog
 npm run agents -- graph
 npm run agents -- ownership-map
 npm run agents:ownership:review

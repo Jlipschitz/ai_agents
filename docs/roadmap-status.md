@@ -10,11 +10,12 @@ This file tracks the current implementation status for the larger roadmap in `ai
 
 ## Current Focus
 
-The project has completed most of the setup, bootstrap, command routing, CI, documentation, config explanation, and safety-test foundation.
+The project has completed most of the setup, bootstrap, command routing, CI, documentation, config explanation, command-layer diagnostics, board maintenance, artifact handling, and safety-test foundation.
 
 Next recommended work:
 
 1. Add concurrency stress tests and continue normalizing older command-specific diagnostics.
+2. Start Phase 15 developer-experience work: contribution/security docs, a real formatter, and example repos.
 
 ---
 
@@ -54,8 +55,8 @@ Next recommended work:
 - [x] PR handoff generator
 - [~] Stale branch cleanup — `branches` reports dry-run cleanup candidates and can delete them with `--apply`; richer remote/PR checks remain open.
 - [~] Session replay — recent journal/message context is included in `summarize`; dedicated `timeline` remains open.
-- [ ] Per-repo onboarding checklist
-- [ ] Agent prompt generator
+- [~] Per-repo onboarding checklist — `doctor` reports repo-doc onboarding recommendations; profile-specific checklist expansion remains open.
+- [x] Agent prompt generator
 - [x] Safe release gate
 - [~] Workspace snapshots — `snapshot-workspace` writes compressed snapshots and command-layer apply flows take pre-mutation snapshots; legacy core lifecycle mutations remain open.
 - [x] Lock diagnostics
@@ -98,7 +99,7 @@ Next recommended work:
 - [ ] Approval ledger
 - [x] Release artifact bundle
 - [~] Command aliases - built-in short aliases exist; repo-defined aliases remain open.
-- [ ] Natural-language query
+- [~] Natural-language query — `ask` answers common deterministic board questions; open-ended model-backed querying remains open.
 - [ ] Local web dashboard
 - [ ] Signed releases
 - [ ] Self-update safety
@@ -117,7 +118,7 @@ Next recommended work:
 - [ ] Cost/time accounting
 - [ ] Review queue
 - [~] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; deeper storage policy and reporting remain open.
-- [ ] Human-readable changelog
+- [x] Human-readable changelog
 - [x] Task templates
 - [ ] External calendar/reminder hooks
 - [ ] Config inheritance
@@ -183,23 +184,76 @@ Next recommended work:
 - [~] Add CLI argument parsing tests — partial coverage exists.
 - [~] Add cross-platform path tests — partial coverage exists.
 
+## Phase 15: Developer Experience and Repo Maintenance
+
+- [~] Add linting — `npm run lint` exists as a syntax-check alias; a dedicated lint/style tool remains open.
+- [ ] Add formatting
+- [~] Add type checking or JSDoc validation — syntax and schema validation exist; type/JSDoc validation remains open.
+- [ ] Add contribution guide
+- [ ] Add security policy
+- [ ] Add license
+- [ ] Add examples directory
+
 ---
 
 ## Recently Completed Implementation Files
 
 - `bin/ai-agents.mjs`
 - `scripts/agent-command-layer.mjs`
+- `scripts/agent-coordination-core.mjs`
 - `scripts/bootstrap.mjs`
 - `scripts/validate-config.mjs`
 - `scripts/explain-config.mjs`
 - `scripts/agent-watch-loop.mjs`
 - `scripts/lock-runtime.mjs`
 - `scripts/planner-sizing.mjs`
+- `scripts/lib/archive-commands.mjs`
+- `scripts/lib/ask-commands.mjs`
+- `scripts/lib/artifact-commands.mjs`
+- `scripts/lib/audit-log.mjs`
+- `scripts/lib/backlog-import-commands.mjs`
+- `scripts/lib/board-maintenance.mjs`
+- `scripts/lib/board-migration.mjs`
+- `scripts/lib/branch-commands.mjs`
+- `scripts/lib/changelog-commands.mjs`
+- `scripts/lib/claim-policy.mjs`
+- `scripts/lib/error-formatting.mjs`
+- `scripts/lib/github-commands.mjs`
+- `scripts/lib/global-flags.mjs`
+- `scripts/lib/help-command.mjs`
+- `scripts/lib/impact-commands.mjs`
+- `scripts/lib/install-manifest.mjs`
+- `scripts/lib/onboarding-checklist.mjs`
+- `scripts/lib/prompt-commands.mjs`
+- `scripts/lib/runtime-diagnostics.mjs`
+- `scripts/lib/state-transaction.mjs`
+- `scripts/lib/template-commands.mjs`
+- `scripts/lib/update-commands.mjs`
+- `scripts/lib/workspace-snapshot-commands.mjs`
 - `agent-coordination.schema.json`
 - `.github/workflows/ci.yml`
 - `package-lock.json`
 - `.nvmrc`
 - `.node-version`
+- `tests/archive-commands.test.mjs`
+- `tests/ask-commands.test.mjs`
+- `tests/backlog-import-commands.test.mjs`
+- `tests/bootstrap.test.mjs`
+- `tests/changelog-commands.test.mjs`
+- `tests/command-layer.test.mjs`
+- `tests/command-snapshots.test.mjs`
+- `tests/config-validation.test.mjs`
+- `tests/core-mutation-safety.test.mjs`
+- `tests/error-formatting.test.mjs`
+- `tests/git-policy.test.mjs`
+- `tests/github-status.test.mjs`
+- `tests/lock-runtime.test.mjs`
+- `tests/prompt-commands.test.mjs`
+- `tests/read-only-commands.test.mjs`
+- `tests/roadmap-commands.test.mjs`
+- `tests/template-commands.test.mjs`
+- `tests/update-commands.test.mjs`
+- `tests/workspace-snapshot-commands.test.mjs`
 - `docs/commands.md`
 - `docs/explain-config.md`
 - `docs/workflows.md`

@@ -533,6 +533,77 @@ Current behavior:
 - `release-bundle` is dry-run by default.
 - `release-bundle --apply` writes `pr-summary.md`, `board-summary.md`, `release-check.json`, and `artifacts.json`.
 
+### Agent prompt generator
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:prompt -- agent-1
+npm run agents -- prompt agent-1 task-id
+npm run agents -- prompt agent-1 --json
+```
+
+Current behavior:
+
+- Finds an agent's current assignment from `agents[].taskId` or active owned tasks.
+- Accepts an explicit task ID override.
+- Produces copy-ready Markdown with task objective, claimed paths, dependency status, docs, verification expectations, recent notes, and next actions.
+- Supports JSON output with the same structured prompt payload.
+
+Main files:
+
+- `scripts/lib/prompt-commands.mjs`
+- `tests/prompt-commands.test.mjs`
+
+### Natural-language board query
+
+Status: partially implemented in the command layer.
+
+```bash
+npm run agents:ask -- "what is blocked?"
+npm run agents -- ask "who owns src/path?"
+npm run agents -- ask "what can agent-2 do next?" --json
+```
+
+Current behavior:
+
+- Answers deterministic board questions without external model calls.
+- Supports blocked, waiting, review, handoff, stale, task-status, path ownership, task ownership, and next-work questions.
+- Falls back to a compact board summary for unsupported questions.
+- Supports JSON output for automation.
+- Is covered by read-only mutation tests.
+
+Follow-up: add broader query patterns and optional model-backed querying if a future integration needs open-ended answers.
+
+Main files:
+
+- `scripts/lib/ask-commands.mjs`
+- `tests/ask-commands.test.mjs`
+
+### Human-readable changelog
+
+Status: implemented in the command layer.
+
+```bash
+npm run agents:changelog
+npm run agents -- changelog --since 2026-01-01
+npm run agents -- changelog --json
+```
+
+Current behavior:
+
+- Reads done and released tasks from `board.json`.
+- Reads archived tasks from `coordination/archive/tasks-*.json`.
+- Groups entries by month in Markdown output.
+- Includes task summaries, claimed paths, latest verification outcomes, artifact counts, and relevant docs.
+- Supports `--since` filtering and JSON output.
+- Is covered by read-only mutation tests.
+
+Main files:
+
+- `scripts/lib/changelog-commands.mjs`
+- `tests/changelog-commands.test.mjs`
+
 ### Ownership and dependency views
 
 Status: implemented in the command layer.
@@ -626,6 +697,26 @@ Current behavior:
 
 - `doctor --json` includes `configSuggestions` with actionable improvement recommendations.
 - Built-in short aliases route `s`, `d`, `p`, and `sum` to `status`, `doctor`, `plan`, and `summarize`.
+
+### Per-repo onboarding checklist
+
+Status: partially implemented in `doctor`.
+
+Current behavior:
+
+- `doctor --json` includes an `onboardingChecklist` payload.
+- Text `doctor` prints an onboarding checklist section.
+- The checklist recommends missing architecture, testing, deployment, app notes, and visual workflow docs.
+- Visual workflow docs are required only when visual checks are configured.
+- Missing onboarding docs are warnings/recommendations, not hard doctor failures.
+
+Follow-up: expand the checklist by repo profile and allow custom checklist items in config.
+
+Main files:
+
+- `scripts/lib/onboarding-checklist.mjs`
+- `scripts/lib/doctor-command.mjs`
+- `tests/command-layer.test.mjs`
 
 ### Per-command help and global flags
 
@@ -776,15 +867,25 @@ Current coverage:
 
 Main files:
 
+- `tests/archive-commands.test.mjs`
+- `tests/backlog-import-commands.test.mjs`
 - `tests/config-validation.test.mjs`
 - `tests/bootstrap.test.mjs`
+- `tests/check-syntax.test.mjs`
 - `tests/command-layer.test.mjs`
+- `tests/command-snapshots.test.mjs`
+- `tests/core-mutation-safety.test.mjs`
+- `tests/error-formatting.test.mjs`
+- `tests/github-status.test.mjs`
 - `tests/read-only-commands.test.mjs`
 - `tests/git-policy.test.mjs`
 - `tests/lock-runtime.test.mjs`
 - `tests/planner-sizing.test.mjs`
+- `tests/resource-leases.test.mjs`
 - `tests/roadmap-commands.test.mjs`
-- `tests/command-snapshots.test.mjs`
+- `tests/template-commands.test.mjs`
+- `tests/update-commands.test.mjs`
+- `tests/workspace-snapshot-commands.test.mjs`
 
 Follow-up tests still needed:
 
@@ -825,6 +926,27 @@ Follow-up:
 - Test `npx github:Jlipschitz/ai_agents doctor` in a fresh target repo.
 - Decide whether/when this should become a published npm package.
 
+### Public CLI version output
+
+Status: partially implemented.
+
+```bash
+ai-agents --version
+ai-agents version
+```
+
+Current behavior:
+
+- Prints the package name and package version.
+- Prints the active Node runtime version.
+- Runs from the dedicated public CLI entrypoint.
+
+Follow-up: expand output with config version, config path, coordination root, and board schema version.
+
+Main files:
+
+- `bin/ai-agents.mjs`
+
 ### CI workflow
 
 Status: implemented.
@@ -842,13 +964,95 @@ The workflow runs on Node 24 and uses:
 - `npm run validate:agents-config`
 - `npm test`
 
+### Developer experience baseline
+
+Status: partially implemented.
+
+Current behavior:
+
+- `npm run check` runs the local syntax checker.
+- `npm run lint` exists as an alias for the syntax checker.
+- Node version hints are checked into `.nvmrc` and `.node-version`.
+- The package lock marks the package as `UNLICENSED`.
+
+Follow-up: add a real lint/style tool, formatter, type or JSDoc validation, contribution docs, security policy, license file, and examples directory.
+
+Main files:
+
+- `package.json`
+- `scripts/check-syntax.mjs`
+- `tests/check-syntax.test.mjs`
+
 ## Not Yet Implemented
 
-These roadmap items still need core or deeper implementation work:
+These roadmap items still need core, command-layer, or documentation work.
 
-- `doctor --fix` integration inside the core implementation rather than the command layer.
-- `doctor --json` integration inside the core implementation rather than the command layer.
-- Deeper integration of planner sizing helper into the core planner.
-- More complete lifecycle helpers with configurable verification/doc-review gates.
-- `summarize` output that includes richer dependency and owner context from journal/message-derived history.
+### Core integration and command depth
+
+- Core-native `doctor --fix` and `doctor --json` integration instead of command-layer wrappers.
+- Direct planner integration for `scripts/planner-sizing.mjs`.
+- More configurable lifecycle and approval gates beyond the current `finish` verification/docs flags.
+- Richer `summarize` context from dependency, ownership, journal, and message history.
 - Core-native lock diagnostics instead of the standalone utility wrapper.
+- Automatic workspace snapshots for remaining legacy lifecycle mutations.
+- Rollback semantics for external side effects such as Git branch deletion.
+
+### Planning, prompting, and release support
+
+- Visual-specific check runner behavior, including before/after artifact-root diffs and richer artifact classification.
+- Full artifact index rebuild and stricter artifact-root policies for manual `verify --artifact` attachments.
+- Dedicated `timeline` or session-replay command.
+- Multi-repo dashboard.
+
+### Verification, risk, and GitHub integration
+
+- Risk scoring.
+- Critical path planning.
+- Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
+- Contract files for shared API/schema work.
+- Incident mode.
+- GitHub write/API integration for issues, PR comments, labels, and checklists.
+- State compaction.
+- Repo bootstrap profiles.
+- TUI dashboard.
+- Universal JSON output for every command.
+
+### Safety, auditing, and recovery
+
+- Secrets and sensitive-data guardrails.
+- Concurrency stress tests for parallel claims, releases, waits, and verifies.
+- Shell completion generation.
+- Full policy enforcement mode with warn/block semantics across risky scopes.
+- Approval ledger.
+- Open-ended model-backed natural-language query mode.
+- Local web dashboard.
+- Signed releases.
+- Self-update safety with diff review.
+
+### Advanced coordination and scaling
+
+- Workspace health score.
+- Partial checkout and monorepo support.
+- Task priority, due date, severity, and escalation metadata.
+- Escalation routing.
+- Reusable runbooks.
+- Semantic path grouping.
+- Task split validation.
+- Work stealing.
+- Agent reputation or history.
+- Cost/time accounting.
+- Dedicated review queue lifecycle.
+- External calendar or reminder hooks.
+- Config inheritance.
+- Offline mode.
+- Data privacy modes.
+
+### Developer experience and repo maintenance
+
+- Dedicated linting beyond syntax checks.
+- Formatting command and configuration.
+- Type checking or JSDoc validation.
+- `CONTRIBUTING.md`.
+- `SECURITY.md`.
+- `LICENSE`.
+- Example repos under `examples/`.

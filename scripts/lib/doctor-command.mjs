@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { fileExists, nowIso } from './file-utils.mjs';
 import { execGit } from './git-utils.mjs';
+import { buildOnboardingChecklist } from './onboarding-checklist.mjs';
 import { normalizePath } from './path-utils.mjs';
 
 function gitignorePatternMatches(pattern, normalizedPath) {
@@ -36,7 +37,9 @@ export function createDoctorCommand(context) {
     docsRoots,
     domainRules,
     getBoardSnapshot,
+    packageJson,
     projectName,
+    rawConfig,
     readAgentHeartbeats,
     readJson,
     root,
@@ -111,6 +114,7 @@ export function createDoctorCommand(context) {
     const warnings = [];
     const passes = [];
     const check = { findings, warnings, passes };
+    const onboardingChecklist = buildOnboardingChecklist({ root, config: rawConfig, packageJson });
 
     if (fileExists(agentConfigPath)) {
       passes.push(`Config loaded: ${normalizePath(path.relative(root, agentConfigPath))}`);
@@ -184,6 +188,10 @@ export function createDoctorCommand(context) {
       passes.push(`Domain rules: ${domainRules.map((rule) => rule.name).join(', ')}`);
     }
 
+    for (const recommendation of onboardingChecklist.recommendations) {
+      warnings.push(`Onboarding: ${recommendation}`);
+    }
+
     const board = getBoardSnapshot();
     if (board) {
       const boardFindings = validateBoard(board, {
@@ -209,6 +217,14 @@ export function createDoctorCommand(context) {
     lines.push('');
     lines.push(`Warnings (${warnings.length}):`);
     lines.push(...(warnings.length ? warnings.map((entry) => `- ${entry}`) : ['- none']));
+    lines.push('');
+    lines.push('Onboarding checklist:');
+    lines.push(
+      ...onboardingChecklist.items.map((item) => {
+        const location = item.foundPath ? ` (${item.foundPath})` : '';
+        return `- ${item.status}: ${item.label}${location}`;
+      })
+    );
     lines.push('');
     lines.push(`Findings (${findings.length}):`);
     lines.push(...(findings.length ? findings.map((entry) => `- ${entry}`) : ['- none']));

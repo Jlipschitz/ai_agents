@@ -145,7 +145,7 @@ Useful modes:
 - `--json`: prints machine-readable doctor output including config validation and Git state.
 - `--fix`: creates safe missing starter files/folders, updates `.gitignore`, adds missing package scripts, and creates starter app notes.
 
-The JSON output includes `configSuggestions`, a list of non-blocking config improvement recommendations such as missing visual checks, missing docs roots, branch policy gaps, or missing domain rules for detected repo types.
+The JSON output includes `configSuggestions`, a list of non-blocking config improvement recommendations such as missing visual checks, missing docs roots, branch policy gaps, or missing domain rules for detected repo types. It also includes `onboardingChecklist` recommendations for architecture, testing, deployment, app notes, and visual workflow docs.
 
 ### `heartbeat-status`
 
@@ -241,6 +241,18 @@ npm run agents -- release-bundle task-id --out-dir artifacts/releases/manual --a
 ```
 
 By default this is a dry run. With `--apply`, files are written under `artifacts/releases/<timestamp>/` unless `--out-dir` is provided.
+
+### `changelog`
+
+Generates human-readable release notes from current and archived completed work.
+
+```bash
+npm run agents:changelog
+npm run agents -- changelog --since 2026-01-01
+npm run agents -- changelog --json
+```
+
+The changelog includes done and released tasks from `board.json` plus archived tasks from `coordination/archive/tasks-*.json`, grouped by month. Entries include summaries, claimed paths, latest verification outcomes, and relevant docs when present.
 
 ## Setup Commands
 
@@ -365,6 +377,30 @@ npm run agents -- plan "Improve mobile task modal"
 ```
 
 Planner lane sizing is covered by `scripts/planner-sizing.mjs`, which classifies likely product, data, verify, and docs lanes from the configured `planning.agentSizing` keywords. The helper is currently used as a regression-test target so planner sizing behavior can be stabilized before deeper core planner refactors.
+
+### `prompt`
+
+Generates copy-ready assignment context for an agent.
+
+```bash
+npm run agents:prompt -- agent-1
+npm run agents -- prompt agent-1 task-ui
+npm run agents -- prompt agent-1 --json
+```
+
+The prompt includes the assigned task, objective, claimed paths, dependency status, relevant docs, docs-review state, verification expectations, recent task notes, and next actions. If a task ID is omitted, the command uses the agent's recorded assignment or active owned task.
+
+### `ask`
+
+Answers common coordination questions from the current board.
+
+```bash
+npm run agents:ask -- "what is blocked?"
+npm run agents -- ask "who owns src/path?"
+npm run agents -- ask "what can agent-2 do next?" --json
+```
+
+Supported question patterns include blocked/waiting/review/handoff work, stale active work, task status, path or task ownership, and next ready work for an agent. The command is deterministic and read-only; it does not call an external model.
 
 ### `graph`
 

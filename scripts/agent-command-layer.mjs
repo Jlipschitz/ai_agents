@@ -5,9 +5,11 @@ import { spawn, spawnSync } from 'node:child_process';
 import { validateAgentConfig, readJsonFile } from './validate-config.mjs';
 import { runCli as runLockRuntimeCli } from './lock-runtime.mjs';
 import { hasFlag, getFlagValue, getNumberFlag, getPositionals } from './lib/args-utils.mjs';
+import { runAskCommand } from './lib/ask-commands.mjs';
 import { runArchiveCompleted } from './lib/archive-commands.mjs';
 import { appendAuditLog, auditLogPath } from './lib/audit-log.mjs';
 import { runBacklogImport } from './lib/backlog-import-commands.mjs';
+import { runChangelogCommand } from './lib/changelog-commands.mjs';
 import { createArtifactCommands } from './lib/artifact-commands.mjs';
 import { runBranchStatus } from './lib/branch-commands.mjs';
 import { createStarterBoard } from './lib/board-migration.mjs';
@@ -18,8 +20,10 @@ import { DEFAULT_GIT_POLICY, getGitSnapshot } from './lib/git-utils.mjs';
 import { runGitHubStatus } from './lib/github-commands.mjs';
 import { hasHelpFlag, runCommandHelp } from './lib/help-command.mjs';
 import { runOwnershipReview, runTestImpact } from './lib/impact-commands.mjs';
+import { buildOnboardingChecklist } from './lib/onboarding-checklist.mjs';
 import { writePackageScripts } from './lib/package-json-utils.mjs';
 import { normalizePath, resolveConfigPath, resolveCoordinationRoot, resolveRepoPath } from './lib/path-utils.mjs';
+import { runPromptCommand } from './lib/prompt-commands.mjs';
 import { runCleanupRuntime, runWatchDiagnose } from './lib/runtime-diagnostics.mjs';
 import { withStateTransactionSync } from './lib/state-transaction.mjs';
 import { runTemplates } from './lib/template-commands.mjs';
@@ -57,6 +61,9 @@ const COMMAND_LAYER_COMMANDS = new Set([
   'update-coordinator',
   'snapshot-workspace',
   'backlog-import',
+  'prompt',
+  'ask',
+  'changelog',
 ]);
 const COMMAND_ALIASES = new Map([
   ['s', 'status'],
@@ -213,6 +220,24 @@ function getBacklogImportContext() {
   };
 }
 
+function getPromptCommandContext() {
+  const paths = getCoordinationPaths();
+  return {
+    root: ROOT,
+    paths,
+    board: readJsonSafe(paths.boardPath, { tasks: [], agents: [] }),
+  };
+}
+
+function getAskCommandContext() {
+  const paths = getCoordinationPaths();
+  return {
+    root: ROOT,
+    paths,
+    board: readJsonSafe(paths.boardPath, { tasks: [], agents: [] }),
+  };
+}
+
 function createStarterConfig(configPath) {
   writeJson(configPath, {
     configVersion: 1,
@@ -285,6 +310,9 @@ function expectedPackageScripts() {
       'agents:update': 'ai-agents update-coordinator',
       'agents:snapshot:workspace': 'ai-agents snapshot-workspace',
       'agents:backlog:import': 'ai-agents backlog-import',
+      'agents:prompt': 'ai-agents prompt',
+      'agents:ask': 'ai-agents ask',
+      'agents:changelog': 'ai-agents changelog',
       'validate:agents-config': 'ai-agents validate --json',
     };
   }
@@ -333,6 +361,9 @@ function expectedPackageScripts() {
     'agents:update': 'node ./scripts/agent-coordination.mjs update-coordinator',
     'agents:snapshot:workspace': 'node ./scripts/agent-coordination.mjs snapshot-workspace',
     'agents:backlog:import': 'node ./scripts/agent-coordination.mjs backlog-import',
+    'agents:prompt': 'node ./scripts/agent-coordination.mjs prompt',
+    'agents:ask': 'node ./scripts/agent-coordination.mjs ask',
+    'agents:changelog': 'node ./scripts/agent-coordination.mjs changelog',
     'agents2': 'node ./scripts/agent-coordination-two.mjs',
     'agents2:init': 'node ./scripts/agent-coordination-two.mjs init',
     'agents2:plan': 'node ./scripts/agent-coordination-two.mjs plan',
@@ -372,6 +403,9 @@ function expectedPackageScripts() {
     'agents2:update': 'node ./scripts/agent-coordination-two.mjs update-coordinator',
     'agents2:snapshot:workspace': 'node ./scripts/agent-coordination-two.mjs snapshot-workspace',
     'agents2:backlog:import': 'node ./scripts/agent-coordination-two.mjs backlog-import',
+    'agents2:prompt': 'node ./scripts/agent-coordination-two.mjs prompt',
+    'agents2:ask': 'node ./scripts/agent-coordination-two.mjs ask',
+    'agents2:changelog': 'node ./scripts/agent-coordination-two.mjs changelog',
     'validate:agents-config': 'node ./scripts/validate-config.mjs',
   };
 }
@@ -1033,9 +1067,10 @@ function doctorJson({ includeFixes = false } = {}) {
   const configValidation = validateAgentConfig(config, { root: ROOT });
   const { packageJson } = loadPackageJson();
   const configSuggestions = buildConfigSuggestions(config, configValidation, packageJson);
+  const onboardingChecklist = buildOnboardingChecklist({ root: ROOT, config, packageJson });
   const paths = getCoordinationPaths();
   const git = getGitSnapshot({ root: ROOT, config });
-  const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, configSuggestions, git, files: { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) } };
+  const result = { ok: configValidation.valid && git.errors.length === 0, projectName: config.projectName || path.basename(ROOT), root: ROOT, coordinationRoot: paths.coordinationRoot, configPath, configValidation, configSuggestions, onboardingChecklist, git, files: { board: fs.existsSync(paths.boardPath), journal: fs.existsSync(paths.journalPath), messages: fs.existsSync(paths.messagesPath), runtime: fs.existsSync(paths.runtimeRoot), tasks: fs.existsSync(paths.tasksRoot) } };
   if (includeFixes) result.fixes = fixes;
   return result;
 }
@@ -1283,6 +1318,9 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   else if (commandName === 'update-coordinator') status = runUpdateCoordinator(commandArgs, { root: ROOT });
   else if (commandName === 'snapshot-workspace') status = runSnapshotWorkspace(commandArgs, getCoordinationPaths());
   else if (commandName === 'backlog-import') status = runBacklogImport(commandArgs, getBacklogImportContext());
+  else if (commandName === 'prompt') status = runPromptCommand(commandArgs, getPromptCommandContext());
+  else if (commandName === 'ask') status = runAskCommand(commandArgs, getAskCommandContext());
+  else if (commandName === 'changelog') status = runChangelogCommand(commandArgs, getCoordinationPaths());
   process.exit(status);
 }
 

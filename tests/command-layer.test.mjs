@@ -97,6 +97,8 @@ test('doctor --json reports config validation and git fields', () => {
   assert.equal(payload.ok, true);
   assert.equal(payload.configValidation.valid, true);
   assert.equal(Array.isArray(payload.configSuggestions), true);
+  assert.equal(Array.isArray(payload.onboardingChecklist.items), true);
+  assert.ok(payload.onboardingChecklist.missing.includes('architecture'));
   assert.equal(typeof payload.git.available, 'boolean');
 });
 
@@ -105,6 +107,7 @@ test('doctor text output routes through core diagnostics', () => {
   const result = run(root, ['doctor']);
 
   assert.match(result.stdout, /Agent coordination doctor/);
+  assert.match(result.stdout, /Onboarding checklist:/);
   assert.doesNotMatch(result.stderr, /execGit is not defined/);
 });
 
