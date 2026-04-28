@@ -27,6 +27,27 @@ Main files:
 - `scripts/bootstrap.mjs`
 - `tests/bootstrap.test.mjs`
 
+### Runtime and CI baseline
+
+Status: implemented.
+
+The repo now targets Node 24 consistently:
+
+- `package.json` uses `engines.node: >=24`.
+- `.nvmrc` is set to `24`.
+- `.node-version` is set to `24`.
+- CI uses `actions/setup-node@v4` with `node-version: 24`.
+- CI installs with `npm ci`.
+- CI enables npm cache keyed by `package-lock.json`.
+
+Main files:
+
+- `package.json`
+- `package-lock.json`
+- `.nvmrc`
+- `.node-version`
+- `.github/workflows/ci.yml`
+
 ### Command layer
 
 Status: implemented.
@@ -262,8 +283,11 @@ Main file:
 
 - `.github/workflows/ci.yml`
 
-The workflow runs:
+The workflow runs on Node 24 and uses:
 
+- `actions/setup-node@v4`
+- npm cache keyed by `package-lock.json`
+- `npm ci`
 - `npm run check`
 - `npm run validate:agents-config`
 - `npm test`
