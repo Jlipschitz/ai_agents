@@ -172,9 +172,13 @@ Runtime diagnostics and cleanup:
 
 ```bash
 npm run agents -- watch-diagnose
+npm run agents -- watch-diagnose --json
 npm run agents -- cleanup-runtime
+npm run agents -- cleanup-runtime --json
 npm run agents -- cleanup-runtime --apply
 ```
+
+`cleanup-runtime` is a dry run unless `--apply` is passed. Its JSON output includes `recoveryActions` for stale watcher status and stale heartbeat files, and `recovered` lists the actions completed by `--apply`. This recovery removes stale runtime status files only; it does not stop live processes or modify the board.
 
 ## Heartbeat Not Updating
 

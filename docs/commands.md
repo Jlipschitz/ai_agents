@@ -6,7 +6,24 @@ Use the public entrypoint when installed as a package:
 
 ```bash
 ai-agents <command>
+npx ai-agents <command>
 npm run ai-agents -- <command>
+```
+
+Package install examples:
+
+```bash
+npm install --save-dev ai-agents
+npx ai-agents init
+npx ai-agents doctor
+npx ai-agents status
+```
+
+Before an npm release is available, the same binary can be smoke-tested from GitHub:
+
+```bash
+npx github:OWNER/ai_agents --version
+npx github:OWNER/ai_agents doctor
 ```
 
 Use the compatibility wrappers when the repo has copied coordinator scripts:
@@ -147,6 +164,30 @@ npm run agents -- publish-check --strict
 ```
 
 The command does not contact npm. It reports blockers such as `private: true`, invalid name/version metadata, missing `bin.ai-agents`, or missing required docs. Without `--strict`, findings are reported but the command exits 0 so private/internal repos can use it as an advisory check.
+
+Publishing expectations:
+
+- `package.json` name is `ai-agents`.
+- `package.json` version is valid semver and is bumped for each release.
+- `package.json` has `private: true` removed for the public release.
+- `bin.ai-agents` points at `./bin/ai-agents.mjs`.
+- The public executable works as `ai-agents <command>` and `npx ai-agents <command>`.
+
+Recommended local package verification:
+
+```bash
+npm ci
+npm run check
+npm run lint
+npm run jsdoc:check
+npm run format:check
+npm run validate:agents-config
+npm test
+npm run agents:publish:check
+npm run agents -- publish-check --strict
+npm pack --dry-run
+npm publish --dry-run
+```
 
 ### `status`
 
@@ -544,9 +585,10 @@ Generates a task split from a natural-language work description using configured
 ```bash
 npm run agents:plan -- "Build task labels and reporting"
 npm run agents -- plan "Improve mobile task modal"
+npm run agents -- plan "Build UI API tests and docs guide" --apply
 ```
 
-Planner lane sizing is covered by `scripts/planner-sizing.mjs`, which classifies likely product, data, verify, and docs lanes from the configured `planning.agentSizing` keywords. The helper is currently used as a regression-test target so planner sizing behavior can be stabilized before deeper core planner refactors.
+Planner lane sizing uses `scripts/planner-sizing.mjs` directly. It classifies likely product, data, verify, and docs lanes from configured `planning.agentSizing` keywords, records sizing metadata on saved plans, and uses that result to choose the generated task lanes.
 
 ### `prompt`
 
@@ -858,9 +900,10 @@ Plans GitHub PR or issue write operations locally without contacting GitHub.
 npm run agents -- github-plan pr 42 --comment "Ready for review." --label needs-review --checklist "tests pass|docs updated"
 npm run agents -- github-plan issue 7 --comment "Follow-up note." --json
 npm run agents -- github-plan https://github.com/OWNER/REPO/pull/42 --label package-d --json
+npm run agents -- github-plan pr 42 --comment "Ready for review." --check-apply-readiness --json
 ```
 
-The command supports PR/issue comments, labels, and checklist comments. It is dry-run only: `--apply` is accepted for future compatibility but is explicitly blocked and performs no writes unless a future live-write flag is added. `privacy.mode: "redacted"` or `"local-only"` redacts planned comment, label, and checklist text in output, and offline mode reports that no GitHub API or CLI writes will be attempted.
+The command supports PR/issue comments, labels, and checklist comments. It is dry-run only: `--apply` is accepted for future compatibility but is explicitly blocked and performs no writes unless a future live-write flag is added. `--check-apply-readiness` is a read-only gate that reports GitHub CLI availability, token-env auth state, offline/privacy blockers, outbound redaction state, and sensitive configured redaction-pattern matches. `privacy.mode: "redacted"` or `"local-only"` redacts planned comment, label, and checklist text in output, and offline mode reports that no GitHub API or CLI writes will be attempted.
 
 ### `claim`
 
@@ -1301,9 +1344,11 @@ npm run agents -- artifacts inspect artifacts/checks/example.log
 npm run agents -- artifacts inspect artifacts/checks/example.log --json
 npm run agents -- artifacts prune
 npm run agents -- artifacts prune --apply --json
+npm run agents -- artifacts rebuild-index
+npm run agents -- artifacts rebuild-index --apply --json
 ```
 
-`artifacts report` checks verification-log artifact references and reports missing evidence files without mutating state. `artifacts prune` is dry-run by default. It keeps artifacts referenced by active work, honors configured protected patterns, applies separate retention for failed checks, and can prune oldest eligible files when artifact storage exceeds `artifacts.maxMb`.
+`artifacts report` checks verification-log artifact references and reports missing evidence files without mutating state. `artifacts prune` is dry-run by default. It keeps artifacts referenced by active work, honors configured protected patterns, applies separate retention for failed checks, and can prune oldest eligible files when artifact storage exceeds `artifacts.maxMb`. `artifacts rebuild-index` scans configured artifact roots and rewrites `artifacts/checks/index.ndjson` only with `--apply`.
 
 ## Notes and Messaging
 

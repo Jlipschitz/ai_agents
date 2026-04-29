@@ -113,7 +113,12 @@ export function buildRuntimeDiagnostics(argv = [], paths) {
   const suggestions = [];
   if (lock.stale) problems.push(`Runtime lock is stale: ${lock.staleReasons.join(', ')}`);
   if (watcher.stale) problems.push(`Watcher status is stale: ${watcher.staleReasons.join(', ')}`);
-  if (staleHeartbeats.length) problems.push(`${staleHeartbeats.length} stale heartbeat file(s) found.`);
+  if (staleHeartbeats.length) {
+    const details = staleHeartbeats
+      .map((entry) => `${entry.agentId}: ${entry.staleReasons.join(', ')}`)
+      .join('; ');
+    problems.push(`${staleHeartbeats.length} stale heartbeat file(s) found: ${details}`);
+  }
   if (!watcher.exists) suggestions.push('Start the watcher with watch-start if automatic stale-work recovery is desired.');
   if (lock.stale || watcher.stale || staleHeartbeats.length) suggestions.push('Run cleanup-runtime --apply after confirming no coordinator command is still running.');
   return { ok: problems.length === 0, staleMs, coordinationRoot: paths.coordinationRoot, lock, watcher, heartbeats, problems, suggestions };
@@ -140,14 +145,44 @@ export function runWatchDiagnose(argv, paths) {
   return report.ok ? 0 : 1;
 }
 
+function cleanupActionFor(kind) {
+  if (kind === 'lock') return 'remove-stale-runtime-lock';
+  if (kind === 'watcher-status') return 'recover-stale-watcher-status';
+  if (kind === 'heartbeat') return 'recover-stale-heartbeat';
+  return 'remove-stale-runtime-file';
+}
+
+function cleanupDescriptionFor(candidate) {
+  if (candidate.kind === 'watcher-status') return 'remove stale watcher status so watch-start can recreate it';
+  if (candidate.kind === 'heartbeat') return `remove stale heartbeat for ${candidate.agentId}`;
+  if (candidate.kind === 'lock') return 'remove stale runtime lock';
+  return 'remove stale runtime file';
+}
+
 export function runCleanupRuntime(argv, paths) {
   const apply = hasFlag(argv, '--apply');
   const json = hasFlag(argv, '--json');
   const report = buildRuntimeDiagnostics(argv, paths);
   const candidates = [];
-  if (report.lock.exists && report.lock.stale) candidates.push({ kind: 'lock', path: report.lock.path, reasons: report.lock.staleReasons });
-  if (report.watcher.exists && report.watcher.stale) candidates.push({ kind: 'watcher-status', path: report.watcher.path, reasons: report.watcher.staleReasons });
-  for (const heartbeat of report.heartbeats.filter((entry) => entry.stale)) candidates.push({ kind: 'heartbeat', path: heartbeat.path, reasons: heartbeat.staleReasons });
+  if (report.lock.exists && report.lock.stale) candidates.push({ kind: 'lock', action: cleanupActionFor('lock'), path: report.lock.path, reasons: report.lock.staleReasons });
+  if (report.watcher.exists && report.watcher.stale) candidates.push({ kind: 'watcher-status', action: cleanupActionFor('watcher-status'), path: report.watcher.path, reasons: report.watcher.staleReasons });
+  for (const heartbeat of report.heartbeats.filter((entry) => entry.stale)) {
+    candidates.push({
+      kind: 'heartbeat',
+      action: cleanupActionFor('heartbeat'),
+      agentId: heartbeat.agentId,
+      path: heartbeat.path,
+      reasons: heartbeat.staleReasons,
+    });
+  }
+  const recoveryActions = candidates.map((candidate) => ({
+    action: candidate.action,
+    kind: candidate.kind,
+    path: candidate.path,
+    agentId: candidate.agentId ?? null,
+    reasons: candidate.reasons,
+    description: cleanupDescriptionFor(candidate),
+  }));
   const removed = [];
   if (apply) {
     withStateTransactionSync(candidates.map((candidate) => candidate.path), () => {
@@ -157,11 +192,24 @@ export function runCleanupRuntime(argv, paths) {
       }
     });
   }
-  const result = { ok: true, applied: apply, candidates, removed };
+  const result = {
+    ok: true,
+    applied: apply,
+    candidates,
+    recoveryActions,
+    recovered: apply ? removed.map((candidate) => ({
+      action: candidate.action,
+      kind: candidate.kind,
+      path: candidate.path,
+      agentId: candidate.agentId ?? null,
+      reasons: candidate.reasons,
+    })) : [],
+    removed,
+  };
   if (json) console.log(JSON.stringify(result, null, 2));
   else {
     console.log(apply ? 'Runtime cleanup applied.' : 'Runtime cleanup dry run.');
-    console.log(candidates.length ? candidates.map((entry) => `- ${entry.kind}: ${normalizePath(entry.path) || entry.path} (${entry.reasons.join(', ')})`).join('\n') : '- nothing to clean');
+    console.log(recoveryActions.length ? recoveryActions.map((entry) => `- ${entry.action}: ${normalizePath(entry.path) || entry.path} (${entry.reasons.join(', ')})`).join('\n') : '- nothing to clean');
   }
   return 0;
 }

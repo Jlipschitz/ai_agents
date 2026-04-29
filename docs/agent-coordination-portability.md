@@ -2,6 +2,26 @@
 
 The `agents` and `agents2` commands are driven by `agent-coordination.config.json`, so the coordinator can be installed into another repo without editing the core script.
 
+## Package Install Flow
+
+When `ai-agents` is available from npm, use the package entrypoint directly:
+
+```bash
+npm install --save-dev ai-agents
+npx ai-agents init
+npx ai-agents doctor
+npx ai-agents status
+```
+
+Before npm publication, verify the same executable from GitHub:
+
+```bash
+npx github:OWNER/ai_agents --version
+npx github:OWNER/ai_agents doctor
+```
+
+Package-based installs use the public `ai-agents` binary from `package.json` `bin.ai-agents`. The package name should remain `ai-agents`, the binary should remain `ai-agents`, and the bin target should remain `./bin/ai-agents.mjs` so `npx ai-agents <command>` works consistently.
+
 ## Recommended Install Flow
 
 From the `ai_agents` repo, preview the install:
@@ -80,6 +100,32 @@ Manual equivalent:
 Run `npm run agents:init` or `npm run agents2:init` in the new repo to create the local coordination workspace.
 
 Run `npm run validate:agents-config`, then `npm run agents:doctor` or `npm run agents2:doctor` after copying to verify config paths, package scripts, ignored runtime folders, docs, visual checks, and current board state.
+
+## Publish Readiness
+
+Before publishing the package, confirm:
+
+- `package.json` has `name: "ai-agents"` and a semver `version`.
+- `private: true` is removed only for the public release commit.
+- `bin.ai-agents` points at `./bin/ai-agents.mjs`.
+- `README.md`, `docs/commands.md`, and this portability guide describe the public `npx ai-agents` flow.
+- The local checks pass and the package contents look correct.
+
+Recommended verification:
+
+```bash
+npm ci
+npm run check
+npm run lint
+npm run jsdoc:check
+npm run format:check
+npm run validate:agents-config
+npm test
+npm run agents:publish:check
+npm run agents -- publish-check --strict
+npm pack --dry-run
+npm publish --dry-run
+```
 
 ## Configure A New App
 

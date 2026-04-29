@@ -27,14 +27,14 @@ Next recommended work:
 - [x] JSON schema for config
 - [x] Focused tests
 - [x] Cross-platform watcher
-- [~] Package install flow — package/bin flow exists; public npm publishing remains open.
+- [~] Package install flow — package/bin flow and `npx` install docs exist; public npm publishing remains open.
 - [~] Better Git awareness — pre-claim Git preflight exists; richer PR/stale-branch checks remain open.
 - [x] Board summary/export
 
 ## Phase 2: Task Lifecycle and Daily Workflow
 
 - [~] Single-command task lifecycle — `start`, `finish`, and `handoff-ready` exist; more configurable gates remain open.
-- [~] Agent capacity rules — claim-time active/blocked/domain gates exist; richer planner integration remains open.
+- [x] Agent capacity rules — claim-time active/blocked/domain gates exist, and planner lane sizing is wired into `plan`.
 - [~] Conflict prediction — claim-time local Git overlap detection exists; richer merge prediction remains open.
 - [~] Machine identity — terminal/session identity is partially supported.
 - [~] Remote sync checks — ahead/behind warnings are partially covered before claim.
@@ -50,7 +50,7 @@ Next recommended work:
 
 - [~] Plugin-style checks - `run-check` can run package scripts or explicit commands; configurable check plugins remain open.
 - [x] Visual check runner and artifact capture
-- [~] Artifact index and manual attachments - `run-check` writes `artifacts/checks/index.ndjson`; `verify --artifact`, `artifacts list/inspect`, and missing-reference reports exist; deeper index rebuild remains open.
+- [~] Artifact index and manual attachments - `run-check` writes `artifacts/checks/index.ndjson`; `verify --artifact`, `artifacts list/inspect`, missing-reference reports, and `artifacts rebuild-index` exist; stricter manual artifact-root policy remains open.
 - [x] Path ownership map
 - [x] Dependency graph output
 - [x] PR handoff generator
@@ -76,13 +76,13 @@ Next recommended work:
 - [x] Human approval gates
 - [x] Incident mode
 - [~] Backlog importer — Markdown TODO import exists; GitHub issue import remains open.
-- [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; `github-plan` dry-runs PR/issue comments, labels, and checklist comments. Live write/API integration remains open.
+- [~] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; `github-plan` dry-runs PR/issue comments, labels, and checklist comments, with read-only apply-readiness checks. Live write/API integration remains open.
 - [x] State compaction
 - [~] Agent SLA warnings — stale active work appears in `summarize`.
 - [~] Ownership reviews — `ownership-review` flags broad claims and CODEOWNERS boundary crossings; periodic automation remains open.
 - [~] Test impact selection — `test-impact` maps paths to configured checks; deeper dependency-aware selection remains open.
 - [x] Repo bootstrap profiles
-- [~] Portable npm package — package shape and bin exist; publishing remains open.
+- [~] Portable npm package — package shape, bin, install docs, and publish readiness commands exist; publishing remains open.
 - [x] TUI dashboard
 - [~] JSON API mode — available for key commands, not yet universal.
 - [x] Policy packs
@@ -143,14 +143,14 @@ Next recommended work:
 - [x] Add dedicated CLI entrypoint
 - [x] Keep existing wrappers as compatibility aliases
 - [x] Add version command
-- [~] Add installation documentation — basic docs exist; npm-published docs remain open.
+- [~] Add installation documentation — local, GitHub `npx`, and npm package flows are documented; npm-published docs remain open.
 
 ## Phase 9: Watcher and Runtime Diagnostics
 
 - [x] Add watcher diagnostics command
 - [x] Add runtime cleanup command
 - [x] Keep PowerShell watcher as legacy fallback
-- [~] Add watcher failure recovery — partially covered by status/doctor/lock diagnostics and `watch-diagnose`; richer automatic recovery remains open.
+- [~] Add watcher failure recovery — `watch-diagnose` reports stale heartbeat details and `cleanup-runtime` reports/applies explicit stale-runtime recovery actions; live process recovery remains open.
 
 ## Phase 10: Config Developer Experience
 

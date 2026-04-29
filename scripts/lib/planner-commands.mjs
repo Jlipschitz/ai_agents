@@ -1,6 +1,7 @@
 import { nowIso } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 import { formatTaskDueAt, taskMetadataFromOptions } from './task-metadata.mjs';
+import { classifyPlannerLanes } from '../planner-sizing.mjs';
 
 function normalizePaths(inputs) {
   return [...new Set(inputs.map((entry) => normalizePath(entry)).filter(Boolean))].sort();
@@ -42,10 +43,6 @@ export function createPlannerCommands(context) {
     return agentIds[index] ?? agentIds[agentIds.length - 1] ?? defaultAgentIds[index] ?? defaultAgentIds[0];
   }
 
-  function hasAnyToken(tokens, keywords) {
-    return keywords.some((keyword) => tokens.includes(keyword));
-  }
-
   function collectExplicitMatchedDomains(goal) {
     const loweredGoal = goal.toLowerCase();
     return domainRules.filter((rule) => rule.keywords.some((keyword) => loweredGoal.includes(keyword)));
@@ -62,78 +59,34 @@ export function createPlannerCommands(context) {
   }
 
   function buildPlanSizing({ goal, gitBuckets, effectiveDomains, explicitDomains, complexityScore }) {
-    const tokens = [...new Set(String(goal || '')
-      .toLowerCase()
-      .split(/[^a-z0-9]+/)
-      .filter((token) => token.length >= 3))];
-    const dataSignal = Boolean(gitBuckets.data.length) || hasAnyToken(tokens, planningAgentSizing.dataKeywords);
-    const verifySignal = Boolean(gitBuckets.verify.length) || hasAnyToken(tokens, planningAgentSizing.verifyKeywords);
-    const docsSignal = Boolean(gitBuckets.docs.length) || hasAnyToken(tokens, planningAgentSizing.docsKeywords);
-    const productKeywordSignal = Boolean(gitBuckets.product.length) || hasAnyToken(tokens, planningAgentSizing.productKeywords);
-    const explicitNonDocsDomain = explicitDomains.some((rule) => rule.name !== 'docs');
-    const docsOnly = docsSignal && !dataSignal && !verifySignal && !productKeywordSignal && !explicitNonDocsDomain;
-    const dataOnly = dataSignal && !docsSignal && !verifySignal && !productKeywordSignal && !explicitDomains.some((rule) => rule.scopes.product.length);
-    const verifyOnly = verifySignal && !docsSignal && !dataSignal && !productKeywordSignal && !explicitDomains.some((rule) => rule.scopes.product.length);
-    const productSignal = !docsOnly && !dataOnly && !verifyOnly;
-    const mediumComplexity = complexityScore >= planningAgentSizing.mediumComplexityScore;
-    const largeComplexity = complexityScore >= planningAgentSizing.largeComplexityScore;
-    const visualConfigured = visualRequiredChecks.length > 0 || visualSuiteUpdateChecks.length > 0;
-    const lanes = [];
-    const reasons = [];
-
-    if (docsOnly) {
-      lanes.push('docs');
-      reasons.push('docs-only goal');
-    } else if (verifyOnly) {
-      lanes.push('verify');
-      reasons.push('verification-only goal');
-    } else if (dataOnly) {
-      lanes.push('data');
-      reasons.push('data-only goal');
-    } else {
-      if (productSignal) {
-        lanes.push('product');
-        reasons.push(productKeywordSignal ? 'product/UI signal' : 'default implementation lane');
-      }
-
-      if (dataSignal) {
-        lanes.push('data');
-        reasons.push('data/backend signal');
-      }
-
-      if (verifySignal || (visualConfigured && productSignal && (dataSignal || mediumComplexity))) {
-        lanes.push('verify');
-        reasons.push(verifySignal ? 'verification signal' : 'medium UI/data complexity');
-      }
-
-      if (docsSignal || largeComplexity) {
-        lanes.push('docs');
-        reasons.push(docsSignal ? 'documentation signal' : 'large complexity needs docs cleanup');
-      }
-    }
-
-    const dedupedLanes = [...new Set(lanes)];
-    const maxAgents = Math.max(1, Math.min(planningAgentSizing.maxAgents, agentIds.length || defaultAgentIds.length));
-    const minAgents = Math.max(1, Math.min(planningAgentSizing.minAgents, maxAgents));
-    const cappedLanes = dedupedLanes.slice(0, maxAgents);
-
-    if (cappedLanes.length < minAgents) {
-      for (const lane of ['product', 'data', 'verify', 'docs']) {
-        if (cappedLanes.length >= minAgents) {
-          break;
-        }
-        if (!cappedLanes.includes(lane)) {
-          cappedLanes.push(lane);
-        }
-      }
-    }
+    const laneSignals = [
+      gitBuckets.product.length ? 'product ui component feature' : '',
+      gitBuckets.data.length ? 'data api backend database integration' : '',
+      gitBuckets.verify.length ? 'verify test coverage qa' : '',
+      gitBuckets.docs.length ? 'docs documentation readme guide' : '',
+      effectiveDomains.map((rule) => rule.name).join(' '),
+      explicitDomains.map((rule) => rule.keywords.join(' ')).join(' '),
+      visualRequiredChecks.length || visualSuiteUpdateChecks.length ? 'verify visual test' : '',
+    ].filter(Boolean).join(' ');
+    const classification = classifyPlannerLanes(`${goal} ${laneSignals}`, { planning: { agentSizing: planningAgentSizing } }, agentIds.length || defaultAgentIds.length);
+    const cappedLanes = classification.lanes
+      .map((lane) => (lane.startsWith('support-') ? 'product' : lane))
+      .filter((lane) => ['product', 'data', 'verify', 'docs'].includes(lane));
+    const lanes = [...new Set(cappedLanes.length ? cappedLanes : ['product'])];
+    const activeScores = Object.entries(classification.scores)
+      .filter(([, score]) => score > 0)
+      .map(([lane, score]) => `${lane}:${score}`);
+    const reason = activeScores.length
+      ? `shared planner sizing (${activeScores.join(', ')})`
+      : 'shared planner sizing default';
 
     return {
-      lanes: cappedLanes,
-      agentCount: cappedLanes.length,
+      lanes,
+      agentCount: lanes.length,
       availableAgentCount: agentIds.length,
-      reason: reasons.join('; ') || 'minimal default split',
-      complexityScore,
+      reason,
+      complexityScore: classification.complexityScore || complexityScore,
+      classification,
     };
   }
 
@@ -338,6 +291,7 @@ export function createPlannerCommands(context) {
       availableAgentCount: sizing.availableAgentCount,
       sizingReason: sizing.reason,
       complexityScore: sizing.complexityScore,
+      plannerSizing: sizing.classification,
       tasks,
     };
   }
@@ -414,6 +368,7 @@ export function createPlannerCommands(context) {
         availableAgentCount: plan.availableAgentCount,
         sizingReason: plan.sizingReason,
         complexityScore: plan.complexityScore,
+        plannerSizing: plan.plannerSizing,
       });
       board.tasks.push(...plan.tasks);
 

@@ -363,6 +363,38 @@ test('global config flag is honored before explain-config routing', () => {
   assert.equal(JSON.parse(result.stdout).projectName, 'Alternate Config');
 });
 
+test('plan uses shared planner sizing and persists sizing metadata', () => {
+  const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Planner Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    agents: [
+      { id: 'agent-1', status: 'idle', taskId: null },
+      { id: 'agent-2', status: 'idle', taskId: null },
+      { id: 'agent-3', status: 'idle', taskId: null },
+      { id: 'agent-4', status: 'idle', taskId: null },
+    ],
+    tasks: [],
+    plans: [],
+  });
+
+  const dryRun = run(root, ['plan', 'Build UI API tests and docs guide']);
+
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  assert.match(dryRun.stdout, /shared planner sizing/);
+  assert.match(dryRun.stdout, /Suggested agents: 4\/4/);
+
+  const applied = run(root, ['plan', 'Build UI API tests and docs guide', '--apply']);
+  const board = JSON.parse(fs.readFileSync(path.join(coordinationRoot(root), 'board.json'), 'utf8'));
+
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.equal(board.plans.length, 1);
+  assert.equal(board.plans[0].agentCount, 4);
+  assert.equal(board.plans[0].plannerSizing.recommendedAgents, 4);
+  assert.deepEqual(board.plans[0].plannerSizing.lanes, ['product', 'data', 'verify', 'docs']);
+  assert.equal(board.tasks.length, 4);
+});
+
 test('start records the message as the task summary and progress note', () => {
   const root = makeWorkspace();
   writeBoard(root, {

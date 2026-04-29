@@ -1,14 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
 
 import { makeWorkspace, runCli, snapshotFiles, writeBoard } from './helpers/workspace.mjs';
-
-function git(root, args) {
-  return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-}
 
 function makeGitHubWorkspace() {
   const workspace = makeWorkspace({ prefix: 'ai-agents-github-write-', packageName: 'github-write-test' });
@@ -17,10 +11,6 @@ function makeGitHubWorkspace() {
     tasks: [{ id: 'task-github', status: 'review', ownerId: 'agent-1', title: 'Review GitHub write plan' }],
     agents: [{ id: 'agent-1', status: 'active', taskId: 'task-github' }],
   });
-  git(workspace.root, ['init', '-b', 'main']);
-  git(workspace.root, ['config', 'user.email', 'test@example.com']);
-  git(workspace.root, ['config', 'user.name', 'Test User']);
-  git(workspace.root, ['remote', 'add', 'origin', 'git@github.com:Jlipschitz/ai_agents.git']);
   return workspace;
 }
 
@@ -28,8 +18,7 @@ test('github-plan emits dry-run PR comment, label, and checklist operations', ()
   const { root, coordinationRoot } = makeGitHubWorkspace();
   const result = runCli(root, [
     'github-plan',
-    'pr',
-    '42',
+    'https://github.com/Jlipschitz/ai_agents/pull/42',
     '--comment',
     'Ready for review.',
     '--label',
@@ -60,7 +49,7 @@ test('github-plan blocks apply and does not mutate coordination files', () => {
     path.join(coordinationRoot, 'messages.ndjson'),
   ];
   const before = snapshotFiles(files);
-  const result = runCli(root, ['github-plan', 'issue', '7', '--comment', 'Follow-up note.', '--apply', '--json'], { coordinationRoot });
+  const result = runCli(root, ['github-plan', 'https://github.com/Jlipschitz/ai_agents/issues/7', '--comment', 'Follow-up note.', '--apply', '--json'], { coordinationRoot });
   const after = snapshotFiles(files);
   const payload = JSON.parse(result.stdout);
 
@@ -99,4 +88,72 @@ test('github-plan redacts planned write text in privacy mode and honors offline 
   assert.deepEqual(payload.operations[1].labels, ['[redacted]']);
   assert.equal(payload.operations[2].body, '[redacted]');
   assert.ok(payload.warnings.some((entry) => entry.includes('Offline mode')));
+});
+
+test('github-plan readiness check blocks unredacted sensitive planned writes', () => {
+  const { root, coordinationRoot } = makeGitHubWorkspace();
+  const files = [
+    path.join(coordinationRoot, 'board.json'),
+    path.join(coordinationRoot, 'journal.md'),
+    path.join(coordinationRoot, 'messages.ndjson'),
+  ];
+  const before = snapshotFiles(files);
+  const result = runCli(root, [
+    'github-plan',
+    'https://github.com/Jlipschitz/ai_agents/pull/42',
+    '--comment',
+    'contains customer-token',
+    '--check-apply-readiness',
+    '--json',
+  ], {
+    coordinationRoot,
+    env: { GH_TOKEN: '', GITHUB_TOKEN: '', GITHUB_PAT: '', GITHUB_ENTERPRISE_TOKEN: '' },
+  });
+  const after = snapshotFiles(files);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(payload.ok, false);
+  assert.equal(payload.applyReadiness.checked, true);
+  assert.equal(payload.applyReadiness.readOnly, true);
+  assert.equal(payload.applyReadiness.liveWrites, false);
+  assert.equal(payload.applyReadiness.privacy.outboundRedaction, 'inactive');
+  assert.ok(payload.applyReadiness.privacy.sensitivePatternMatches.includes('token'));
+  assert.ok(payload.applyReadiness.blockers.some((entry) => entry.code === 'sensitive-unredacted'));
+  assert.ok(payload.applyReadiness.blockers.some((entry) => entry.code === 'auth-token-missing'));
+  assert.deepEqual(after, before);
+});
+
+test('github-plan readiness check prints text blockers without writing', () => {
+  const { root, coordinationRoot } = makeGitHubWorkspace();
+  const files = [
+    path.join(coordinationRoot, 'board.json'),
+    path.join(coordinationRoot, 'journal.md'),
+    path.join(coordinationRoot, 'messages.ndjson'),
+  ];
+  const before = snapshotFiles(files);
+  const result = runCli(root, [
+    'github-plan',
+    'https://github.com/Jlipschitz/ai_agents/issues/7',
+    '--label',
+    'triage',
+    '--check-apply-readiness',
+  ], {
+    coordinationRoot,
+    env: {
+      AI_AGENTS_OFFLINE: '1',
+      GH_TOKEN: '',
+      GITHUB_TOKEN: '',
+      GITHUB_PAT: '',
+      GITHUB_ENTERPRISE_TOKEN: '',
+    },
+  });
+  const after = snapshotFiles(files);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /# GitHub Write Plan/);
+  assert.match(result.stdout, /Apply readiness:/);
+  assert.match(result.stdout, /- ready: no/);
+  assert.match(result.stdout, /- blocker: offline-mode:/);
+  assert.deepEqual(after, before);
 });

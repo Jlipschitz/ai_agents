@@ -52,6 +52,8 @@ export function createArtifactCommands(context) {
             outcome,
             exitCode: entry.exitCode ?? null,
             createdAt: entry.finishedAt || entry.startedAt || null,
+            sizeBytes: entry.sizeBytes ?? null,
+            modifiedAt: entry.modifiedAt ?? null,
           });
         }
         for (const artifact of Array.isArray(entry.visualArtifacts?.artifacts) ? entry.visualArtifacts.artifacts : []) {
@@ -164,6 +166,54 @@ export function createArtifactCommands(context) {
     return files;
   }
 
+  function inferArtifactKind(filePath) {
+    const extension = path.extname(filePath).toLowerCase().replace(/^\./, '');
+    if (!extension) return null;
+    if (['log', 'txt', 'out', 'err'].includes(extension)) return 'log';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension)) return 'image';
+    if (['json', 'ndjson'].includes(extension)) return extension;
+    if (['html', 'htm'].includes(extension)) return 'html';
+    if (['zip', 'gz', 'tgz'].includes(extension)) return 'archive';
+    return extension;
+  }
+
+  function resolveArtifactPolicyRoots(policy) {
+    return policy.roots.map((rootPath) => {
+      const absolutePath = resolveRepoPath(rootPath, rootPath);
+      const normalizedPath = normalizePath(absolutePath);
+      return { root: rootPath, absolutePath, normalizedPath, exists: fs.existsSync(absolutePath), skipped: normalizedPath.startsWith('..') };
+    });
+  }
+
+  function buildRebuiltArtifactIndex(argv = []) {
+    const policy = getArtifactPolicy(argv);
+    const indexPath = path.join(getCoordinationPaths().artifactsRoot, 'index.ndjson');
+    const normalizedIndexPath = normalizePath(indexPath);
+    const roots = resolveArtifactPolicyRoots(policy);
+    const indexedAt = fileTimestamp();
+    const entries = roots
+      .filter((rootPath) => rootPath.exists && !rootPath.skipped)
+      .flatMap((rootPath) => listFilesRecursive(rootPath.absolutePath).map((filePath) => ({ filePath, root: rootPath.root })))
+      .filter(({ filePath }) => normalizePath(filePath) !== normalizedIndexPath)
+      .map(({ filePath, root: scannedRoot }) => {
+        const stats = fs.statSync(filePath);
+        const normalizedArtifactPath = normalizePath(filePath);
+        return {
+          artifactPath: normalizedArtifactPath,
+          path: normalizedArtifactPath,
+          artifactKind: inferArtifactKind(filePath),
+          sizeBytes: stats.size,
+          modifiedAt: stats.mtime.toISOString(),
+          indexedAt,
+          scannedRoot,
+          source: 'rebuild-index',
+        };
+      })
+      .sort((left, right) => left.artifactPath.localeCompare(right.artifactPath));
+    const content = entries.length ? `${entries.map((entry) => JSON.stringify(entry)).join('\n')}\n` : '';
+    return { policy, roots, indexPath: normalizedIndexPath, absoluteIndexPath: indexPath, entries, content };
+  }
+
   function buildTaskStatusMap() {
     const board = readJsonSafe(getCoordinationPaths().boardPath, { tasks: [] });
     return new Map((Array.isArray(board.tasks) ? board.tasks : []).map((task) => [task.id, task.status || 'unknown']));
@@ -210,11 +260,7 @@ export function createArtifactCommands(context) {
     const items = buildArtifactItems();
     const references = buildArtifactReferenceMap(items);
     const taskStatuses = buildTaskStatusMap();
-    const roots = policy.roots.map((rootPath) => {
-      const absolutePath = resolveRepoPath(rootPath, rootPath);
-      const normalizedPath = normalizePath(absolutePath);
-      return { root: rootPath, absolutePath, normalizedPath, exists: fs.existsSync(absolutePath), skipped: normalizedPath.startsWith('..') };
-    });
+    const roots = resolveArtifactPolicyRoots(policy);
     const files = roots
       .filter((rootPath) => rootPath.exists && !rootPath.skipped)
       .flatMap((rootPath) => listFilesRecursive(rootPath.absolutePath))
@@ -262,13 +308,49 @@ export function createArtifactCommands(context) {
     return 0;
   }
 
+  function runArtifactsRebuildIndex(argv) {
+    const json = hasFlag(argv, '--json');
+    const apply = hasFlag(argv, '--apply');
+    const plan = buildRebuiltArtifactIndex(argv);
+    if (apply) {
+      withStateTransactionSync([plan.absoluteIndexPath], () => {
+        fs.mkdirSync(path.dirname(plan.absoluteIndexPath), { recursive: true });
+        fs.writeFileSync(plan.absoluteIndexPath, plan.content);
+      });
+    }
+    const result = {
+      ok: true,
+      applied: apply,
+      indexPath: plan.indexPath,
+      roots: plan.roots.map(({ absolutePath, ...rootInfo }) => rootInfo),
+      policy: plan.policy,
+      entries: plan.entries,
+      entryCount: plan.entries.length,
+    };
+    if (json) console.log(JSON.stringify(result, null, 2));
+    else {
+      console.log(apply ? 'Artifact index rebuilt.' : 'Artifact index rebuild dry run.');
+      console.log(`Index: ${plan.indexPath}`);
+      console.log(`Entries: ${plan.entries.length}`);
+      const skippedRoots = plan.roots.filter((rootPath) => rootPath.skipped || !rootPath.exists);
+      if (skippedRoots.length) {
+        console.log('Skipped roots:');
+        console.log(skippedRoots.map((rootPath) => `- ${rootPath.root} (${rootPath.skipped ? 'outside-repo' : 'missing'})`).join('\n'));
+      }
+      console.log(plan.entries.length ? plan.entries.map((entry) => `- ${entry.artifactPath} (${entry.sizeBytes} bytes)`).join('\n') : '- no artifacts indexed');
+    }
+    return 0;
+  }
+
   function runArtifactsCommand(argv) {
     const json = hasFlag(argv, '--json');
     const positionals = getPositionals(argv, new Set(['--task', '--check', '--keep-days', '--keep-failed-days', '--max-mb']));
     const subcommand = positionals[0] || 'list';
-    const items = buildArtifactItems();
 
     if (subcommand === 'prune') return runArtifactsPrune(argv);
+    if (subcommand === 'rebuild-index') return runArtifactsRebuildIndex(argv);
+
+    const items = buildArtifactItems();
 
     if (subcommand === 'list') {
       const taskFilter = getFlagValue(argv, '--task', '');
@@ -329,7 +411,7 @@ export function createArtifactCommands(context) {
       return 0;
     }
 
-    return printCommandError('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json] | artifacts report [--json] | artifacts prune [--apply] [--json]', { json });
+    return printCommandError('Usage: artifacts list [--task <task-id>] [--check <check>] [--json] | artifacts inspect <artifact-path> [--json] | artifacts report [--json] | artifacts prune [--apply] [--json] | artifacts rebuild-index [--apply] [--json]', { json });
   }
 
   return {

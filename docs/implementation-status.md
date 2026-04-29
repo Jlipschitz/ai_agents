@@ -557,9 +557,10 @@ npm run agents -- cleanup-runtime --apply
 Current behavior:
 
 - Reports watcher status, runtime lock state, and heartbeat files in one diagnostic payload.
-- Flags stale watcher status, stale runtime locks, and stale heartbeat files.
+- Flags stale watcher status, stale runtime locks, and stale heartbeat files, including agent-specific stale heartbeat reasons.
 - `cleanup-runtime` is dry-run by default.
-- `cleanup-runtime --apply` removes only stale lock, watcher, and heartbeat runtime files.
+- `cleanup-runtime --json` reports explicit `recoveryActions` for stale runtime files.
+- `cleanup-runtime --apply` removes only stale lock, watcher, and heartbeat runtime files and reports completed `recovered` actions.
 
 Main files:
 
@@ -1436,6 +1437,7 @@ npm run agents:github:status
 npm run agents -- github-status --json
 npm run agents -- github-status --live
 npm run agents -- github-plan pr 42 --comment "Ready for review." --label needs-review --json
+npm run agents -- github-plan pr 42 --comment "Ready for review." --check-apply-readiness --json
 ```
 
 Current behavior:
@@ -1448,6 +1450,7 @@ Current behavior:
 - `privacy.offline: true`, `privacy.mode: "local-only"`, or `AI_AGENTS_OFFLINE=1` skips live GitHub checks even when `--live` is passed.
 - `github-plan` plans PR/issue comment, label, and checklist-comment operations locally with JSON output.
 - `github-plan --apply` is explicitly blocked and performs no writes until a future live-write flag exists.
+- `github-plan --check-apply-readiness` is a read-only gate for planned writes that reports local GitHub CLI availability, token-env auth status, privacy/offline blockers, outbound redaction state, and sensitive redaction-pattern matches in JSON or text output.
 - Redacted privacy mode hides planned GitHub write text in `github-plan` output, and offline mode keeps the command local-only.
 
 Main files:
@@ -1609,6 +1612,8 @@ Status: partially implemented in the command layer.
 ```bash
 npm run agents -- artifacts prune
 npm run agents -- artifacts prune --apply --json
+npm run agents -- artifacts rebuild-index
+npm run agents -- artifacts rebuild-index --apply --json
 ```
 
 Current behavior:
@@ -1617,6 +1622,7 @@ Current behavior:
 - Honors `artifacts.roots`, `keepDays`, `keepFailedDays`, `maxMb`, and `protectPatterns`.
 - Keeps artifacts referenced by active work.
 - Deletes only with `--apply`.
+- `artifacts rebuild-index` scans configured artifact roots and rewrites `artifacts/checks/index.ndjson` only with `--apply`.
 
 ### Planner lane sizing helper
 
@@ -1626,7 +1632,7 @@ Status: implemented as a reusable helper and regression-test target.
 import { classifyPlannerLanes } from './scripts/planner-sizing.mjs';
 ```
 
-The helper classifies likely product, data, verify, and docs lanes from `planning.agentSizing` keywords and returns:
+The helper is wired into `plan` and classifies likely product, data, verify, and docs lanes from `planning.agentSizing` keywords. Saved plans include the resulting sizing metadata. The helper returns:
 
 - keyword scores by lane
 - overall complexity score
@@ -1636,9 +1642,9 @@ The helper classifies likely product, data, verify, and docs lanes from `plannin
 Main files:
 
 - `scripts/planner-sizing.mjs`
+- `scripts/lib/planner-commands.mjs`
 - `tests/planner-sizing.test.mjs`
-
-Follow-up: connect this helper directly into the core planner once the planner refactor is safe.
+- `tests/command-layer.test.mjs`
 
 ### Focused tests
 
@@ -1663,7 +1669,7 @@ Current coverage:
 - `finish` safety gates block before mutating board state.
 - Planner lane sizing covers simple, complex, capped, and fallback cases.
 - Verification artifacts, artifact listing/inspection, dependency graph output, ownership-map overlap detection, PR summaries, and release bundles have regression coverage.
-- Config migration, policy pack dry-run/apply behavior, artifact retention dry-runs, and artifact pruning apply behavior have regression coverage.
+- Config migration, policy pack dry-run/apply behavior, artifact retention dry-runs, artifact pruning apply behavior, and artifact index rebuilds have regression coverage.
 - Static fixture repo coverage exists under `tests/fixtures/basic-repo`.
 - Command snapshot coverage exists for representative ownership review and test-impact JSON output.
 - Concurrency stress coverage runs parallel progress/verify writes on one task and parallel claim/verify/done flows across multiple agents.
@@ -1693,7 +1699,6 @@ Main files:
 
 Follow-up tests still needed:
 
-- Direct core planner integration tests once planner internals are refactored around `scripts/planner-sizing.mjs`.
 - Broader read-only mutation coverage for every core read-only edge case.
 
 ### Cross-platform watcher
@@ -1717,17 +1722,17 @@ Follow-up: eventually remove the core PowerShell-oriented watcher start path or 
 
 ### Package install flow
 
-Status: partially implemented.
+Status: partially implemented, with package install documentation expanded.
 
 Already present:
 
 - `package.json` package name is `ai-agents`.
 - `bin.ai-agents` points to `./bin/ai-agents.mjs`.
 - `npm run ai-agents -- <command>` works as the local public entrypoint.
+- README and portability docs document `npm install --save-dev ai-agents`, `npx ai-agents`, GitHub `npx` smoke checks, and publish readiness verification.
 
 Follow-up:
 
-- Test `npx github:Jlipschitz/ai_agents doctor` in a fresh target repo.
 - Decide whether/when this should become a published npm package.
 
 ### Public CLI version output
@@ -1846,7 +1851,7 @@ These roadmap items still need core, command-layer, or documentation work.
 
 ### Planning, prompting, and release support
 
-- Full artifact index rebuild and stricter artifact-root policies for manual `verify --artifact` attachments.
+- Stricter artifact-root policies for manual `verify --artifact` attachments.
 
 ### Verification, risk, and GitHub integration
 

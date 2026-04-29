@@ -115,6 +115,60 @@ function splitChecklist(values) {
   return values.flatMap((value) => String(value ?? '').split(/\s*\|\s*|,/)).map((entry) => entry.trim()).filter(Boolean);
 }
 
+function checkGhTool() {
+  const command = process.platform === 'win32' ? 'gh.exe' : 'gh';
+  const result = spawnSync(command, ['--version'], {
+    encoding: 'utf8',
+    timeout: 5000,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  if (result.error) {
+    return { command, available: false, version: null, error: result.error.message };
+  }
+  if (result.status !== 0) {
+    return { command, available: false, version: null, error: result.stderr.trim() || 'gh --version failed' };
+  }
+
+  return {
+    command,
+    available: true,
+    version: result.stdout.split(/\r?\n/).find(Boolean) ?? null,
+    error: null,
+  };
+}
+
+function hasGitHubToken(env) {
+  return ['GH_TOKEN', 'GITHUB_TOKEN', 'GITHUB_PAT', 'GITHUB_ENTERPRISE_TOKEN']
+    .some((name) => typeof env?.[name] === 'string' && env[name].trim() !== '');
+}
+
+function redactPatternRegex(pattern) {
+  const escaped = String(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(escaped, 'i');
+}
+
+function rawPlannedWriteValues(argv) {
+  return [
+    ...flagValues(argv, '--comment'),
+    ...splitCsv([...flagValues(argv, '--label'), ...flagValues(argv, '--labels')]),
+    ...splitChecklist([...flagValues(argv, '--checklist'), ...flagValues(argv, '--check')]),
+  ];
+}
+
+function findSensitiveOutboundMatches(argv, privacy) {
+  const patterns = Array.isArray(privacy?.redactPatterns) ? privacy.redactPatterns : [];
+  const values = rawPlannedWriteValues(argv);
+  const matches = [];
+  for (const pattern of patterns) {
+    const regex = redactPatternRegex(pattern);
+    if (values.some((value) => regex.test(String(value ?? '')))) {
+      matches.push(pattern);
+    }
+  }
+  return [...new Set(matches)].sort((left, right) => left.localeCompare(right));
+}
+
 function parseGitHubTarget(positionals) {
   const [kindOrTarget, maybeNumber] = positionals;
   const urlMatch = String(kindOrTarget ?? '').match(/github\.com\/([^/\s]+)\/([^/\s]+)\/(pull|issues)\/(\d+)/i);
@@ -188,6 +242,59 @@ function buildOperations(argv, target, privacy) {
   return operations;
 }
 
+function blocker(code, message) {
+  return { code, message };
+}
+
+function buildApplyReadiness({ plan, argv, env }) {
+  const gh = checkGhTool();
+  const tokenEnvPresent = hasGitHubToken(env);
+  const sensitivePatternMatches = findSensitiveOutboundMatches(argv, plan.privacy);
+  const plannedWritesRedacted = plan.privacy?.redacted === true && plan.operations.length > 0;
+  const blockers = [];
+  const warnings = [];
+
+  for (const error of plan.errors) blockers.push(blocker('plan-invalid', error));
+  if (!plan.repository) blockers.push(blocker('repository-missing', 'No GitHub repository was resolved for the planned write.'));
+  if (!plan.target?.url) blockers.push(blocker('target-missing', 'No GitHub PR or issue target was resolved for the planned write.'));
+  if (!plan.operations.length) blockers.push(blocker('operations-missing', 'No outbound GitHub write operations were planned.'));
+  if (plan.privacy?.offline) blockers.push(blocker('offline-mode', 'Offline mode is enabled, so future apply must remain blocked.'));
+  if (plannedWritesRedacted) blockers.push(blocker('redacted-payload', 'Planned write text is redacted; future apply must not send placeholder content.'));
+  if (!plannedWritesRedacted && sensitivePatternMatches.length) {
+    blockers.push(blocker('sensitive-unredacted', `Planned write text matches redaction pattern(s): ${sensitivePatternMatches.join(', ')}.`));
+  }
+  if (!gh.available) blockers.push(blocker('github-cli-missing', 'GitHub CLI was not found or is not runnable.'));
+  if (!tokenEnvPresent) {
+    blockers.push(blocker('auth-token-missing', 'No GitHub auth token env var was found: GH_TOKEN, GITHUB_TOKEN, GITHUB_PAT, or GITHUB_ENTERPRISE_TOKEN.'));
+  }
+  if (gh.available && !tokenEnvPresent) {
+    warnings.push('GitHub CLI auth was not probed in this read-only check; provide token env for deterministic apply readiness.');
+  }
+
+  return {
+    checked: hasFlag(argv, '--check-apply-readiness'),
+    ready: blockers.length === 0,
+    readOnly: true,
+    liveWrites: false,
+    tool: { gh },
+    auth: {
+      tokenEnvPresent,
+      status: tokenEnvPresent ? 'token-present' : 'token-missing',
+      checkedWithoutNetwork: true,
+    },
+    privacy: {
+      mode: plan.privacy?.mode ?? 'standard',
+      offline: plan.privacy?.offline === true,
+      redacted: plan.privacy?.redacted === true,
+      plannedWritesRedacted,
+      outboundRedaction: plannedWritesRedacted ? 'active' : 'inactive',
+      sensitivePatternMatches,
+    },
+    blockers,
+    warnings,
+  };
+}
+
 export function buildGitHubWritePlan({ root, argv = [], config = {}, env = process.env }) {
   const privacy = getPrivacyOptions(config, env);
   const remoteUrl = execGit(['config', '--get', 'remote.origin.url'], { root });
@@ -206,6 +313,7 @@ export function buildGitHubWritePlan({ root, argv = [], config = {}, env = proce
   if (!operations.length && !errors.length) errors.push('No GitHub operations requested. Add --comment, --label, or --checklist.');
 
   const applyRequested = hasFlag(argv, '--apply');
+  const readinessRequested = hasFlag(argv, '--check-apply-readiness');
   if (applyRequested) warnings.push('Apply is blocked for GitHub write plans until a future live-write flag exists.');
 
   const resolvedTarget = {
@@ -216,10 +324,11 @@ export function buildGitHubWritePlan({ root, argv = [], config = {}, env = proce
       : null,
   };
 
-  return {
+  const plan = {
     ok: errors.length === 0 && !applyRequested,
     dryRun: true,
     applyRequested,
+    readinessRequested,
     blocked: applyRequested,
     liveWrites: false,
     privacy,
@@ -236,6 +345,9 @@ export function buildGitHubWritePlan({ root, argv = [], config = {}, env = proce
     warnings,
     errors,
   };
+  plan.applyReadiness = buildApplyReadiness({ plan, argv, env });
+  if (readinessRequested && !plan.applyReadiness.ready) plan.ok = false;
+  return plan;
 }
 
 function renderGitHubWritePlan(plan) {
@@ -255,6 +367,18 @@ function renderGitHubWritePlan(plan) {
   }
   for (const warning of plan.warnings) lines.push(`- warning: ${warning}`);
   for (const error of plan.errors) lines.push(`- error: ${error}`);
+  if (plan.applyReadiness?.checked) {
+    lines.push('Apply readiness:');
+    lines.push(`- ready: ${plan.applyReadiness.ready ? 'yes' : 'no'}`);
+    lines.push(`- auth: ${plan.applyReadiness.auth.status}`);
+    lines.push(`- github cli: ${plan.applyReadiness.tool.gh.available ? plan.applyReadiness.tool.gh.version ?? 'available' : 'missing'}`);
+    lines.push(`- outbound redaction: ${plan.applyReadiness.privacy.outboundRedaction}`);
+    if (plan.applyReadiness.privacy.sensitivePatternMatches.length) {
+      lines.push(`- sensitive patterns: ${plan.applyReadiness.privacy.sensitivePatternMatches.join(', ')}`);
+    }
+    for (const entry of plan.applyReadiness.blockers) lines.push(`- blocker: ${entry.code}: ${entry.message}`);
+    for (const entry of plan.applyReadiness.warnings) lines.push(`- readiness warning: ${entry}`);
+  }
   return lines.join('\n');
 }
 

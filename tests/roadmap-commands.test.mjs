@@ -25,14 +25,26 @@ test('watch-diagnose reports stale runtime state and cleanup-runtime removes it 
   const report = JSON.parse(diagnose.stdout);
   assert.equal(report.watcher.stale, true);
   assert.equal(report.heartbeats[0].stale, true);
+  assert.ok(report.problems.some((entry) => entry.includes('agent-1: older-than-90000ms')));
 
   const dryRun = run(root, coordinationRoot, ['cleanup-runtime', '--json', '--stale-ms', '1000']);
   assert.equal(dryRun.status, 0, dryRun.stderr);
   assert.equal(fs.existsSync(watcherPath), true);
-  assert.equal(JSON.parse(dryRun.stdout).candidates.length, 2);
+  const dryRunPayload = JSON.parse(dryRun.stdout);
+  assert.equal(dryRunPayload.candidates.length, 2);
+  assert.deepEqual(dryRunPayload.recoveryActions.map((entry) => entry.action), [
+    'recover-stale-watcher-status',
+    'recover-stale-heartbeat',
+  ]);
+  assert.equal(dryRunPayload.recovered.length, 0);
 
   const applied = run(root, coordinationRoot, ['cleanup-runtime', '--apply', '--json', '--stale-ms', '1000']);
   assert.equal(applied.status, 0, applied.stderr);
+  const appliedPayload = JSON.parse(applied.stdout);
+  assert.deepEqual(appliedPayload.recovered.map((entry) => entry.action), [
+    'recover-stale-watcher-status',
+    'recover-stale-heartbeat',
+  ]);
   assert.equal(fs.existsSync(watcherPath), false);
   assert.equal(fs.existsSync(heartbeatPath), false);
 });

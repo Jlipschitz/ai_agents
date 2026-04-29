@@ -47,6 +47,26 @@ ai-agents status
 ai-agents summarize
 ```
 
+## Package Install
+
+For package-based use, install the CLI and run it through `npx` or the local binary:
+
+```bash
+npm install --save-dev ai-agents
+npx ai-agents init
+npx ai-agents doctor
+npx ai-agents status
+```
+
+Before the package is published to npm, test the same entrypoint from GitHub:
+
+```bash
+npx github:OWNER/ai_agents --version
+npx github:OWNER/ai_agents doctor
+```
+
+The package name is `ai-agents`, the executable is `ai-agents`, and `package.json` must keep `bin.ai-agents` pointed at `./bin/ai-agents.mjs`. Published versions should use normal semver and remove `private: true`.
+
 ## Common Workflow
 
 Plan work:
@@ -194,6 +214,26 @@ npm test
 ```
 
 CI runs on Node 24, installs with `npm ci`, and uses npm caching keyed by `package-lock.json`.
+
+## Publish Readiness
+
+Before publishing or testing a package candidate:
+
+```bash
+npm ci
+npm run check
+npm run lint
+npm run jsdoc:check
+npm run format:check
+npm run validate:agents-config
+npm test
+npm run agents:publish:check
+npm run agents -- publish-check --strict
+npm pack --dry-run
+npm publish --dry-run
+```
+
+Use `npm pack --dry-run` to review included files, then verify the packed or published CLI with `npx ai-agents --version` and `npx ai-agents doctor` in a clean repo.
 
 ## Documentation
 
