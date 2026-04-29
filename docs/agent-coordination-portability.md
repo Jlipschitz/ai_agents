@@ -4,23 +4,30 @@ The `agents` and `agents2` commands are driven by `agent-coordination.config.jso
 
 ## Package Install Flow
 
-When `ai-agents` is available from npm, use the package entrypoint directly:
+When the scoped package is available from npm, use the package entrypoint directly:
 
 ```bash
-npm install --save-dev ai-agents
+npm install --save-dev @jlipschitz/ai-agents
 npx ai-agents init
 npx ai-agents doctor
 npx ai-agents status
 ```
 
+For one-off execution without adding a dependency:
+
+```bash
+npx @jlipschitz/ai-agents init
+npx @jlipschitz/ai-agents doctor
+```
+
 Before npm publication, verify the same executable from GitHub:
 
 ```bash
-npx github:OWNER/ai_agents --version
-npx github:OWNER/ai_agents doctor
+npx github:Jlipschitz/ai_agents --version
+npx github:Jlipschitz/ai_agents doctor
 ```
 
-Package-based installs use the public `ai-agents` binary from `package.json` `bin.ai-agents`. The package name should remain `ai-agents`, the binary should remain `ai-agents`, and the bin target should remain `./bin/ai-agents.mjs` so `npx ai-agents <command>` works consistently.
+Package-based installs use the public `ai-agents` binary from `package.json` `bin.ai-agents`. The package name is `@jlipschitz/ai-agents`, the binary should remain `ai-agents`, and the bin target should remain `bin/ai-agents.mjs` so installed projects can run `npx ai-agents <command>` consistently.
 
 ## Recommended Install Flow
 
@@ -105,10 +112,10 @@ Run `npm run validate:agents-config`, then `npm run agents:doctor` or `npm run a
 
 Before publishing the package, confirm:
 
-- `package.json` has `name: "ai-agents"` and a semver `version`.
-- `private: true` is removed only for the public release commit.
-- `bin.ai-agents` points at `./bin/ai-agents.mjs`.
-- `README.md`, `docs/commands.md`, and this portability guide describe the public `npx ai-agents` flow.
+- `package.json` has `name: "@jlipschitz/ai-agents"` and a semver `version`.
+- `package.json` is publishable and not marked private.
+- `bin.ai-agents` points at `bin/ai-agents.mjs`.
+- `README.md`, `docs/commands.md`, and this portability guide describe the public scoped-package install flow.
 - The local checks pass and the package contents look correct.
 
 Recommended verification:

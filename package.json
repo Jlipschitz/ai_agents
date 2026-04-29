@@ -1,12 +1,25 @@
 {
-  "name": "ai-agents",
+  "name": "@jlipschitz/ai-agents",
   "version": "1.0.0",
-  "private": true,
   "license": "MIT",
   "description": "Portable coordination tooling for running multiple coding agents in one repository.",
   "type": "module",
   "bin": {
-    "ai-agents": "./bin/ai-agents.mjs"
+    "ai-agents": "bin/ai-agents.mjs"
+  },
+  "files": [
+    "bin",
+    "docs",
+    "examples",
+    "scripts",
+    "agent-coordination.schema.json",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "ai-agents": "node ./bin/ai-agents.mjs",
@@ -166,6 +179,6 @@
     "agents2:completions": "node ./scripts/agent-coordination-two.mjs completions"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=20.11"
   }
 }

@@ -1729,7 +1729,7 @@ Status: implemented locally, with package install documentation expanded.
 Already present:
 
 - `package.json` package name is `ai-agents`.
-- `bin.ai-agents` points to `./bin/ai-agents.mjs`.
+- `bin.ai-agents` points to `bin/ai-agents.mjs`.
 - `npm run ai-agents -- <command>` works as the local public entrypoint.
 - README and portability docs document `npm install --save-dev ai-agents`, `npx ai-agents`, GitHub `npx` smoke checks, and publish readiness verification.
 

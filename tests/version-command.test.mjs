@@ -41,7 +41,7 @@ test('public cli --version uses installed package metadata and supports json', (
   const payload = JSON.parse(result.stdout);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(payload.package.name, 'ai-agents');
+  assert.equal(payload.package.name, '@jlipschitz/ai-agents');
   assert.equal(payload.node.version, process.version);
   assert.equal(payload.board.schemaVersion, 2);
 });

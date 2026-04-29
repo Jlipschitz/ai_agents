@@ -49,24 +49,31 @@ ai-agents summarize
 
 ## Package Install
 
-For package-based use after a public npm release exists, install the CLI and run it through `npx` or the local binary:
+For package-based use after a public npm release exists, install the scoped package and run the `ai-agents` binary:
 
 ```bash
-npm install --save-dev ai-agents
+npm install --save-dev @jlipschitz/ai-agents
 npx ai-agents init
 npx ai-agents doctor
 npx ai-agents status
+```
+
+For one-off use without adding a dependency:
+
+```bash
+npx @jlipschitz/ai-agents init
+npx @jlipschitz/ai-agents doctor
 ```
 
 Until a public npm release exists, test the same entrypoint from this repository or a GitHub ref:
 
 ```bash
 npm run ai-agents -- --version
-npx github:OWNER/ai_agents --version
-npx github:OWNER/ai_agents doctor
+npx github:Jlipschitz/ai_agents --version
+npx github:Jlipschitz/ai_agents doctor
 ```
 
-The package name is `ai-agents`, the executable is `ai-agents`, and `package.json` must keep `bin.ai-agents` pointed at `./bin/ai-agents.mjs`. Actual npm publication is an external release step; this fork currently keeps `private: true`, so remove that only as part of an approved publish candidate.
+The package name is `@jlipschitz/ai-agents`, the executable is `ai-agents`, and `package.json` must keep `bin.ai-agents` pointed at `bin/ai-agents.mjs`. Actual npm publication is an external release step that requires npm credentials for the `@jlipschitz` scope.
 
 ## Common Workflow
 
@@ -233,7 +240,7 @@ npm run agents -- publish-check --strict
 npm pack --dry-run
 ```
 
-Use `npm pack --dry-run` to review included files, then verify the packed CLI from the generated tarball. `npm publish --dry-run` and the real publish are external release steps and require a package candidate that is no longer marked `private: true`.
+Use `npm pack --dry-run` to review included files, then verify the packed CLI from the generated tarball. `npm publish --dry-run` and the real publish are external release steps and require npm credentials for the `@jlipschitz` scope.
 
 ## Documentation
 

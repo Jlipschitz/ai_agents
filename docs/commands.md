@@ -13,17 +13,24 @@ npm run ai-agents -- <command>
 Package install examples:
 
 ```bash
-npm install --save-dev ai-agents
+npm install --save-dev @jlipschitz/ai-agents
 npx ai-agents init
 npx ai-agents doctor
 npx ai-agents status
 ```
 
+For one-off use without installing into a project:
+
+```bash
+npx @jlipschitz/ai-agents init
+npx @jlipschitz/ai-agents doctor
+```
+
 Before an npm release is available, the same binary can be smoke-tested from GitHub:
 
 ```bash
-npx github:OWNER/ai_agents --version
-npx github:OWNER/ai_agents doctor
+npx github:Jlipschitz/ai_agents --version
+npx github:Jlipschitz/ai_agents doctor
 ```
 
 Use the compatibility wrappers when the repo has copied coordinator scripts:
@@ -167,11 +174,11 @@ The command does not contact npm. It reports blockers such as `private: true`, i
 
 Publishing expectations:
 
-- `package.json` name is `ai-agents`.
+- `package.json` name is `@jlipschitz/ai-agents`.
 - `package.json` version is valid semver and is bumped for each release.
-- `package.json` has `private: true` removed for the public release.
-- `bin.ai-agents` points at `./bin/ai-agents.mjs`.
-- The public executable works as `ai-agents <command>` and `npx ai-agents <command>`.
+- `package.json` is publishable and not marked private.
+- `bin.ai-agents` points at `bin/ai-agents.mjs`.
+- The public executable works as `ai-agents <command>`, `npx ai-agents <command>` after install, and `npx @jlipschitz/ai-agents <command>` for one-off use.
 
 Recommended local package verification:
 
