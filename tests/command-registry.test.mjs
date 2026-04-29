@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { commandFromPackageScript, commandNames, findCommandMetadata, validateCommandRegistry, validateCommandWiring } from '../scripts/lib/command-registry.mjs';
+import { commandFromPackageScript, commandNames, findCommandMetadata, jsonCommandNames, validateCommandRegistry, validateCommandWiring } from '../scripts/lib/command-registry.mjs';
 import { buildLocalPackageScripts, buildPortablePackageScripts } from '../scripts/lib/package-script-manifest.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,6 +19,8 @@ test('command registry exposes help metadata for routed commands', () => {
   assert.ok(names.includes('status'));
   assert.ok(names.includes('handoff-bundle'));
   assert.ok(names.includes('next'));
+  assert.ok(jsonCommandNames().includes('status'));
+  assert.ok(jsonCommandNames().includes('doctor'));
   assert.match(findCommandMetadata('next').usage, /next \[agent-id\]/);
   assert.match(findCommandMetadata('handoff-bundle').summary, /handoff context|handoff/);
   assert.equal(findCommandMetadata('next').group, 'workflow');
@@ -34,7 +36,10 @@ test('command registry validates package script command targets', () => {
   assert.equal(validation.ok, true);
   assert.equal(validation.registry.commandCount, validation.commandCount);
   assert.ok(validation.registry.minimalCommandCount > 0);
+  assert.ok(validation.registry.jsonCommandCount > 0);
   assert.ok(validation.registry.groups.workflow.minimalCommands > 0);
+  assert.ok(validation.registry.groups.workflow.jsonCommands > 0);
+  assert.ok(validation.registry.groups.workflow.jsonCommandNames.includes('next'));
   assert.ok(validation.scriptCoverage.shortcutCommandCount > 0);
   assert.ok(validation.scriptCoverage.minimalCommandsWithShortcuts.includes('next'));
   assert.ok(Array.isArray(validation.scriptCoverage.minimalCommandsWithoutShortcuts));

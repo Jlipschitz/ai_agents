@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { makeWorkspace as makeTestWorkspace, runCli, snapshotFiles } from './helpers/workspace.mjs';
+import { jsonCommandNames } from '../scripts/lib/command-registry.mjs';
 
 function makeWorkspace() {
   const workspace = makeTestWorkspace({ prefix: 'ai-agents-readonly-', packageName: 'read-only-test', runtime: true });
@@ -39,6 +40,7 @@ const commandsExpectedToSucceed = new Set([
   'help --minimal',
   'help --groups',
   'status',
+  'status --json',
   'prompt agent-1',
   'prompt agent-1 --json',
   'next agent-1',
@@ -48,6 +50,7 @@ const commandsExpectedToSucceed = new Set([
   'ask who owns src/a',
   'ask who owns src/a --json',
   'prioritize task-active --priority high --dry-run',
+  'prioritize task-active --priority high --dry-run --json',
   'approvals list',
   'version',
   'version --json',
@@ -67,12 +70,16 @@ const commandsExpectedToSucceed = new Set([
   'cleanup-runtime',
   'cleanup-runtime --json',
   'repair-board',
+  'repair-board --json',
   'migrate-board',
+  'migrate-board --json',
   'artifacts list',
   'artifacts report',
   'artifacts prune',
   'graph',
+  'graph --json',
   'ownership-map',
+  'ownership-map --json',
   'ownership-review',
   'ownership-review --json',
   'test-impact',
@@ -114,6 +121,7 @@ const commandsExpectedToSucceed = new Set([
   'github-plan pr 1 --comment note',
   'github-plan pr 1 --comment note --json',
   'templates list',
+  'templates list --json',
   'templates show react',
   'templates apply react',
   'templates create-task docs-only --id task-docs',
@@ -126,7 +134,9 @@ const commandsExpectedToSucceed = new Set([
   'backlog-import',
   'backlog-import --json',
   'pr-summary',
+  'pr-summary --json',
   'migrate-config',
+  'migrate-config --json',
   'format',
   'format --json',
   'interactive',
@@ -140,13 +150,16 @@ const commandsExpectedToSucceed = new Set([
   'fixture-board healthy',
   'fixture-board healthy --json',
   'policy-packs list',
+  'policy-packs list --json',
   'policy-packs apply strict-ui',
   'policy-check',
+  'policy-check --json',
   'rollback-state --list',
   'rollback-state --list --json',
+  'explain-config --json',
 ]);
 
-for (const args of [
+const readOnlyCommandArgs = [
   ['summarize'],
   ['summarize', '--for-chat'],
   ['summarize', '--json'],
@@ -155,6 +168,7 @@ for (const args of [
   ['help', '--minimal'],
   ['help', '--groups'],
   ['status'],
+  ['status', '--json'],
   ['prompt', 'agent-1'],
   ['prompt', 'agent-1', '--json'],
   ['next', 'agent-1'],
@@ -164,6 +178,7 @@ for (const args of [
   ['ask', 'who owns src/a'],
   ['ask', 'who owns src/a', '--json'],
   ['prioritize', 'task-active', '--priority', 'high', '--dry-run'],
+  ['prioritize', 'task-active', '--priority', 'high', '--dry-run', '--json'],
   ['approvals', 'list'],
   ['approvals', 'check', 'task-active'],
   ['version'],
@@ -195,13 +210,17 @@ for (const args of [
   ['inspect-board'],
   ['inspect-board', '--json'],
   ['repair-board'],
+  ['repair-board', '--json'],
   ['migrate-board'],
+  ['migrate-board', '--json'],
   ['release-check', '--json'],
   ['artifacts', 'list'],
   ['artifacts', 'report'],
   ['artifacts', 'prune'],
   ['graph'],
+  ['graph', '--json'],
   ['ownership-map'],
+  ['ownership-map', '--json'],
   ['branches'],
   ['branches', '--json'],
   ['ownership-review'],
@@ -245,6 +264,7 @@ for (const args of [
   ['github-plan', 'pr', '1', '--comment', 'note'],
   ['github-plan', 'pr', '1', '--comment', 'note', '--json'],
   ['templates', 'list'],
+  ['templates', 'list', '--json'],
   ['templates', 'show', 'react'],
   ['templates', 'apply', 'react'],
   ['templates', 'create-task', 'docs-only', '--id', 'task-docs'],
@@ -257,8 +277,11 @@ for (const args of [
   ['backlog-import'],
   ['backlog-import', '--json'],
   ['pr-summary'],
+  ['pr-summary', '--json'],
   ['release-bundle', '--out-dir', 'bundle'],
+  ['release-bundle', '--out-dir', 'bundle', '--json'],
   ['migrate-config'],
+  ['migrate-config', '--json'],
   ['format'],
   ['format', '--json'],
   ['interactive'],
@@ -272,11 +295,17 @@ for (const args of [
   ['fixture-board', 'healthy'],
   ['fixture-board', 'healthy', '--json'],
   ['policy-packs', 'list'],
+  ['policy-packs', 'list', '--json'],
   ['policy-packs', 'apply', 'strict-ui'],
   ['policy-check'],
+  ['policy-check', '--json'],
   ['rollback-state', '--list'],
   ['rollback-state', '--list', '--json'],
-]) {
+  ['explain-config', '--json'],
+  ['run-check', 'contract-smoke', '--dry-run', '--json', '--', process.execPath, '-e', 'console.log("ok")'],
+];
+
+for (const args of readOnlyCommandArgs) {
   test(`${args.join(' ')} does not mutate coordination state`, () => {
     const { root, coordinationRoot } = makeWorkspace();
     const files = [
@@ -295,3 +324,26 @@ for (const args of [
     assert.deepEqual(after, before);
   });
 }
+
+const readOnlyJsonOmissions = [
+  {
+    command: 'lock-clear',
+    reason: 'Clears runtime lock files by design; focused lock-runtime tests cover JSON behavior.',
+  },
+  {
+    command: 'release-sign',
+    reason: 'Requires a prepared release directory and can write checksum/signature files; release-signing tests cover JSON behavior.',
+  },
+];
+
+test('read-only fixtures account for every registered JSON command', () => {
+  const covered = new Set(readOnlyCommandArgs.filter((args) => args.includes('--json')).map((args) => args[0]));
+  const omissions = new Map(readOnlyJsonOmissions.map((entry) => [entry.command, entry.reason]));
+  const missing = jsonCommandNames().filter((name) => !covered.has(name) && !omissions.has(name));
+
+  assert.deepEqual(missing, []);
+  for (const [command, reason] of omissions) {
+    assert.equal(typeof command, 'string');
+    assert.match(reason, /\w/);
+  }
+});

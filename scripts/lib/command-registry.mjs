@@ -37,6 +37,10 @@ export function commandNames() {
   return commandRegistryEntries().map((entry) => entry.name);
 }
 
+export function jsonCommandNames() {
+  return commandRegistryEntries().filter((entry) => entry.json).map((entry) => entry.name);
+}
+
 export function commandRegistryMap() {
   return new Map(commandRegistryEntries().map((entry) => [entry.name, entry]));
 }
@@ -69,12 +73,16 @@ function uniqueSorted(values) {
 function summarizeRegistry(commands) {
   const groups = {};
   for (const entry of commands) {
-    groups[entry.group] ??= { commands: 0, minimalCommands: 0, commandNames: [], minimalCommandNames: [] };
+    groups[entry.group] ??= { commands: 0, minimalCommands: 0, jsonCommands: 0, commandNames: [], minimalCommandNames: [], jsonCommandNames: [] };
     groups[entry.group].commands += 1;
     groups[entry.group].commandNames.push(entry.name);
     if (entry.minimal) {
       groups[entry.group].minimalCommands += 1;
       groups[entry.group].minimalCommandNames.push(entry.name);
+    }
+    if (entry.json) {
+      groups[entry.group].jsonCommands += 1;
+      groups[entry.group].jsonCommandNames.push(entry.name);
     }
   }
 
@@ -82,10 +90,13 @@ function summarizeRegistry(commands) {
     commandCount: commands.length,
     minimalCommandCount: commands.filter((entry) => entry.minimal).length,
     minimalCommands: commands.filter((entry) => entry.minimal).map((entry) => entry.name),
+    jsonCommandCount: commands.filter((entry) => entry.json).length,
+    jsonCommands: commands.filter((entry) => entry.json).map((entry) => entry.name),
     groups: Object.fromEntries(Object.entries(groups).sort(([left], [right]) => left.localeCompare(right)).map(([group, summary]) => [group, {
       ...summary,
       commandNames: uniqueSorted(summary.commandNames),
       minimalCommandNames: uniqueSorted(summary.minimalCommandNames),
+      jsonCommandNames: uniqueSorted(summary.jsonCommandNames),
     }])),
   };
 }

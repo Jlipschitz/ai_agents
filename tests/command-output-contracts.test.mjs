@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { makeWorkspace, runCli, snapshotFiles, writeBoard } from './helpers/workspace.mjs';
+import { jsonCommandNames } from '../scripts/lib/command-registry.mjs';
 
 function makeContractWorkspace() {
   const workspace = makeWorkspace({ prefix: 'ai-agents-output-contract-', packageName: 'output-contract-test', runtime: true });
@@ -92,6 +93,11 @@ function runContract(args) {
   const after = snapshotFiles(files);
   assert.deepEqual(after, before, `${args.join(' ')} should not mutate coordination state`);
   return result;
+}
+
+function assertJsonContainer(payload, commandLabel) {
+  assert.notEqual(payload, null, `${commandLabel} JSON payload should not be null`);
+  assert.equal(['object', 'array'].includes(Array.isArray(payload) ? 'array' : typeof payload), true, `${commandLabel} should emit a JSON object or array`);
 }
 
 const successContracts = [
@@ -194,6 +200,59 @@ const successContracts = [
   },
 ];
 
+const registryJsonContracts = [
+  { args: ['agent-history', '--json'] },
+  { args: ['archive-completed', '--json'] },
+  { args: ['backlog-import', '--json'] },
+  { args: ['branches', '--json'], expectedStatus: 1 },
+  { args: ['calendar', '--json'] },
+  { args: ['changelog', '--json'] },
+  { args: ['cleanup-runtime', '--json'] },
+  { args: ['compact-state', '--json'] },
+  { args: ['completions', 'list', '--json'] },
+  { args: ['cost-time', '--json'] },
+  { args: ['critical-path', '--json'] },
+  { args: ['dashboard', '--json'] },
+  { args: ['escalation-route', '--json'] },
+  { args: ['explain-config', '--json'] },
+  { args: ['fixture-board', 'healthy', '--json'] },
+  { args: ['format', '--json'] },
+  { args: ['github-plan', 'pr', '1', '--comment', 'note', '--json'] },
+  { args: ['github-status', '--json'] },
+  { args: ['graph', '--json'] },
+  { args: ['inspect-board', '--json'] },
+  { args: ['interactive', '--json'] },
+  { args: ['lock-status', '--json'] },
+  { args: ['migrate-board', '--json'] },
+  { args: ['migrate-config', '--json'] },
+  { args: ['ownership-map', '--json'] },
+  { args: ['ownership-review', '--json'] },
+  { args: ['path-groups', '--json'] },
+  { args: ['policy-check', '--json'] },
+  { args: ['policy-packs', 'list', '--json'] },
+  { args: ['pr-summary', '--json'] },
+  { args: ['prioritize', 'task-active', '--priority', 'high', '--dry-run', '--json'] },
+  { args: ['publish-check', '--json'] },
+  { args: ['redact-check', '--json'] },
+  { args: ['repair-board', '--json'] },
+  { args: ['review-queue', '--json'] },
+  { args: ['rollback-state', '--list', '--json'] },
+  { args: ['run-check', 'contract-smoke', '--dry-run', '--json', '--', process.execPath, '-e', 'console.log("ok")'] },
+  { args: ['secrets-scan', '--json'] },
+  { args: ['snapshot-workspace', '--json'] },
+  { args: ['split-validate', '--json'] },
+  { args: ['state-size', '--json'] },
+  { args: ['status-badge', '--json'] },
+  { args: ['steal-work', 'agent-2', '--json'] },
+  { args: ['templates', 'list', '--json'] },
+  { args: ['test-impact', '--json'] },
+  { args: ['timeline', '--json'] },
+  { args: ['update-coordinator', '--json'] },
+  { args: ['validate', '--json'] },
+  { args: ['version', '--json'] },
+  { args: ['watch-diagnose', '--json'], expectedStatus: 1 },
+];
+
 for (const contract of successContracts) {
   const commandLabel = contract.args.join(' ');
   test(`${commandLabel} emits successful JSON without mutating coordination state`, () => {
@@ -201,6 +260,16 @@ for (const contract of successContracts) {
     assert.equal(result.status, 0, result.stderr);
     const payload = parseJsonStdout(result, commandLabel);
     contract.assertPayload(payload);
+  });
+}
+
+for (const contract of registryJsonContracts) {
+  const commandLabel = contract.args.join(' ');
+  test(`${commandLabel} emits parseable JSON without mutating coordination state`, () => {
+    const result = runContract(contract.args);
+    assert.equal(result.status, contract.expectedStatus ?? 0, result.stderr);
+    const payload = parseJsonStdout(result, commandLabel);
+    assertJsonContainer(payload, commandLabel);
   });
 }
 
@@ -243,6 +312,25 @@ const failureContracts = [
       assert.equal(typeof payload.ok, 'boolean');
     },
   },
+  {
+    args: ['release-check', '--json'],
+    expectedStatus: 1,
+    assertPayload(payload) {
+      assert.equal(payload.ok, false);
+      assert.equal(Array.isArray(payload.checks), true);
+      assert.match(payload.checks[0].findings[0], /No done or released tasks/);
+    },
+  },
+  {
+    args: ['release-bundle', '--out-dir', 'bundle', '--json'],
+    expectedStatus: 1,
+    assertPayload(payload) {
+      assert.equal(payload.ok, false);
+      assert.equal(payload.applied, false);
+      assert.equal(Array.isArray(payload.files), true);
+      assert.equal(payload.releaseCheck.ok, false);
+    },
+  },
 ];
 
 for (const contract of failureContracts) {
@@ -254,3 +342,30 @@ for (const contract of failureContracts) {
     contract.assertPayload(payload);
   });
 }
+
+const jsonContractOmissions = [
+  {
+    command: 'lock-clear',
+    reason: 'Clears runtime lock files by design; focused lock-runtime tests cover JSON behavior.',
+  },
+  {
+    command: 'release-sign',
+    reason: 'Requires a prepared release directory and can write checksum/signature files; release-signing tests cover JSON behavior.',
+  },
+];
+
+test('JSON contract fixtures account for every registered JSON command', () => {
+  const covered = new Set([
+    ...successContracts.map((contract) => contract.args[0]),
+    ...registryJsonContracts.map((contract) => contract.args[0]),
+    ...failureContracts.map((contract) => contract.args[0]),
+  ]);
+  const omissions = new Map(jsonContractOmissions.map((entry) => [entry.command, entry.reason]));
+  const missing = jsonCommandNames().filter((name) => !covered.has(name) && !omissions.has(name));
+
+  assert.deepEqual(missing, []);
+  for (const [command, reason] of omissions) {
+    assert.equal(typeof command, 'string');
+    assert.match(reason, /\w/);
+  }
+});

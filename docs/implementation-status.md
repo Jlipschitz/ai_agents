@@ -240,10 +240,10 @@ Status: partially implemented.
 Current behavior:
 
 - `scripts/lib/command-registry.mjs` exposes normalized command metadata from the current help surface.
-- Registry entries include stable command group IDs and minimal-mode membership.
+- Registry entries include stable command group IDs, minimal-mode membership, and JSON-capable command markers.
 - `scripts/lib/package-script-manifest.mjs` generates local bootstrap scripts and portable installed-package scripts from one shortcut manifest.
 - Shell completions consume the registry command list instead of reading the help table directly.
-- `doctor --json` includes `commandWiring` validation for package scripts, expected generated scripts, registry group/minimal totals, and package-script coverage metadata.
+- `doctor --json` includes `commandWiring` validation for package scripts, expected generated scripts, registry group/minimal/JSON totals, and package-script coverage metadata.
 - The registry validates missing command usage/summary fields and unknown script command targets.
 
 Follow-up: make the registry the direct source for router wiring and generated command docs.
@@ -279,6 +279,25 @@ Main files:
 
 - `tests/smoke/run-all-commands.mjs`
 - `tests/smoke/run-all-commands.test.mjs`
+
+### Command output contract tests
+
+Status: partially implemented.
+
+Current behavior:
+
+- `tests/command-output-contracts.test.mjs` keeps command-specific shape checks for high-value JSON commands and adds registry-accounted parse/no-mutation checks for JSON-capable commands.
+- Machine-readable failure contracts cover usage errors, threshold failures, and release-readiness failures.
+- `tests/read-only-commands.test.mjs` accounts for every registered JSON command in read-only fixtures.
+- Commands that are unsafe or fixture-heavy for generic coverage, such as `lock-clear` and `release-sign`, require explicit omission reasons.
+
+Follow-up: replace generic structural checks with command-specific schemas for the remaining JSON commands.
+
+Main files:
+
+- `tests/command-output-contracts.test.mjs`
+- `tests/read-only-commands.test.mjs`
+- `scripts/lib/command-registry.mjs`
 
 ### JSON schema for config
 
