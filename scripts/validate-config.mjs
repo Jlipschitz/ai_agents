@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BUILT_IN_COMMAND_ALIASES, parseCommandAliasTokens } from './lib/command-aliases.mjs';
+import { printCliError } from './lib/error-formatting.mjs';
 import { COMMANDS } from './lib/help-command.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -534,7 +535,7 @@ if (isCliEntrypoint()) {
   try {
     process.exitCode = runCli();
   } catch (error) {
-    console.error(error.message);
+    printCliError(error, { argv: process.argv.slice(2) });
     process.exitCode = 1;
   }
 }

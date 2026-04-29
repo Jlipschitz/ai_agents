@@ -64,3 +64,39 @@ test('contracts check validates references and warns on uncovered contract-sensi
   assert.ok(payload.errors.some((entry) => entry.includes('task-missing')));
   assert.ok(payload.warnings.some((entry) => entry.includes('task-api touches contract-sensitive path')));
 });
+
+test('contracts show missing contract uses shared JSON error formatting', () => {
+  const { root } = makeWorkspace({ prefix: 'ai-agents-contract-errors-', packageName: 'contracts-test' });
+  writeBoard(root, {
+    projectName: 'Contracts Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [],
+  });
+
+  const result = runCli(root, ['contracts', 'show', 'missing-contract', '--json']);
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(payload, {
+    ok: false,
+    error: 'Contract not found: missing-contract',
+    code: 'not_found',
+  });
+});
+
+test('contracts unknown subcommand uses shared text error formatting', () => {
+  const { root } = makeWorkspace({ prefix: 'ai-agents-contract-errors-', packageName: 'contracts-test' });
+  writeBoard(root, {
+    projectName: 'Contracts Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [],
+  });
+
+  const result = runCli(root, ['contracts', 'unknown']);
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /^error: Usage: contracts list\|show <id>\|create <id>\|check \[options\]/);
+  assert.match(result.stderr, /hint: Run with --help for command usage\./);
+});

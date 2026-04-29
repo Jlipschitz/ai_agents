@@ -150,14 +150,18 @@ Current behavior:
 - Text mode writes `error:` and optional `hint:` diagnostics to stderr.
 - Commands invoked with `--json` emit `{ ok: false, error, code, hint }` on stdout.
 - `--verbose` includes stack traces for formatted top-level errors.
-- Inline error paths for command help, artifact inspection, board repair/rollback, policy packs, config migration, run-check, lifecycle gates, Git preflight, and command-layer validation use the shared formatter.
+- Inline error paths for command help, artifact inspection, contract lookup and usage errors, standalone config-validator exceptions, board repair/rollback, policy packs, config migration, run-check, lifecycle gates, Git preflight, and command-layer validation use the shared formatter.
 
 Follow-up: continue replacing any older command-specific diagnostic output when those commands are refactored.
 
 Main files:
 
 - `scripts/lib/error-formatting.mjs`
+- `scripts/lib/contract-commands.mjs`
+- `scripts/validate-config.mjs`
 - `tests/error-formatting.test.mjs`
+- `tests/contract-commands.test.mjs`
+- `tests/config-validation.test.mjs`
 
 ### Mutation dry runs
 

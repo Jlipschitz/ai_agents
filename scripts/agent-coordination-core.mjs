@@ -1730,7 +1730,7 @@ async function acquireMutationLock() {
       await handle.close();
       return;
     } catch (error) {
-      if (error?.code !== 'EEXIST') {
+      if (!['EEXIST', 'EACCES', 'EPERM'].includes(error?.code)) {
         throw error;
       }
     }

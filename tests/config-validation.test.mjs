@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 import { loadAgentConfigWithSources, validateAgentConfig } from '../scripts/validate-config.mjs';
+
+const validateConfigCli = path.join(process.cwd(), 'scripts', 'validate-config.mjs');
 
 function validConfig() {
   return {
@@ -265,4 +268,33 @@ test('loadAgentConfigWithSources merges inherited config files', () => {
   assert.deepEqual(config.domainRules.map((rule) => rule.name), ['base', 'child']);
   assert.equal(sources.length, 2);
   assert.equal(validation.valid, true);
+});
+
+test('validate-config CLI exceptions use shared JSON error formatting', () => {
+  const result = spawnSync(process.execPath, [validateConfigCli, '--unknown', '--json'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+  });
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(payload, {
+    ok: false,
+    error: 'Unknown argument: --unknown',
+    code: 'usage_error',
+    hint: 'Run with --help for command usage.',
+  });
+});
+
+test('validate-config CLI exceptions use shared text error formatting', () => {
+  const result = spawnSync(process.execPath, [validateConfigCli, '--unknown'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /^error: Unknown argument: --unknown/);
+  assert.match(result.stderr, /hint: Run with --help for command usage\./);
 });

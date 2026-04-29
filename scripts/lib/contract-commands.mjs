@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getFlagValue, getPositionals, hasFlag } from './args-utils.mjs';
+import { printCommandError } from './error-formatting.mjs';
 import { nowIso, readJsonSafe, writeJson } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 import { withStateTransactionSync } from './state-transaction.mjs';
@@ -165,9 +166,7 @@ function runContractsShow(argv, context) {
   const id = contractId(getPositionals(argv).at(1));
   const contract = loadContracts(context.paths).find((entry) => entry.id === id);
   if (!contract) {
-    if (hasFlag(argv, '--json')) console.log(JSON.stringify({ ok: false, error: `Contract not found: ${id}` }, null, 2));
-    else console.error(`error: Contract not found: ${id}`);
-    return 1;
+    return printCommandError(`Contract not found: ${id}`, { json: hasFlag(argv, '--json'), code: 'not_found' });
   }
   if (hasFlag(argv, '--json')) console.log(JSON.stringify(contract, null, 2));
   else console.log(renderContract(contract));
@@ -222,7 +221,5 @@ export function runContracts(argv, context) {
   if (subcommand === 'create') return runContractsCreate(argv, context);
   if (subcommand === 'check') return runContractsCheck(argv, context);
   const usage = 'Usage: contracts list|show <id>|create <id>|check [options]';
-  if (hasFlag(argv, '--json')) console.log(JSON.stringify({ ok: false, error: usage }, null, 2));
-  else console.error(`error: ${usage}`);
-  return 1;
+  return printCommandError(usage, { json: hasFlag(argv, '--json'), code: 'usage_error' });
 }

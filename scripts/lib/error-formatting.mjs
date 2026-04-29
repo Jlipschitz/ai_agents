@@ -18,7 +18,7 @@ export function isVerbose(argv = process.argv.slice(2), env = process.env) {
 
 export function inferErrorCode(message = '') {
   const normalized = message.toLowerCase();
-  if (normalized.startsWith('usage:') || normalized.includes('unknown command') || normalized.includes('invalid option')) return 'usage_error';
+  if (normalized.startsWith('usage:') || normalized.includes('unknown command') || normalized.includes('unknown argument') || normalized.includes('invalid option')) return 'usage_error';
   if (normalized.includes('unknown template') || normalized.includes('not found') || normalized.includes('does not exist') || normalized.includes('config not found') || normalized.includes('snapshot not found')) return 'not_found';
   if (normalized.includes('not valid json') || normalized.includes('malformed') || normalized.includes('failed to parse')) return 'parse_error';
   if (normalized.includes('config invalid') || normalized.includes('validation')) return 'validation_error';
@@ -28,7 +28,7 @@ export function inferErrorCode(message = '') {
 
 export function inferHint(message = '') {
   const normalized = message.toLowerCase();
-  if (normalized.startsWith('usage:') || normalized.includes('unknown command') || normalized.includes('invalid option')) return 'Run with --help for command usage.';
+  if (normalized.startsWith('usage:') || normalized.includes('unknown command') || normalized.includes('unknown argument') || normalized.includes('invalid option')) return 'Run with --help for command usage.';
   if (normalized.includes('config')) return 'Run validate --json or explain-config for configuration details.';
   if (normalized.includes('board') || normalized.includes('snapshot')) return 'Run inspect-board, repair-board, or rollback-state for state details.';
   if (normalized.includes('lock')) return 'Run lock-status or watch-diagnose for runtime lock details.';

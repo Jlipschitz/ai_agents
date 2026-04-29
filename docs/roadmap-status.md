@@ -162,7 +162,7 @@ Next recommended work:
 
 - [x] Add per-command help
 - [~] Add consistent global flags — global parser supports the requested flags; verbose/quiet behavior can become richer.
-- [~] Add better error formatting - top-level failures and common inline command-layer errors now use consistent text/JSON formatting; older command-specific diagnostic paths can still be normalized during future refactors.
+- [~] Add better error formatting - top-level failures and common inline command-layer errors now use consistent text/JSON formatting; contract lookup/usage errors and standalone config-validator exceptions were normalized as the latest cleanup slice, and older command-specific diagnostic paths can still be normalized during future refactors.
 - [x] Add short command aliases
 - [x] Add interactive mode
 
