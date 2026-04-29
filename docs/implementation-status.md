@@ -268,10 +268,11 @@ Current behavior:
 - Creates a temporary target repository.
 - Runs the real bootstrap flow into that target.
 - Executes the copied target coordinator rather than the source checkout CLI.
-- Applies a healthy fixture board, then runs representative JSON/read-only commands and one dry-run mutation command.
+- Applies fixture boards, then runs representative JSON/read-only commands, minimal workflow commands in the temp repo, and one dry-run mutation command.
+- Accounts for every registry minimal command, with explicit skipped-command reasons when a command is covered by focused lifecycle tests instead of smoke.
 - Removes the temporary target by default; `--keep` preserves it for debugging.
 
-Follow-up: broaden the smoke matrix from representative commands to command-registry-driven coverage.
+Follow-up: broaden from minimal registry coverage to safe full-command coverage.
 
 Main files:
 

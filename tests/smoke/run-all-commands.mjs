@@ -12,6 +12,12 @@ import { bootstrap } from '../../scripts/bootstrap.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const SKIPPED_MINIMAL_COMMANDS = [
+  {
+    command: 'handoff-ready',
+    reason: 'handoff auto-heal can release fixture owners; focused lifecycle tests cover this command.',
+  },
+];
 
 function runTargetCli(root, args) {
   const cliPath = path.join(root, 'scripts', 'agent-coordination.mjs');
@@ -32,6 +38,7 @@ function commandRecord(label, args, result, options = {}) {
   const expectedStatus = options.expectedStatus ?? 0;
   const record = {
     label,
+    command: options.command ?? args[0],
     args,
     status: result.status,
     expectedStatus,
@@ -69,27 +76,41 @@ export function runSmokeSuite(options = {}) {
       return record;
     };
 
+    run('init command', ['init']);
     run('doctor fixes starter state', ['doctor', '--fix']);
     run('fixture board apply', ['fixture-board', 'healthy', '--out', 'coordination/board.json', '--apply', '--json'], { json: true });
 
-    for (const [label, args] of [
-      ['doctor json', ['doctor', '--json']],
-      ['validate json', ['validate', '--json']],
-      ['status json', ['status', '--json']],
-      ['summarize json', ['summarize', '--json']],
-      ['inspect board json', ['inspect-board', '--json']],
-      ['health score json', ['health-score', '--json']],
-      ['prompt json', ['prompt', 'agent-1', '--json']],
-      ['ask json', ['ask', 'what can agent-2 do next?', '--json']],
-      ['next json', ['next', 'agent-1', '--json']],
-      ['handoff bundle json', ['handoff-bundle', 'agent-1', 'task-active', '--json']],
-      ['release check json', ['release-check', 'task-done', '--json']],
-      ['archive completed dry-run json', ['archive-completed', '--json']],
+    for (const [label, args, commandOptions = {}] of [
+      ['help minimal', ['help', '--minimal']],
+      ['version json', ['version', '--json'], { json: true }],
+      ['doctor json', ['doctor', '--json'], { json: true }],
+      ['validate json', ['validate', '--json'], { json: true }],
+      ['status json', ['status', '--json'], { json: true }],
+      ['summarize json', ['summarize', '--json'], { json: true }],
+      ['plan dry-run', ['plan', 'Smoke registry coverage']],
+      ['inspect board json', ['inspect-board', '--json'], { json: true }],
+      ['health score json', ['health-score', '--json'], { json: true }],
+      ['prompt json', ['prompt', 'agent-1', '--json'], { json: true }],
+      ['ask json', ['ask', 'what can agent-2 do next?', '--json'], { json: true }],
+      ['next json', ['next', 'agent-1', '--json'], { json: true }],
+      ['handoff bundle json', ['handoff-bundle', 'agent-1', 'task-active', '--json'], { json: true }],
+      ['release check json', ['release-check', 'task-done', '--json'], { json: true }],
+      ['interactive json', ['interactive', '--json'], { json: true }],
+      ['completions list json', ['completions', 'list', '--json'], { json: true }],
+      ['archive completed dry-run json', ['archive-completed', '--json'], { json: true }],
     ]) {
-      run(label, args, { json: true });
+      run(label, args, commandOptions);
     }
 
-    run('prioritize dry-run', ['prioritize', 'task-active', '--priority', 'high', '--dry-run']);
+    run('fixture board blocked apply', ['fixture-board', 'blocked', '--out', 'coordination/board.json', '--apply', '--json'], { json: true });
+    run('prioritize dry-run', ['prioritize', 'task-unblocker', '--priority', 'high', '--dry-run']);
+    run('start minimal workflow', ['start', 'agent-2', 'task-unblocker', '--paths', 'fixtures/blocked/unblocker.mjs', 'Smoke start']);
+    run('progress minimal workflow', ['progress', 'agent-2', 'task-unblocker', 'Smoke progress']);
+    run('blocked minimal workflow', ['blocked', 'agent-2', 'task-unblocker', 'Smoke blocked']);
+    run('resume minimal workflow', ['resume', 'agent-2', 'task-unblocker', 'Smoke resumed']);
+    run('verify minimal workflow', ['verify', 'agent-2', 'task-unblocker', 'unit', 'pass', '--details', 'Smoke verification']);
+    run('finish minimal workflow', ['finish', 'agent-2', 'task-unblocker', 'Smoke finished']);
+    run('run-check dry-run json', ['run-check', 'smoke', '--dry-run', '--json', '--', process.execPath, '-e', 'console.log("smoke ok")'], { json: true });
 
     const result = {
       ok: true,
@@ -97,6 +118,7 @@ export function runSmokeSuite(options = {}) {
       packageRoot: REPO_ROOT,
       operations,
       commands: commands.map(({ json, ...entry }) => entry),
+      skippedMinimalCommands: SKIPPED_MINIMAL_COMMANDS,
     };
 
     if (!options.keep) {
