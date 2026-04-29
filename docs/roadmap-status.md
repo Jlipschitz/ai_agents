@@ -197,7 +197,7 @@ Next recommended work:
 
 ## Phase 16: Command Registry, Contracts, and Agent Handoff
 
-- [~] Central command registry - registry metadata and shared package-script manifest exist; router/doc generation and command grouping remain open.
+- [~] Central command registry - registry metadata, command groups, minimal-mode membership, and shared package-script manifest exist; router/doc generation remains open.
 - [~] Doctor command wiring validation - `doctor --json` validates package-script command targets; deeper dry-run and JSON behavior checks remain open.
 - [~] End-to-end CLI smoke tests - representative temp-repo bootstrap smoke runner exists; registry-driven all-command coverage remains open.
 - [x] Fixture-board generator
@@ -208,7 +208,7 @@ Next recommended work:
 - [x] Upgrade and migration compatibility tests
 - [~] Security and privacy redaction checks - `redact-check` scans coordination state and generated prompt/handoff/task-summary text; outbound GitHub/API redaction gates remain open.
 - [x] Generated repo health status file
-- [ ] Minimal mode and command groups
+- [x] Minimal mode and command groups
 
 ---
 

@@ -309,6 +309,8 @@ test('per-command help supports command flags and help aliases', () => {
   const next = run(root, ['next', '--help']);
   const policyPacks = run(root, ['policy-packs', '--help']);
   const completions = run(root, ['completions', '--help']);
+  const minimal = run(root, ['help', '--minimal']);
+  const groups = run(root, ['help', '--groups']);
 
   assert.equal(claim.status, 0, claim.stderr);
   assert.match(claim.stdout, /Usage:/);
@@ -321,10 +323,19 @@ test('per-command help supports command flags and help aliases', () => {
   assert.match(handoffBundle.stdout, /handoff-bundle <agent>/);
   assert.equal(next.status, 0, next.stderr);
   assert.match(next.stdout, /next \[agent-id\]/);
+  assert.match(next.stdout, /Group: workflow/);
+  assert.match(next.stdout, /Minimal: yes/);
   assert.equal(policyPacks.status, 0, policyPacks.stderr);
   assert.match(policyPacks.stdout, /list\|inspect\|apply/);
   assert.equal(completions.status, 0, completions.stderr);
   assert.match(completions.stdout, /list\|powershell\|bash\|zsh/);
+  assert.equal(minimal.status, 0, minimal.stderr);
+  assert.match(minimal.stdout, /Minimal commands/);
+  assert.match(minimal.stdout, /agents -- next/);
+  assert.doesNotMatch(minimal.stdout, /github-plan/);
+  assert.equal(groups.status, 0, groups.stderr);
+  assert.match(groups.stdout, /workflow - Task lifecycle/);
+  assert.match(groups.stdout, /github - Git and GitHub awareness/);
 });
 
 test('global coordination-dir flag overrides default coordination root', () => {

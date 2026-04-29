@@ -1,4 +1,4 @@
-import { COMMANDS } from './help-command.mjs';
+import { COMMANDS, commandHelpMetadata } from './help-command.mjs';
 
 const BASE_COORDINATOR_COMMANDS = new Set([
   'node ./scripts/agent-coordination.mjs',
@@ -19,14 +19,18 @@ function primaryToken(usage) {
 }
 
 export function commandRegistryEntries() {
-  return Object.keys(COMMANDS).sort((left, right) => left.localeCompare(right)).map((name) => ({
-    name,
-    usage: commandUsage(name),
-    summary: commandSummary(name),
-    json: commandUsage(name).includes('--json'),
-    apply: commandUsage(name).includes('--apply'),
-    dryRun: commandUsage(name).includes('--dry-run'),
-  }));
+  return Object.keys(COMMANDS).sort((left, right) => left.localeCompare(right)).map((name) => {
+    const usage = commandUsage(name);
+    return {
+      name,
+      usage,
+      summary: commandSummary(name),
+      json: usage.includes('--json'),
+      apply: usage.includes('--apply'),
+      dryRun: usage.includes('--dry-run'),
+      ...commandHelpMetadata(name),
+    };
+  });
 }
 
 export function commandNames() {
@@ -50,6 +54,8 @@ export function validateCommandRegistry() {
     seen.add(entry.name);
     if (!entry.usage) errors.push(`Missing usage for command: ${entry.name}`);
     if (!entry.summary) errors.push(`Missing summary for command: ${entry.name}`);
+    if (!entry.group) errors.push(`Missing group metadata for command: ${entry.name}`);
+    if (typeof entry.minimal !== 'boolean') errors.push(`Missing minimal metadata for command: ${entry.name}`);
     const usageToken = primaryToken(entry.usage);
     if (usageToken && usageToken !== entry.name) warnings.push(`Usage token for ${entry.name} starts with ${usageToken}.`);
   }

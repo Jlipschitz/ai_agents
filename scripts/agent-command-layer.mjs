@@ -1428,9 +1428,14 @@ async function runCommandLayerInner({ coordinatorScriptPath, importCore }) {
   const normalizedCoordinatorPath = resolveRepoPath(coordinatorScriptPath, 'scripts/agent-coordination.mjs');
   const cli = process.env.AGENT_COORDINATION_CLI_ENTRYPOINT || 'agents';
 
-  if (commandName === 'help' && commandArgs[0]) {
-    const helpTarget = resolveCommandAlias(commandArgs[0], [], config).commandName;
-    process.exit(runCommandHelp(commandName, [helpTarget], { cli }));
+  if (commandName === 'help' && commandArgs.length) {
+    const helpTarget = commandArgs.find((entry) => !entry.startsWith('-'));
+    if (helpTarget) {
+      const resolvedTarget = resolveCommandAlias(helpTarget, [], config).commandName;
+      const helpArgs = commandArgs.map((entry) => (entry === helpTarget ? resolvedTarget : entry));
+      process.exit(runCommandHelp(commandName, helpArgs, { cli }));
+    }
+    process.exit(runCommandHelp(commandName, commandArgs, { cli }));
   }
 
   if (hasHelpFlag(commandArgs)) {

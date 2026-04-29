@@ -68,6 +68,10 @@ test('completions list reports supported shells', () => {
   assert.ok(payload.commands.includes('next'));
   assert.ok(payload.commands.includes('s'));
   assert.ok(payload.commands.includes('qa'));
+  assert.ok(payload.groups.workflow.includes('next'));
+  assert.ok(payload.groups.github.includes('github-plan'));
+  assert.ok(payload.minimalCommands.includes('next'));
+  assert.ok(!payload.minimalCommands.includes('github-plan'));
 });
 
 test('completions bash includes commands and repo task context', () => {

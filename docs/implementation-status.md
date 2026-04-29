@@ -239,12 +239,13 @@ Status: partially implemented.
 Current behavior:
 
 - `scripts/lib/command-registry.mjs` exposes normalized command metadata from the current help surface.
+- Registry entries include stable command group IDs and minimal-mode membership.
 - `scripts/lib/package-script-manifest.mjs` generates local bootstrap scripts and portable installed-package scripts from one shortcut manifest.
 - Shell completions consume the registry command list instead of reading the help table directly.
 - `doctor --json` includes `commandWiring` validation for package scripts and expected generated scripts.
 - The registry validates missing command usage/summary fields and unknown script command targets.
 
-Follow-up: make the registry the direct source for router groups, docs generation, and command grouping.
+Follow-up: make the registry the direct source for router wiring and generated command docs.
 
 Main files:
 
@@ -910,6 +911,7 @@ Current behavior:
 - Generates PowerShell, Bash, and Zsh completion scripts.
 - Includes command names, common flags, current agent IDs, task IDs, configured checks, and checks from verification history.
 - Supports JSON output for tooling that wants to write the generated script elsewhere.
+- `completions list --json` preserves the `commands` array and also includes grouped command names in `groups` plus a `minimalCommands` array.
 - Is covered by read-only mutation tests.
 
 Main files:
@@ -1475,6 +1477,8 @@ Current behavior:
 
 - `ai-agents <command> --help` prints focused command help.
 - `ai-agents help <command>` prints the same focused help.
+- `ai-agents help --minimal` prints the smaller recommended command set for quick onboarding.
+- `ai-agents help --groups` prints commands grouped by registry category.
 - Built-in aliases resolve in help output, such as `help sum`.
 - Entrypoints support `--config`, `--root`, `--coordination-dir`, `--coordination-root`, `--verbose`, `--quiet`, and `--no-color` before command dispatch.
 

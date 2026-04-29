@@ -1,3 +1,4 @@
+import { getPositionals, hasFlag } from './args-utils.mjs';
 import { printCommandError } from './error-formatting.mjs';
 
 export const COMMANDS = {
@@ -49,7 +50,7 @@ export const COMMANDS = {
   'lock-status': ['lock-status [--json]', 'Inspect runtime lock state.'],
   'lock-clear': ['lock-clear --stale-only|--force [--json]', 'Clear a stale or forced runtime lock.'],
   'run-check': ['run-check <script-name>|<check-name> [--task <id>] [--artifact-dir <path>] [--json] [--dry-run] [-- <command...>]', 'Run a configured check and capture artifacts.'],
-  artifacts: ['artifacts <list|inspect|prune> [options]', 'List, inspect, or prune verification artifacts.'],
+  artifacts: ['artifacts <list|inspect|report|prune> [options]', 'List, inspect, report on, or prune verification artifacts.'],
   'release-check': ['release-check [task-id...] [--json] [--require-doc-review]', 'Check whether tasks are ready for release.'],
   'release-bundle': ['release-bundle [task-id...] [--out-dir <path>] [--apply] [--sign --private-key <path>] [--json]', 'Generate release handoff artifacts.'],
   'release-sign': ['release-sign --dir <release-dir> [--private-key <path> --apply] [--verify --public-key <path>] [--json]', 'Create or verify release checksums and signatures.'],
@@ -111,6 +112,73 @@ export const COMMANDS = {
   recover: ['recover [--apply]', 'Report or apply stale task/resource/incident recovery.'],
 };
 
+export const COMMAND_GROUPS = {
+  core: 'Core setup, status, and command discovery',
+  workflow: 'Task lifecycle and daily coordination',
+  verification: 'Checks, release evidence, and policy gates',
+  planning: 'Planning, routing, dashboards, and analysis',
+  github: 'Git and GitHub awareness',
+  maintenance: 'State, runtime, bootstrap, and recovery',
+  access: 'Access, messaging, incidents, and resources',
+};
+
+const COMMAND_GROUP_MEMBERS = {
+  core: new Set(['help', 'version', 'init', 'status', 'summarize', 'validate', 'doctor', 'interactive', 'completions', 'explain-config']),
+  workflow: new Set(['plan', 'claim', 'start', 'prioritize', 'finish', 'handoff-ready', 'handoff', 'handoff-bundle', 'next', 'pick', 'progress', 'wait', 'resume', 'blocked', 'review', 'done', 'release', 'verify', 'review-docs', 'prompt', 'ask', 'calendar']),
+  verification: new Set(['run-check', 'artifacts', 'release-check', 'release-bundle', 'release-sign', 'pr-summary', 'changelog', 'risk-score', 'critical-path', 'health-score', 'test-impact', 'ownership-review', 'review-queue', 'policy-check', 'policy-packs', 'redact-check', 'secrets-scan', 'contracts', 'runbooks']),
+  planning: new Set(['graph', 'ownership-map', 'path-groups', 'split-validate', 'escalation-route', 'steal-work', 'backlog-import', 'templates', 'dashboard', 'timeline', 'agent-history', 'cost-time']),
+  github: new Set(['github-status', 'github-plan', 'branches']),
+  maintenance: new Set(['heartbeat', 'heartbeat-start', 'heartbeat-stop', 'heartbeat-status', 'watch', 'watch-tick', 'watch-start', 'watch-stop', 'watch-status', 'watch-diagnose', 'cleanup-runtime', 'lock-status', 'lock-clear', 'inspect-board', 'repair-board', 'migrate-board', 'rollback-state', 'compact-state', 'state-size', 'status-badge', 'fixture-board', 'migrate-config', 'archive-completed', 'update-coordinator', 'snapshot-workspace', 'publish-check', 'recover']),
+  access: new Set(['approvals', 'request-access', 'grant-access', 'deny-access', 'complete-access', 'start-incident', 'join-incident', 'close-incident', 'reserve-resource', 'renew-resource', 'release-resource', 'message', 'app-note', 'inbox']),
+};
+
+export const MINIMAL_COMMANDS = new Set([
+  'help',
+  'version',
+  'init',
+  'status',
+  'summarize',
+  'validate',
+  'doctor',
+  'plan',
+  'start',
+  'progress',
+  'blocked',
+  'resume',
+  'finish',
+  'handoff-ready',
+  'next',
+  'verify',
+  'run-check',
+  'interactive',
+  'completions',
+]);
+
+export function commandHelpMetadata(name) {
+  const group = Object.entries(COMMAND_GROUP_MEMBERS).find(([, members]) => members.has(name))?.[0] ?? 'maintenance';
+  return { group, minimal: MINIMAL_COMMANDS.has(name) };
+}
+
+export function commandHelpEntries({ minimal = false } = {}) {
+  return Object.keys(COMMANDS).sort((left, right) => left.localeCompare(right)).map((name) => {
+    const [usage, summary] = COMMANDS[name];
+    return { name, usage, summary, ...commandHelpMetadata(name) };
+  }).filter((entry) => !minimal || entry.minimal);
+}
+
+export function groupedCommandHelpEntries({ minimal = false } = {}) {
+  const groups = new Map(Object.keys(COMMAND_GROUPS).map((group) => [group, []]));
+  for (const entry of commandHelpEntries({ minimal })) {
+    if (!groups.has(entry.group)) groups.set(entry.group, []);
+    groups.get(entry.group).push(entry);
+  }
+  return [...groups.entries()].map(([group, commands]) => ({
+    group,
+    label: COMMAND_GROUPS[group] ?? group,
+    commands,
+  })).filter((entry) => entry.commands.length);
+}
+
 const GLOBAL_FLAGS = [
   '--config <path>',
   '--root <path>',
@@ -125,8 +193,35 @@ export function hasHelpFlag(argv) {
   return argv.includes('--help') || argv.includes('-h');
 }
 
+function renderCommandEntries(entries, { cli, title }) {
+  const lines = [title, ''];
+  for (const entry of entries) lines.push(`${cli} -- ${entry.usage}`, `  ${entry.summary}`);
+  return lines.join('\n');
+}
+
+function renderGroupedEntries(groups, { cli, title }) {
+  const lines = [title, ''];
+  for (const group of groups) {
+    lines.push(`${group.group} - ${group.label}`);
+    for (const entry of group.commands) lines.push(`  ${cli} -- ${entry.usage}`);
+    lines.push('');
+  }
+  return lines.join('\n').trimEnd();
+}
+
 export function runCommandHelp(commandName, argv, { cli = 'agents' } = {}) {
-  const target = commandName === 'help' && argv[0] ? argv[0] : commandName;
+  const minimal = hasFlag(argv, '--minimal');
+  const groups = hasFlag(argv, '--groups');
+  const [explicitTarget] = getPositionals(argv);
+  if (commandName === 'help' && !explicitTarget && (minimal || groups)) {
+    const entries = commandHelpEntries({ minimal });
+    console.log(groups
+      ? renderGroupedEntries(groupedCommandHelpEntries({ minimal }), { cli, title: minimal ? 'Minimal command groups' : 'Command groups' })
+      : renderCommandEntries(entries, { cli, title: 'Minimal commands' }));
+    return 0;
+  }
+
+  const target = commandName === 'help' && explicitTarget ? explicitTarget : commandName;
   const entry = COMMANDS[target];
 
   if (!entry) {
@@ -134,6 +229,7 @@ export function runCommandHelp(commandName, argv, { cli = 'agents' } = {}) {
   }
 
   const [usage, summary] = entry;
-  console.log(`${target}\n\nUsage:\n  ${cli} -- ${usage}\n\n${summary}\n\nGlobal flags:\n  ${GLOBAL_FLAGS.join('\n  ')}`);
+  const metadata = commandHelpMetadata(target);
+  console.log(`${target}\n\nUsage:\n  ${cli} -- ${usage}\n\n${summary}\n\nGroup: ${metadata.group}${metadata.minimal ? '\nMinimal: yes' : ''}\n\nGlobal flags:\n  ${GLOBAL_FLAGS.join('\n  ')}`);
   return 0;
 }

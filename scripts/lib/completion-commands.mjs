@@ -1,6 +1,6 @@
 import { getPositionals, hasFlag } from './args-utils.mjs';
 import { BUILT_IN_COMMAND_ALIASES, configuredCommandAliases } from './command-aliases.mjs';
-import { commandNames } from './command-registry.mjs';
+import { commandRegistryEntries } from './command-registry.mjs';
 import { printCommandError } from './error-formatting.mjs';
 
 const SHELLS = ['powershell', 'bash', 'zsh'];
@@ -86,6 +86,7 @@ function powershellQuote(value) {
 }
 
 function collectCompletionData(context) {
+  const registry = commandRegistryEntries();
   const board = context.board && typeof context.board === 'object' ? context.board : {};
   const tasks = Array.isArray(board.tasks) ? board.tasks : [];
   const agents = Array.isArray(board.agents) ? board.agents : [];
@@ -96,8 +97,15 @@ function collectCompletionData(context) {
     ...(Array.isArray(task.verification) ? task.verification : []),
     ...(Array.isArray(task.verificationLog) ? task.verificationLog.map((entry) => entry?.check) : []),
   ]);
+  const groups = registry.reduce((map, entry) => {
+    map[entry.group] ??= [];
+    map[entry.group].push(entry.name);
+    return map;
+  }, {});
   return {
-    commands: unique([...commandNames(), ...aliases]),
+    commands: unique([...registry.map((entry) => entry.name), ...aliases]),
+    groups: Object.fromEntries(Object.entries(groups).sort(([left], [right]) => left.localeCompare(right)).map(([group, commands]) => [group, unique(commands)])),
+    minimalCommands: unique(registry.filter((entry) => entry.minimal).map((entry) => entry.name)),
     flags: unique(COMMON_FLAGS),
     shells: SHELLS,
     completionSubcommands: COMPLETION_SUBCOMMANDS,
@@ -262,7 +270,7 @@ export function runCompletionsCommand(argv, context) {
   const [shell] = getPositionals(argv);
   const data = collectCompletionData(context);
   if (!shell || shell === 'list') {
-    const payload = { shells: SHELLS, commands: data.commands };
+    const payload = { shells: SHELLS, commands: data.commands, groups: data.groups, minimalCommands: data.minimalCommands };
     if (json) console.log(JSON.stringify(payload, null, 2));
     else console.log(SHELLS.join('\n'));
     return 0;

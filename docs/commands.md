@@ -82,6 +82,19 @@ npm run agents -- help blocked-now
 
 Alias names cannot override built-in commands or built-in aliases.
 
+## Help Views
+
+Use focused help for a command or the smaller onboarding list:
+
+```bash
+npm run agents -- help start
+npm run agents -- start --help
+npm run agents -- help --minimal
+npm run agents -- help --groups
+```
+
+`help --minimal` lists the recommended starter commands. `help --groups` groups the full command surface by registry category.
+
 ## Mutation Dry Runs
 
 Most command-layer apply flows are dry-run by default and write only when `--apply` is passed. Legacy core mutation commands such as `claim`, `prioritize`, `approvals request|grant|deny|use`, `progress`, `wait`, `resume`, `blocked`, `review`, `verify`, `message`, `app-note`, `handoff`, `done`, `release`, access requests, incidents, resource leases, heartbeat, and watcher commands also accept `--dry-run` to validate inputs and report the intended action without changing coordination state or starting/stopping background processes.
@@ -109,6 +122,8 @@ Shows command help.
 
 ```bash
 npm run agents -- help
+npm run agents -- help --minimal
+npm run agents -- help --groups
 ```
 
 ### `version`
@@ -422,7 +437,7 @@ npm run agents -- completions zsh
 npm run agents -- completions list --json
 ```
 
-Generated scripts include command names plus current agent IDs, task IDs, configured checks, verification checks, and common flags.
+Generated scripts include command names plus current agent IDs, task IDs, configured checks, verification checks, and common flags. `completions list --json` includes `commands`, grouped commands in `groups`, and the starter set in `minimalCommands`.
 
 ### `migrate-config`
 

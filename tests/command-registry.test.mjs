@@ -21,6 +21,11 @@ test('command registry exposes help metadata for routed commands', () => {
   assert.ok(names.includes('next'));
   assert.match(findCommandMetadata('next').usage, /next \[agent-id\]/);
   assert.match(findCommandMetadata('handoff-bundle').summary, /handoff context|handoff/);
+  assert.equal(findCommandMetadata('next').group, 'workflow');
+  assert.equal(findCommandMetadata('next').minimal, true);
+  assert.equal(findCommandMetadata('github-plan').group, 'github');
+  assert.equal(findCommandMetadata('github-plan').minimal, false);
+  assert.equal(validation.commands.every((entry) => typeof entry.group === 'string' && typeof entry.minimal === 'boolean'), true);
 });
 
 test('command registry validates package script command targets', () => {
