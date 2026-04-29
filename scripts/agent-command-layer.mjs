@@ -135,6 +135,14 @@ const DEFAULT_ARTIFACT_POLICY = { roots: ['artifacts'], keepDays: 14, keepFailed
 const DEFAULT_CAPACITY_POLICY = { maxActiveTasksPerAgent: 1, maxBlockedTasksPerAgent: 1, preferredDomainsByAgent: {}, enforcePreferredDomains: false };
 const DEFAULT_CONFLICT_PREDICTION = { enabled: true, blockOnGitOverlap: true };
 const DEFAULT_OWNERSHIP_POLICY = { codeownersFiles: ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS'], broadPathPatterns: ['app', 'src', 'components', 'features', 'lib', 'api', 'server', 'packages'] };
+const WINDOWS_SPAWN_SHIMS = new Map([
+  ['corepack', 'corepack.cmd'],
+  ['npm', 'npm.cmd'],
+  ['npx', 'npx.cmd'],
+  ['pnpm', 'pnpm.cmd'],
+  ['pnpx', 'pnpx.cmd'],
+  ['yarn', 'yarn.cmd'],
+]);
 const POLICY_PACKS = {
   'docs-light': {
     description: 'Lightweight docs-focused coordination defaults.',
@@ -595,6 +603,16 @@ function parseRunCheckArgs(argv) {
   };
 }
 
+function resolveSpawnCommand(command) {
+  if (process.platform !== 'win32' || !command.length) return command;
+  const executable = command[0];
+  const parsed = path.parse(executable);
+  if (parsed.ext) return command;
+  const shim = WINDOWS_SPAWN_SHIMS.get(parsed.base.toLowerCase());
+  if (!shim) return command;
+  return [parsed.dir ? path.join(parsed.dir, shim) : shim, ...command.slice(1)];
+}
+
 function runCheckCommand(argv) {
   const args = parseRunCheckArgs(argv);
   const { config } = loadConfig();
@@ -609,6 +627,7 @@ function runCheckCommand(argv) {
     }
     command = [process.platform === 'win32' ? 'npm.cmd' : 'npm', 'run', args.name];
   }
+  command = resolveSpawnCommand(command);
   if (args.dryRun) {
     const result = { ok: true, applied: false, name: args.name, taskId: args.taskId || null, command, checkType: visual ? 'visual' : 'generic', visualArtifactRoots };
     if (args.json) console.log(JSON.stringify(result, null, 2));

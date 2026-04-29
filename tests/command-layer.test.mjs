@@ -47,6 +47,15 @@ test('doctor accepts package.json with a UTF-8 BOM', () => {
   assert.equal(payload.commandWiring.ok, true);
 });
 
+test('run-check resolves explicit package manager commands for the host platform', () => {
+  const root = makeWorkspace();
+  const result = run(root, ['run-check', 'build', '--dry-run', '--json', '--', 'npm', 'run', 'build']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.deepEqual(payload.command, [process.platform === 'win32' ? 'npm.cmd' : 'npm', 'run', 'build']);
+});
+
 test('workspace wrappers use distinct default coordination roots', () => {
   const root = makeWorkspace();
   const agentsCli = path.join(repoRoot, 'scripts', 'agent-coordination.mjs');
