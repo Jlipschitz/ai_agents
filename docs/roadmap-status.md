@@ -198,7 +198,7 @@ Next recommended work:
 ## Phase 16: Command Registry, Contracts, and Agent Handoff
 
 - [~] Central command registry - registry metadata, command groups, minimal-mode membership, and shared package-script manifest exist; router/doc generation remains open.
-- [~] Doctor command wiring validation - `doctor --json` validates package-script command targets; deeper dry-run and JSON behavior checks remain open.
+- [~] Doctor command wiring validation - `doctor --json` validates package-script command targets and reports registry group/minimal coverage metadata; deeper dry-run behavior checks remain open.
 - [~] End-to-end CLI smoke tests - temp-repo bootstrap smoke runner covers representative commands and accounts for every minimal registry command; full all-command coverage remains open.
 - [x] Fixture-board generator
 - [~] Command output contract tests - success and machine-readable failure contracts exist for high-value JSON commands; exhaustive all-command coverage remains open.

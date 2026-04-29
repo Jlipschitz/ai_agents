@@ -32,6 +32,12 @@ test('command registry validates package script command targets', () => {
   const validation = validateCommandWiring({ packageJson });
 
   assert.equal(validation.ok, true);
+  assert.equal(validation.registry.commandCount, validation.commandCount);
+  assert.ok(validation.registry.minimalCommandCount > 0);
+  assert.ok(validation.registry.groups.workflow.minimalCommands > 0);
+  assert.ok(validation.scriptCoverage.shortcutCommandCount > 0);
+  assert.ok(validation.scriptCoverage.minimalCommandsWithShortcuts.includes('next'));
+  assert.ok(Array.isArray(validation.scriptCoverage.minimalCommandsWithoutShortcuts));
   assert.ok(validation.checkedScripts.some((entry) => entry.name === 'agents:next' && entry.command === 'next'));
   assert.ok(validation.checkedScripts.some((entry) => entry.name === 'agents:handoff:bundle' && entry.command === 'handoff-bundle'));
 });

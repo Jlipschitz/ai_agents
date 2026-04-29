@@ -227,6 +227,7 @@ Output includes:
 
 - Config validation result.
 - Command wiring validation for package scripts and registered command metadata.
+- Registry command counts by group, minimal-mode totals, and non-blocking package-script coverage gaps.
 - Git state and policy summary.
 - Coordination path summary.
 - Runtime file existence checks.
@@ -242,7 +243,7 @@ Current behavior:
 - Registry entries include stable command group IDs and minimal-mode membership.
 - `scripts/lib/package-script-manifest.mjs` generates local bootstrap scripts and portable installed-package scripts from one shortcut manifest.
 - Shell completions consume the registry command list instead of reading the help table directly.
-- `doctor --json` includes `commandWiring` validation for package scripts and expected generated scripts.
+- `doctor --json` includes `commandWiring` validation for package scripts, expected generated scripts, registry group/minimal totals, and package-script coverage metadata.
 - The registry validates missing command usage/summary fields and unknown script command targets.
 
 Follow-up: make the registry the direct source for router wiring and generated command docs.

@@ -96,6 +96,16 @@ function runContract(args) {
 
 const successContracts = [
   {
+    args: ['doctor', '--json'],
+    assertPayload(payload) {
+      assert.equal(payload.ok, true);
+      assert.equal(payload.configValidation.valid, true);
+      assert.equal(payload.commandWiring.ok, true);
+      assert.ok(payload.commandWiring.registry.minimalCommandCount > 0);
+      assert.equal(Array.isArray(payload.commandWiring.scriptCoverage.minimalCommandsWithoutShortcuts), true);
+    },
+  },
+  {
     args: ['status', '--json'],
     assertPayload(payload) {
       assert.equal(payload.ok, true);

@@ -111,6 +111,10 @@ test('doctor --json reports config validation and git fields', () => {
   assert.equal(payload.configValidation.valid, true);
   assert.equal(payload.commandWiring.ok, true);
   assert.ok(payload.commandWiring.checkedScripts.some((entry) => entry.name === 'agents:next' && entry.command === 'next'));
+  assert.ok(payload.commandWiring.registry.minimalCommandCount > 0);
+  assert.ok(payload.commandWiring.registry.groups.workflow.commandNames.includes('next'));
+  assert.ok(payload.commandWiring.scriptCoverage.minimalCommandsWithShortcuts.includes('next'));
+  assert.ok(Array.isArray(payload.commandWiring.scriptCoverage.minimalCommandsWithoutShortcuts));
   assert.equal(Array.isArray(payload.configSuggestions), true);
   assert.equal(Array.isArray(payload.onboardingChecklist.items), true);
   assert.ok(payload.onboardingChecklist.missing.includes('architecture'));

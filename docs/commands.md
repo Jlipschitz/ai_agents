@@ -213,7 +213,7 @@ Useful modes:
 - `--json`: prints machine-readable doctor output including config validation, command wiring validation, and Git state.
 - `--fix`: creates safe missing starter files/folders, updates `.gitignore`, adds missing package scripts, and creates starter app notes.
 
-The JSON output includes `configSuggestions`, a list of non-blocking config improvement recommendations such as missing visual checks, missing docs roots, branch policy gaps, or missing domain rules for detected repo types. It also includes `commandWiring` validation for package-script command targets, plus `onboardingChecklist` recommendations for architecture, testing, deployment, app notes, visual workflow docs, profile-specific docs, and configured custom checklist items.
+The JSON output includes `configSuggestions`, a list of non-blocking config improvement recommendations such as missing visual checks, missing docs roots, branch policy gaps, or missing domain rules for detected repo types. It also includes `commandWiring` validation for package-script command targets, registry group/minimal totals, and package-script coverage metadata, plus `onboardingChecklist` recommendations for architecture, testing, deployment, app notes, visual workflow docs, profile-specific docs, and configured custom checklist items.
 
 Repo profile and custom onboarding checks are configured with `onboarding`:
 
