@@ -70,11 +70,12 @@ Current behavior:
 
 - Dry-run by default.
 - Scans Markdown files or directories for unchecked task-list items and `TODO:` lines.
+- Imports GitHub issues through the GitHub CLI into planned tasks with source metadata.
 - Creates planned tasks with stable import source metadata.
 - Skips existing imports on rerun.
 - Writes a compressed pre-mutation workspace snapshot before applied board changes.
 
-GitHub issue follow-up is handled by `github-plan`, which can plan and apply issue comments/labels when external GitHub CLI/auth prerequisites pass.
+GitHub issue URLs are kept as import provenance instead of task documentation, so imported issues do not accidentally trigger docs-review gates. Issue follow-up writes are handled by `github-plan`, which can plan and apply issue comments/labels when external GitHub CLI/auth prerequisites pass.
 
 Main files:
 
@@ -748,12 +749,13 @@ npm run agents -- ask "what can agent-2 do next?" --json
 Current behavior:
 
 - Answers deterministic board questions without external model calls.
+- Supports an opt-in local provider hook with `--open-ended`, `--model-command`, config `ask.openEnded.modelCommand`, or `AI_AGENTS_ASK_MODEL_COMMAND`.
 - Supports blocked, waiting, review, handoff, stale, task-status, path ownership, task ownership, and next-work questions.
 - Falls back to a compact board summary for unsupported questions.
 - Supports JSON output for automation.
 - Is covered by read-only mutation tests.
 
-Implementation note: `ask` is deterministic and local-only; it does not claim model-backed open-ended querying.
+Implementation note: default `ask` behavior remains deterministic and local-only. Open-ended mode runs only a configured local provider command and sends deterministic board context on stdin.
 
 Main files:
 

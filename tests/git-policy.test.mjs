@@ -274,6 +274,22 @@ gitTest('branches --apply writes recovery plan before deletion and restore recre
   assert.equal(git(root, ['rev-parse', 'refs/heads/feature/old']), originalSha);
 });
 
+gitTest('branches restore --json returns stable JSON when the plan cannot be read', () => {
+  const { root, coordinationRoot } = makeGitWorkspace({
+    allowMainBranchClaims: true,
+    allowDetachedHead: false,
+    allowedBranchPatterns: [],
+  });
+
+  const result = run(root, coordinationRoot, ['branches', 'restore', 'missing-recovery-plan.json', '--json']);
+  assert.equal(result.status, 1);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.ok, false);
+  assert.deepEqual(payload.restored, []);
+  assert.deepEqual(payload.skipped, []);
+  assert.match(payload.errors[0], /Failed to read branch recovery plan/);
+});
+
 gitTest('test-impact preserves leading porcelain status columns', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: true,

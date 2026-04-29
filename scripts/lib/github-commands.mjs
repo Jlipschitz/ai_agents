@@ -282,11 +282,12 @@ function buildApplyReadiness({ plan, argv, env }) {
     warnings.push('GitHub CLI auth was not probed in this read-only check; provide token env for deterministic apply readiness.');
   }
 
+  const ready = blockers.length === 0;
   return {
     checked: hasFlag(argv, '--check-apply-readiness'),
-    ready: blockers.length === 0,
+    ready,
     readOnly: true,
-    liveWrites: applyRequested && liveWriteRequested,
+    liveWrites: applyRequested && liveWriteRequested && ready,
     tool: { gh },
     auth: {
       tokenEnvPresent,
@@ -419,6 +420,8 @@ export function buildGitHubWritePlan({ root, argv = [], config = {}, env = proce
   if ((readinessRequested || applyRequested) && !plan.applyReadiness.ready) {
     plan.ok = false;
     if (applyRequested) plan.blocked = true;
+    plan.dryRun = true;
+    plan.liveWrites = false;
   }
   return plan;
 }

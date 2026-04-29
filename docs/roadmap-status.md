@@ -73,7 +73,7 @@ Remaining external or integration work:
 - [x] Agent checklists — covered by `finish` verification/docs/approval gates and checklist-style handoff outputs.
 - [x] Human approval gates
 - [x] Incident mode
-- [x] Backlog importer — Markdown TODO import exists, and GitHub issue follow-up is handled through `github-plan`.
+- [x] Backlog importer - Markdown TODO and GitHub issue import exist, and GitHub issue follow-up is handled through `github-plan`.
 - [x] GitHub integration — `github-status` detects GitHub remotes and optionally calls `gh pr view`; `github-plan` plans PR/issue comments, labels, and checklist comments, checks apply readiness, and can execute writes only with `--apply --live-write` plus passing external GitHub CLI/auth prerequisites.
 - [x] State compaction
 - [x] Agent SLA warnings — stale active work appears in `summarize`.
@@ -81,7 +81,7 @@ Remaining external or integration work:
 - [x] Test impact selection — `test-impact` maps changed paths to configured checks and semantic groups.
 - [x] Repo bootstrap profiles
 - [!] Portable npm package — package shape, bin, install docs, and publish readiness commands exist; actual npm publication remains outside this codebase and is currently blocked until release ownership removes `private: true` for a publish candidate.
-- [x] TUI dashboard
+- [x] Terminal/static dashboard - read-only terminal output and static local HTML dashboard output exist.
 - [x] JSON API mode — supported across the command surfaces that expose machine-readable output and covered by registry-accounted contract tests.
 - [x] Policy packs
 
@@ -98,7 +98,7 @@ Remaining external or integration work:
 - [x] Approval ledger
 - [x] Release artifact bundle
 - [x] Command aliases - built-in and repo-defined command aliases are supported.
-- [x] Natural-language query — `ask` answers deterministic board questions without requiring an external model service.
+- [x] Natural-language query - `ask` answers deterministic board questions and supports opt-in local provider commands for open-ended answers.
 - [x] Local web dashboard
 - [x] Signed releases
 - [x] Self-update safety
@@ -119,7 +119,7 @@ Remaining external or integration work:
 - [x] Artifact retention policy - `artifacts prune` supports dry-run/apply retention and protected active references; missing verification artifact reporting exists.
 - [x] Human-readable changelog
 - [x] Task templates
-- [x] External calendar/reminder hooks
+- [x] Calendar/reminder export - local iCalendar export includes reminder alarms.
 - [x] Config inheritance
 - [x] Multi-branch awareness — claims record Git branch metadata and `branches` reports task ownership by branch.
 - [x] Offline mode
@@ -202,7 +202,7 @@ Remaining external or integration work:
 - [x] Command output contract tests - high-value JSON shape checks, registry-accounted generic JSON contracts, and explicit omission reasons exist.
 - [x] Agent handoff bundle
 - [x] Next command recommendation engine
-- [x] State size and performance budget - `state-size` reports coordination file sizes and cleanup recommendations.
+- [x] State size budget - `state-size` reports coordination file sizes and cleanup recommendations.
 - [x] Upgrade and migration compatibility tests
 - [x] Security and privacy redaction checks - `redact-check` scans coordination state and generated prompt/handoff/task-summary text; GitHub apply readiness blocks unredacted sensitive planned writes.
 - [x] Generated repo health status file

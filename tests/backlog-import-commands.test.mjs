@@ -160,7 +160,7 @@ test('backlog-import applies GitHub issues with stable source metadata and skips
   assert.equal(task.suggestedOwnerId, 'agent-3');
   assert.equal(task.issueKey, 'acme/widgets#42');
   assert.deepEqual(task.claimedPaths, []);
-  assert.deepEqual(task.relevantDocs, ['https://github.com/acme/widgets/issues/42']);
+  assert.deepEqual(task.relevantDocs, []);
   assert.deepEqual(task.importSource, {
     type: 'github-issue',
     repository: 'acme/widgets',

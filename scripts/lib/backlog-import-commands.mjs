@@ -205,7 +205,7 @@ function taskFromGithubIssue(issue, ownerId, metadata) {
     verification: [],
     verificationLog: [],
     notes: [],
-    relevantDocs: issue.url ? [issue.url] : [],
+    relevantDocs: [],
     docsReviewedAt: null,
     docsReviewedBy: null,
     lastOwnerId: null,

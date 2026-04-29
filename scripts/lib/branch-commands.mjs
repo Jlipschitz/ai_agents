@@ -233,7 +233,21 @@ function runBranchRestore(argv, context) {
   }
 
   const absolutePlanPath = path.isAbsolute(planPath) ? planPath : path.resolve(context.root, planPath);
-  const plan = readRecoveryPlan(absolutePlanPath);
+  let plan;
+  try {
+    plan = readRecoveryPlan(absolutePlanPath);
+  } catch (error) {
+    const payload = {
+      ok: false,
+      planPath: absolutePlanPath,
+      restored: [],
+      skipped: [],
+      errors: [`Failed to read branch recovery plan: ${error.message}`],
+    };
+    if (json) console.log(JSON.stringify(payload, null, 2));
+    else console.error(payload.errors[0]);
+    return 1;
+  }
   const results = plan.branches.map((entry) => restoreBranch(context.root, entry, force));
   const errors = results.filter((entry) => !entry.ok).map((entry) => entry.error);
   const payload = { ok: errors.length === 0, planPath: absolutePlanPath, restored: results.filter((entry) => entry.ok && !entry.skipped), skipped: results.filter((entry) => entry.skipped), errors };

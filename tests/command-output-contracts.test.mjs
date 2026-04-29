@@ -217,6 +217,17 @@ const registryJsonContracts = [
   },
   { args: ['backlog-import', '--json'] },
   { args: ['branches', '--json'], expectedStatus: 1 },
+  {
+    args: ['branches', 'restore', 'missing-recovery-plan.json', '--json'],
+    expectedStatus: 1,
+    assertPayload(payload) {
+      assert.equal(payload.ok, false);
+      assert.equal(Array.isArray(payload.restored), true);
+      assert.equal(Array.isArray(payload.skipped), true);
+      assert.equal(Array.isArray(payload.errors), true);
+      assert.match(payload.errors[0], /Failed to read branch recovery plan/);
+    },
+  },
   { args: ['calendar', '--json'] },
   { args: ['changelog', '--json'] },
   { args: ['cleanup-runtime', '--json'] },

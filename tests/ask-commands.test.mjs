@@ -169,3 +169,21 @@ process.stdin.on('end', () => {
   assert.equal(answer.blocked, 1);
   assert.deepEqual(answer.firstTaskPaths, ['src/feature']);
 });
+
+test('ask open-ended reads provider command from repo config', () => {
+  const { root, configPath } = makeAskWorkspace();
+  const fakeProvider = path.join(root, 'fake-provider-config.mjs');
+  fs.writeFileSync(fakeProvider, 'process.stdin.resume(); process.stdin.on("end", () => console.log("configured provider"));\n');
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  config.ask = { openEnded: { modelCommand: `"${process.execPath}" "${fakeProvider}"` } };
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+  const result = runCli(root, ['ask', 'explain the board risk', '--open-ended', '--json'], {
+    env: { AI_AGENTS_ASK_MODEL_COMMAND: '' },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.intent, 'open-ended');
+  assert.equal(payload.answer, 'configured provider');
+});

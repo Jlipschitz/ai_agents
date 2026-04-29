@@ -292,10 +292,12 @@ function getPromptCommandContext() {
 }
 
 function getAskCommandContext() {
+  const { config } = loadConfig();
   const paths = getCoordinationPaths();
   return {
     root: ROOT,
     paths,
+    config,
     board: readJsonSafe(paths.boardPath, { tasks: [], agents: [] }),
   };
 }

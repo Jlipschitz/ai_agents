@@ -181,6 +181,38 @@ test('github-plan applies live writes through fake gh only with apply and live-w
   assert.deepEqual(JSON.parse(calls[2].input), { body: '- [ ] tests pass\n- [ ] docs updated' });
 });
 
+test('github-plan keeps blocked live-write plans in dry-run mode', () => {
+  const { root, coordinationRoot } = makeGitHubWorkspace();
+  const fakeGh = makeFakeGh();
+  const result = runCli(root, [
+    'github-plan',
+    'https://github.com/Jlipschitz/ai_agents/pull/42',
+    '--comment',
+    'Ready for review.',
+    '--apply',
+    '--live-write',
+    '--json',
+  ], {
+    coordinationRoot,
+    env: {
+      AI_AGENTS_GH_COMMAND: fakeGh.commandPath,
+      FAKE_GH_LOG: fakeGh.logPath,
+      AI_AGENTS_OFFLINE: '1',
+      GH_TOKEN: 'test-token',
+    },
+  });
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(payload.ok, false);
+  assert.equal(payload.blocked, true);
+  assert.equal(payload.dryRun, true);
+  assert.equal(payload.liveWrites, false);
+  assert.equal(payload.applyReadiness.liveWrites, false);
+  assert.ok(payload.applyReadiness.blockers.some((entry) => entry.code === 'offline-mode'));
+  assert.deepEqual(readFakeGhCalls(fakeGh.logPath), []);
+});
+
 test('github-plan redacts planned write text in privacy mode and honors offline env', () => {
   const { root, coordinationRoot } = makeGitHubWorkspace();
   const result = runCli(root, [
