@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { execGit } from './git-utils.mjs';
 import { getFlagValue, getNumberFlag, hasFlag } from './args-utils.mjs';
+import { parseJsonText } from './file-utils.mjs';
 
 const DEFAULT_STALE_BRANCH_DAYS = 30;
 const DEFAULT_PROTECTED_BRANCHES = ['main', 'master', 'develop', 'dev', 'trunk', 'release/*'];
@@ -201,7 +202,7 @@ function writeBranchRecoveryPlan(root, report, candidates) {
 }
 
 function readRecoveryPlan(planPath) {
-  const payload = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+  const payload = parseJsonText(fs.readFileSync(planPath, 'utf8'));
   if (payload?.schemaVersion !== 1 || payload?.type !== 'branch-delete-recovery' || !Array.isArray(payload.branches)) {
     throw new Error(`Invalid branch recovery plan: ${planPath}`);
   }

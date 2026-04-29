@@ -11,7 +11,7 @@ import { createCommunicationCommands } from './lib/communication-commands.mjs';
 import { createCorePathAnalysis } from './lib/core-path-analysis.mjs';
 import { normalizeClaimPolicies } from './lib/claim-policy.mjs';
 import { exitCodeForError, printCliError } from './lib/error-formatting.mjs';
-import { ensureDirectory, fileExists, isPidAlive, nowIso } from './lib/file-utils.mjs';
+import { ensureDirectory, fileExists, isPidAlive, nowIso, parseJsonText } from './lib/file-utils.mjs';
 import { createDoctorCommand } from './lib/doctor-command.mjs';
 import { createHeartbeatWatchCommands } from './lib/heartbeat-watch-commands.mjs';
 import { normalizePath, resolveRepoPath } from './lib/path-utils.mjs';
@@ -1293,7 +1293,7 @@ function readJson(filePath, fallback) {
   }
 
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parseJsonText(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
     throw new Error(`Failed to parse ${path.relative(ROOT, filePath)}: ${error.message}`);
   }
@@ -1690,7 +1690,7 @@ function readLockForDiagnostics() {
   }
 
   try {
-    return JSON.parse(fs.readFileSync(LOCK_PATH, 'utf8'));
+    return parseJsonText(fs.readFileSync(LOCK_PATH, 'utf8'));
   } catch {
     return null;
   }
@@ -1704,7 +1704,7 @@ async function acquireMutationLock() {
   while (Date.now() - startedAt <= LOCK_WAIT_TIMEOUT_MS) {
     if (fileExists(LOCK_PATH)) {
       try {
-        const lock = JSON.parse(fs.readFileSync(LOCK_PATH, 'utf8'));
+        const lock = parseJsonText(fs.readFileSync(LOCK_PATH, 'utf8'));
         if (isMutationLockStale(lock)) {
           fs.rmSync(LOCK_PATH, { force: true });
         }

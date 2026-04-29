@@ -33,6 +33,20 @@ test('doctor --fix creates starter runtime files', () => {
   assert.equal(packageJson.scripts['agents:fixture:board'], 'ai-agents fixture-board');
 });
 
+test('doctor accepts package.json with a UTF-8 BOM', () => {
+  const root = makeWorkspace();
+  const packagePath = path.join(root, 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  fs.writeFileSync(packagePath, `\ufeff${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
+
+  const result = run(root, ['doctor', '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.commandWiring.ok, true);
+});
+
 test('workspace wrappers use distinct default coordination roots', () => {
   const root = makeWorkspace();
   const agentsCli = path.join(repoRoot, 'scripts', 'agent-coordination.mjs');

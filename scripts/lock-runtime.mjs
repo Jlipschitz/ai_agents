@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { parseJsonText } from './lib/file-utils.mjs';
+
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = process.cwd();
 const DEFAULT_STALE_MS = 300000;
@@ -55,7 +57,7 @@ function lockPath(args) {
 function readJsonSafe(filePath) {
   try {
     if (!fs.existsSync(filePath)) return null;
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parseJsonText(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
     return { malformed: true, error: error.message };
   }

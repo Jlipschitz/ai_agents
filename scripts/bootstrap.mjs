@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { buildInstallManifest, COORDINATOR_DIRECTORIES } from './lib/install-manifest.mjs';
 import { buildLocalPackageScripts } from './lib/package-script-manifest.mjs';
+import { parseJsonText } from './lib/file-utils.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -181,7 +182,7 @@ function readJsonIfExists(filePath) {
   if (!fs.existsSync(filePath)) {
     return null;
   }
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  return parseJsonText(fs.readFileSync(filePath, 'utf8'));
 }
 
 function loadConfigForProfile(targetRoot) {
@@ -328,7 +329,7 @@ function loadPackageJson(packageJsonPath) {
     };
   }
 
-  return JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  return parseJsonText(fs.readFileSync(packageJsonPath, 'utf8'));
 }
 
 function inferProjectName(targetRoot) {

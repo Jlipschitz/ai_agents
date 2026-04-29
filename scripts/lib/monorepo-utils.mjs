@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { parseJsonText } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 
 function stringArray(value) {
@@ -24,7 +25,7 @@ function packageNameFor(root, workspaceRoot) {
   const packagePath = path.join(root, workspaceRoot === '.' ? '' : workspaceRoot, 'package.json');
   if (!fs.existsSync(packagePath)) return null;
   try {
-    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    const packageJson = parseJsonText(fs.readFileSync(packagePath, 'utf8'));
     return typeof packageJson.name === 'string' && packageJson.name.trim() ? packageJson.name.trim() : null;
   } catch {
     return null;

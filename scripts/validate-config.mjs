@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { BUILT_IN_COMMAND_ALIASES, parseCommandAliasTokens } from './lib/command-aliases.mjs';
 import { printCliError } from './lib/error-formatting.mjs';
+import { parseJsonText } from './lib/file-utils.mjs';
 import { COMMANDS } from './lib/help-command.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,7 +19,7 @@ function isCliEntrypoint() {
 
 export function readJsonFile(filePath) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parseJsonText(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
     const reason = error instanceof SyntaxError ? `Invalid JSON: ${error.message}` : error.message;
     throw new Error(`${filePath}: ${reason}`);

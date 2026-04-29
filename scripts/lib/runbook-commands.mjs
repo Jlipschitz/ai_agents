@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
 import { printCommandError } from './error-formatting.mjs';
+import { parseJsonText } from './file-utils.mjs';
 import { normalizePath } from './path-utils.mjs';
 
 const RUNBOOKS_DIR = 'runbooks';
@@ -114,7 +115,7 @@ function runbookPath(paths, id) {
 
 function readJsonSafe(filePath) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parseJsonText(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
     return { malformed: true, error: error.message };
   }

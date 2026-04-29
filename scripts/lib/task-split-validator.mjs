@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { getFlagValue, hasFlag } from './args-utils.mjs';
 import { printCommandError } from './error-formatting.mjs';
+import { parseJsonText } from './file-utils.mjs';
 import { buildPathGroups } from './path-group-commands.mjs';
 import { normalizePath, resolveRepoPath } from './path-utils.mjs';
 
@@ -42,7 +43,7 @@ function loadBoard(context, argv) {
   const boardPath = getFlagValue(argv, '--board', '');
   if (!boardPath) return context.board;
   const resolved = resolveRepoPath(boardPath, boardPath);
-  return JSON.parse(fs.readFileSync(resolved, 'utf8'));
+  return parseJsonText(fs.readFileSync(resolved, 'utf8'));
 }
 
 function selectedTasks(board, argv) {

@@ -157,6 +157,18 @@ test('validateAgentConfig accepts the expected config shape', () => {
   assert.deepEqual(result.errors, []);
 });
 
+test('loadAgentConfigWithSources accepts configs with a UTF-8 BOM', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-bom-config-'));
+  const configPath = path.join(root, 'agent-coordination.config.json');
+  fs.writeFileSync(configPath, `\ufeff${JSON.stringify(validConfig(), null, 2)}\n`, 'utf8');
+
+  const { config, sources } = loadAgentConfigWithSources(configPath, { root });
+  const result = validateAgentConfig(config, { root });
+
+  assert.equal(result.valid, true);
+  assert.deepEqual(sources, [configPath]);
+});
+
 test('validateAgentConfig reports actionable errors', () => {
   const config = validConfig();
   config.agentIds = ['agent-1', 'agent-1'];

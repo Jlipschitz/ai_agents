@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 
 import { getFlagValue, getPositionals, hasFlag } from './args-utils.mjs';
 import { printCommandError } from './error-formatting.mjs';
+import { parseJsonText } from './file-utils.mjs';
 import { ensureTaskMetadataDefaults, formatTaskDueAt, taskMetadataLabels, taskUrgencyScore } from './task-metadata.mjs';
 
 const ACTIVE_STATUSES = new Set(['active', 'blocked', 'review', 'waiting', 'handoff']);
@@ -301,7 +302,7 @@ function maybeReadConfig() {
     return {};
   }
   try {
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return parseJsonText(fs.readFileSync(configPath, 'utf8'));
   } catch {
     return {};
   }

@@ -4,7 +4,7 @@ import path from 'node:path';
 export function readJsonSafe(filePath, fallback = null) {
   try {
     if (!fs.existsSync(filePath)) return fallback;
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parseJsonText(fs.readFileSync(filePath, 'utf8'));
   } catch {
     return fallback;
   }
@@ -13,10 +13,19 @@ export function readJsonSafe(filePath, fallback = null) {
 export function readJsonDetailed(filePath) {
   if (!fs.existsSync(filePath)) return { exists: false, value: null, error: null };
   try {
-    return { exists: true, value: JSON.parse(fs.readFileSync(filePath, 'utf8')), error: null };
+    return { exists: true, value: parseJsonText(fs.readFileSync(filePath, 'utf8')), error: null };
   } catch (error) {
     return { exists: true, value: null, error: error.message };
   }
+}
+
+export function stripUtf8Bom(text) {
+  const value = String(text ?? '');
+  return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
+}
+
+export function parseJsonText(text) {
+  return JSON.parse(stripUtf8Bom(text));
 }
 
 export function writeJson(filePath, value) {

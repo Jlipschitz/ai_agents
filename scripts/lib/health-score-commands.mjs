@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { getNumberFlag, hasFlag } from './args-utils.mjs';
 import { buildCriticalPath } from './critical-path-commands.mjs';
+import { parseJsonText } from './file-utils.mjs';
 import { buildRiskScores } from './risk-score-commands.mjs';
 
 const SECTION_WEIGHTS = {
@@ -26,7 +27,7 @@ function readJsonSafe(filePath, fallback = null) {
   if (!filePath) return fallback;
   try {
     if (!fs.existsSync(filePath)) return fallback;
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parseJsonText(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
     return { malformed: true, error: error.message };
   }
