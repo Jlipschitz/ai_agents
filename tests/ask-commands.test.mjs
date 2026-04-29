@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { makeWorkspace, runCli, writeBoard } from './helpers/workspace.mjs';
 
@@ -117,4 +119,53 @@ test('ask falls back to a summary for unsupported questions', () => {
   assert.equal(payload.intent, 'summary');
   assert.equal(payload.matchedFallback, true);
   assert.match(payload.answer, /planned: 1/);
+});
+
+test('ask open-ended reports a clear error without a configured provider', () => {
+  const { root } = makeAskWorkspace();
+  const result = runCli(root, ['ask', 'explain the board risk', '--open-ended', '--json'], {
+    env: { AI_AGENTS_ASK_MODEL_COMMAND: '' },
+  });
+
+  assert.equal(result.status, 1);
+  const payload = JSON.parse(result.stdout);
+  assert.equal(payload.ok, false);
+  assert.match(payload.error, /requires a local provider command/);
+  assert.match(payload.error, /AI_AGENTS_ASK_MODEL_COMMAND/);
+});
+
+test('ask open-ended sends deterministic board context to a local model command', () => {
+  const { root } = makeAskWorkspace();
+  const fakeProvider = path.join(root, 'fake-provider.mjs');
+  fs.writeFileSync(fakeProvider, `
+let input = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (chunk) => { input += chunk; });
+process.stdin.on('end', () => {
+  const payload = JSON.parse(input);
+  const taskIds = payload.board.tasks.map((task) => task.id).join(',');
+  const agentIds = payload.board.agents.map((agent) => agent.id).join(',');
+  console.log(JSON.stringify({
+    question: payload.question,
+    projectName: payload.board.projectName,
+    taskIds,
+    agentIds,
+    blocked: payload.board.counts.blocked,
+    firstTaskPaths: payload.board.tasks[0].claimedPaths,
+  }));
+});
+`);
+  const command = `"${process.execPath}" "${fakeProvider}"`;
+  const result = runCli(root, ['ask', 'explain the board risk', '--model-command', command, '--json']);
+
+  assert.equal(result.status, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  const answer = JSON.parse(payload.answer);
+  assert.equal(payload.intent, 'open-ended');
+  assert.equal(answer.question, 'explain the board risk');
+  assert.equal(answer.projectName, 'Ask Test');
+  assert.equal(answer.taskIds, 'task-active,task-blocked,task-done,task-planned,task-review');
+  assert.equal(answer.agentIds, 'agent-1,agent-2');
+  assert.equal(answer.blocked, 1);
+  assert.deepEqual(answer.firstTaskPaths, ['src/feature']);
 });

@@ -85,11 +85,11 @@ function parseJsonStdout(result, commandLabel) {
   }
 }
 
-function runContract(args) {
+function runContract(args, options = {}) {
   const { root, coordinationRoot } = makeContractWorkspace();
   const files = coordinationStateFiles(coordinationRoot);
   const before = snapshotFiles(files);
-  const result = runCli(root, args, { coordinationRoot });
+  const result = runCli(root, args, { coordinationRoot, ...options });
   const after = snapshotFiles(files);
   assert.deepEqual(after, before, `${args.join(' ')} should not mutate coordination state`);
   return result;
@@ -203,6 +203,18 @@ const successContracts = [
 const registryJsonContracts = [
   { args: ['agent-history', '--json'] },
   { args: ['archive-completed', '--json'] },
+  {
+    args: ['artifacts', 'rebuild-index', '--json'],
+    assertPayload(payload) {
+      assert.equal(payload.ok, true);
+      assert.equal(payload.applied, false);
+      assert.equal(payload.indexPath, 'artifacts/checks/index.ndjson');
+      assert.equal(Array.isArray(payload.roots), true);
+      assert.equal(Array.isArray(payload.entries), true);
+      assert.equal(payload.entryCount, payload.entries.length);
+      assert.equal(typeof payload.policy, 'object');
+    },
+  },
   { args: ['backlog-import', '--json'] },
   { args: ['branches', '--json'], expectedStatus: 1 },
   { args: ['calendar', '--json'] },
@@ -217,7 +229,39 @@ const registryJsonContracts = [
   { args: ['explain-config', '--json'] },
   { args: ['fixture-board', 'healthy', '--json'] },
   { args: ['format', '--json'] },
-  { args: ['github-plan', 'pr', '1', '--comment', 'note', '--json'] },
+  {
+    args: ['github-plan', 'pr', '1', '--comment', 'note', '--json'],
+    assertPayload(payload) {
+      assert.equal(payload.ok, true);
+      assert.equal(payload.dryRun, true);
+      assert.equal(payload.liveWrites, false);
+      assert.equal(payload.target.type, 'pr');
+      assert.equal(payload.target.number, 1);
+      assert.equal(payload.summary.operationCount, 1);
+      assert.equal(payload.operations[0].type, 'comment');
+      assert.equal(payload.operations[0].body, 'note');
+      assert.equal(payload.applyReadiness.checked, false);
+    },
+  },
+  {
+    args: ['github-plan', 'pr', '1', '--comment', 'contains customer-token', '--check-apply-readiness', '--json'],
+    expectedStatus: 1,
+    env: { GH_TOKEN: '', GITHUB_TOKEN: '', GITHUB_PAT: '', GITHUB_ENTERPRISE_TOKEN: '' },
+    assertPayload(payload) {
+      assert.equal(payload.ok, false);
+      assert.equal(payload.readinessRequested, true);
+      assert.equal(payload.applyReadiness.checked, true);
+      assert.equal(payload.applyReadiness.ready, false);
+      assert.equal(payload.applyReadiness.readOnly, true);
+      assert.equal(payload.applyReadiness.liveWrites, false);
+      assert.equal(payload.applyReadiness.auth.tokenEnvPresent, false);
+      assert.equal(payload.applyReadiness.privacy.outboundRedaction, 'inactive');
+      assert.ok(payload.applyReadiness.privacy.sensitivePatternMatches.includes('token'));
+      assert.ok(payload.applyReadiness.blockers.some((entry) => entry.code === 'repository-missing'));
+      assert.ok(payload.applyReadiness.blockers.some((entry) => entry.code === 'target-missing'));
+      assert.ok(payload.applyReadiness.blockers.some((entry) => entry.code === 'auth-token-missing'));
+    },
+  },
   { args: ['github-status', '--json'] },
   { args: ['graph', '--json'] },
   { args: ['inspect-board', '--json'] },
@@ -266,10 +310,11 @@ for (const contract of successContracts) {
 for (const contract of registryJsonContracts) {
   const commandLabel = contract.args.join(' ');
   test(`${commandLabel} emits parseable JSON without mutating coordination state`, () => {
-    const result = runContract(contract.args);
+    const result = runContract(contract.args, { env: contract.env });
     assert.equal(result.status, contract.expectedStatus ?? 0, result.stderr);
     const payload = parseJsonStdout(result, commandLabel);
     assertJsonContainer(payload, commandLabel);
+    contract.assertPayload?.(payload);
   });
 }
 

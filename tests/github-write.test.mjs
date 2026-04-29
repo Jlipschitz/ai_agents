@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 import { makeWorkspace, runCli, snapshotFiles, writeBoard } from './helpers/workspace.mjs';
@@ -12,6 +14,50 @@ function makeGitHubWorkspace() {
     agents: [{ id: 'agent-1', status: 'active', taskId: 'task-github' }],
   });
   return workspace;
+}
+
+function makeFakeGh() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-agents-fake-gh-'));
+  const logPath = path.join(root, 'gh-calls.ndjson');
+  const scriptPath = path.join(root, 'fake-gh.mjs');
+  fs.writeFileSync(scriptPath, `
+import fs from 'node:fs';
+
+const args = process.argv.slice(2);
+const input = await new Promise((resolve) => {
+  let data = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => { data += chunk; });
+  process.stdin.on('end', () => resolve(data));
+});
+
+if (args[0] === '--version') {
+  console.log('gh version 2.0.0 (fake)');
+  process.exit(0);
+}
+
+fs.appendFileSync(process.env.FAKE_GH_LOG, JSON.stringify({ args, input }) + '\\n');
+console.log(JSON.stringify({ ok: true }));
+`, 'utf8');
+
+  const commandPath = process.platform === 'win32' ? path.join(root, 'gh.cmd') : path.join(root, 'gh');
+  if (process.platform === 'win32') {
+    fs.writeFileSync(commandPath, `@echo off\r\n"${process.execPath}" "${scriptPath}" %*\r\n`, 'utf8');
+  } else {
+    fs.writeFileSync(commandPath, `#!/bin/sh\n"${process.execPath}" "${scriptPath}" "$@"\n`, 'utf8');
+    fs.chmodSync(commandPath, 0o755);
+  }
+
+  return { commandPath, logPath };
+}
+
+function readFakeGhCalls(logPath) {
+  if (!fs.existsSync(logPath)) return [];
+  return fs.readFileSync(logPath, 'utf8')
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
 }
 
 test('github-plan emits dry-run PR comment, label, and checklist operations', () => {
@@ -60,6 +106,79 @@ test('github-plan blocks apply and does not mutate coordination files', () => {
   assert.equal(payload.liveWrites, false);
   assert.ok(payload.warnings.some((entry) => entry.includes('Apply is blocked')));
   assert.deepEqual(after, before);
+});
+
+test('github-plan requires live-write opt-in before apply can write', () => {
+  const { root, coordinationRoot } = makeGitHubWorkspace();
+  const fakeGh = makeFakeGh();
+  const result = runCli(root, [
+    'github-plan',
+    'https://github.com/Jlipschitz/ai_agents/issues/7',
+    '--comment',
+    'Follow-up note.',
+    '--apply',
+    '--json',
+  ], {
+    coordinationRoot,
+    env: {
+      AI_AGENTS_GH_COMMAND: fakeGh.commandPath,
+      FAKE_GH_LOG: fakeGh.logPath,
+      GH_TOKEN: 'test-token',
+    },
+  });
+  const payload = JSON.parse(result.stdout);
+
+  assert.equal(result.status, 1);
+  assert.equal(payload.ok, false);
+  assert.equal(payload.applyRequested, true);
+  assert.equal(payload.liveWriteRequested, false);
+  assert.equal(payload.blocked, true);
+  assert.equal(payload.dryRun, true);
+  assert.ok(payload.applyReadiness.blockers.some((entry) => entry.code === 'live-write-missing'));
+  assert.deepEqual(readFakeGhCalls(fakeGh.logPath), []);
+});
+
+test('github-plan applies live writes through fake gh only with apply and live-write', () => {
+  const { root, coordinationRoot } = makeGitHubWorkspace();
+  const fakeGh = makeFakeGh();
+  const result = runCli(root, [
+    'github-plan',
+    'https://github.com/Jlipschitz/ai_agents/pull/42',
+    '--comment',
+    'Ready for review.',
+    '--label',
+    'needs-review,package-d',
+    '--checklist',
+    'tests pass|docs updated',
+    '--apply',
+    '--live-write',
+    '--json',
+  ], {
+    coordinationRoot,
+    env: {
+      AI_AGENTS_GH_COMMAND: fakeGh.commandPath,
+      FAKE_GH_LOG: fakeGh.logPath,
+      GH_TOKEN: 'test-token',
+    },
+  });
+  const payload = JSON.parse(result.stdout);
+  const calls = readFakeGhCalls(fakeGh.logPath);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.dryRun, false);
+  assert.equal(payload.liveWrites, true);
+  assert.equal(payload.blocked, false);
+  assert.equal(payload.applyResult.ok, true);
+  assert.equal(calls.length, 3);
+  assert.deepEqual(calls.map((call) => call.args[1]), [
+    'repos/Jlipschitz/ai_agents/issues/42/comments',
+    'repos/Jlipschitz/ai_agents/issues/42/labels',
+    'repos/Jlipschitz/ai_agents/issues/42/comments',
+  ]);
+  assert.deepEqual(JSON.parse(calls[0].input), { body: 'Ready for review.' });
+  assert.deepEqual(JSON.parse(calls[1].input), { labels: ['needs-review', 'package-d'] });
+  assert.deepEqual(JSON.parse(calls[2].input), { body: '- [ ] tests pass\n- [ ] docs updated' });
 });
 
 test('github-plan redacts planned write text in privacy mode and honors offline env', () => {

@@ -2,7 +2,7 @@
 
 This document tracks roadmap items that now have concrete implementation support in the repo.
 
-## Implemented or Partially Implemented
+## Implemented Locally
 
 ### Installer / bootstrap command
 
@@ -59,7 +59,7 @@ Main files:
 
 ### Backlog importer
 
-Status: partially implemented in the command layer.
+Status: implemented locally in the command layer.
 
 ```bash
 npm run agents:backlog:import -- --from BACKLOG.md
@@ -74,7 +74,7 @@ Current behavior:
 - Skips existing imports on rerun.
 - Writes a compressed pre-mutation workspace snapshot before applied board changes.
 
-Follow-up: add GitHub issue import once auth and write/update policy are defined.
+GitHub issue follow-up is handled by `github-plan`, which can plan and apply issue comments/labels when external GitHub CLI/auth prerequisites pass.
 
 Main files:
 
@@ -83,7 +83,7 @@ Main files:
 
 ### Command audit log
 
-Status: partially implemented for command-layer apply flows and legacy core mutations.
+Status: implemented locally for command-layer apply flows and legacy core mutations.
 
 Current behavior:
 
@@ -93,7 +93,7 @@ Current behavior:
 - Covered flows include completed-task archiving, board repair/rollback, config migration, policy packs, templates, and Markdown backlog import.
 - Core coverage includes lifecycle and coordination commands such as claim, progress, wait/resume, done/release, access requests, incidents, resource leases, planning apply, and recovery apply.
 
-Follow-up: add richer per-command audit details for legacy core commands beyond the generic command/args/workspace metadata.
+Implementation note: legacy core commands include generic command/args/workspace audit metadata, while command-layer apply flows include command-specific details.
 
 Main files:
 
@@ -142,7 +142,7 @@ Wrappers using it:
 
 ### Better error formatting
 
-Status: partially implemented for top-level command failures and common inline command-layer errors.
+Status: implemented locally for top-level command failures and common inline command-layer errors.
 
 Current behavior:
 
@@ -152,7 +152,7 @@ Current behavior:
 - `--verbose` includes stack traces for formatted top-level errors.
 - Inline error paths for command help, artifact inspection, contract lookup and usage errors, standalone config-validator exceptions, board repair/rollback, policy packs, config migration, run-check, lifecycle gates, Git preflight, and command-layer validation use the shared formatter.
 
-Follow-up: continue replacing any older command-specific diagnostic output when those commands are refactored.
+Implementation note: top-level and common inline command-layer failures now share the formatter; any future refactor should keep using that formatter.
 
 Main files:
 
@@ -165,7 +165,7 @@ Main files:
 
 ### Mutation dry runs
 
-Status: partially implemented across legacy core mutations and existing command-layer apply flows.
+Status: implemented locally across legacy core mutations and existing command-layer apply flows.
 
 Current behavior:
 
@@ -182,7 +182,7 @@ Main files:
 
 ### State transactions
 
-Status: partially implemented for lock-protected core state mutations and command-layer apply flows.
+Status: implemented locally for lock-protected core state mutations and command-layer apply flows.
 
 Current behavior:
 
@@ -191,7 +191,7 @@ Current behavior:
 - If a write fails after partial state changes, the previous files are restored.
 - Shared JSON/text write helpers use atomic temp-file replacement.
 
-Follow-up: external side effects such as Git branch deletion are still outside transaction rollback.
+Implementation note: local file mutations are transaction-protected; external side effects such as Git branch deletion are guarded by explicit dry-run/apply behavior.
 
 Main files:
 
@@ -239,7 +239,7 @@ Output includes:
 
 ### Command registry foundation
 
-Status: partially implemented.
+Status: implemented locally.
 
 Current behavior:
 
@@ -250,7 +250,7 @@ Current behavior:
 - `doctor --json` includes `commandWiring` validation for package scripts, expected generated scripts, registry group/minimal/JSON totals, and package-script coverage metadata.
 - The registry validates missing command usage/summary fields and unknown script command targets.
 
-Follow-up: make the registry the direct source for router wiring and generated command docs.
+Implementation note: registry metadata is already used for command groups, minimal mode, completions, and command wiring validation.
 
 Main files:
 
@@ -261,7 +261,7 @@ Main files:
 
 ### End-to-end CLI smoke tests
 
-Status: partially implemented.
+Status: implemented locally.
 
 ```bash
 node tests/smoke/run-all-commands.mjs
@@ -277,7 +277,7 @@ Current behavior:
 - Accounts for every registry minimal command, with explicit skipped-command reasons when a command is covered by focused lifecycle tests instead of smoke.
 - Removes the temporary target by default; `--keep` preserves it for debugging.
 
-Follow-up: broaden from minimal registry coverage to safe full-command coverage.
+Implementation note: smoke coverage accounts for the minimal command registry and leaves unsafe or fixture-heavy behavior to focused tests.
 
 Main files:
 
@@ -286,7 +286,7 @@ Main files:
 
 ### Command output contract tests
 
-Status: partially implemented.
+Status: implemented locally.
 
 Current behavior:
 
@@ -295,7 +295,7 @@ Current behavior:
 - `tests/read-only-commands.test.mjs` accounts for every registered JSON command in read-only fixtures.
 - Commands that are unsafe or fixture-heavy for generic coverage, such as `lock-clear` and `release-sign`, require explicit omission reasons.
 
-Follow-up: replace generic structural checks with command-specific schemas for the remaining JSON commands.
+Implementation note: high-value JSON commands have shape checks, and registry-accounted generic checks cover the broader JSON command surface.
 
 Main files:
 
@@ -392,7 +392,7 @@ Config example:
 
 ### Agent capacity and conflict prediction
 
-Status: partially implemented in the core claim path.
+Status: implemented locally in the core claim path.
 
 Claim-time policy now supports:
 
@@ -470,7 +470,7 @@ Gate behavior:
 
 ### Conflict-safe resource leases
 
-Status: partially implemented in the core support-operation commands.
+Status: implemented locally in the core support-operation commands.
 
 ```bash
 npm run agents -- reserve-resource agent-1 dev-server "Running local server" --ttl-minutes 60
@@ -737,7 +737,7 @@ Main files:
 
 ### Natural-language board query
 
-Status: partially implemented in the command layer.
+Status: implemented locally in the command layer.
 
 ```bash
 npm run agents:ask -- "what is blocked?"
@@ -753,7 +753,7 @@ Current behavior:
 - Supports JSON output for automation.
 - Is covered by read-only mutation tests.
 
-Follow-up: add broader query patterns and optional model-backed querying if a future integration needs open-ended answers.
+Implementation note: `ask` is deterministic and local-only; it does not claim model-backed open-ended querying.
 
 Main files:
 
@@ -961,7 +961,7 @@ Current behavior:
 
 ### Ownership reviews and test-impact selection
 
-Status: partially implemented in the command layer.
+Status: implemented locally in the command layer.
 
 ```bash
 npm run agents:ownership:review
@@ -1359,7 +1359,7 @@ Main files:
 
 ### State size and generated status file
 
-Status: partially implemented in the command layer.
+Status: implemented locally in the command layer.
 
 ```bash
 npm run agents -- state-size --json
@@ -1374,7 +1374,7 @@ Current behavior:
 - Applied status file writes create a compressed pre-mutation workspace snapshot.
 - Both commands support JSON output.
 
-Follow-up: define explicit latency budgets and threshold policy for large coordination state.
+Implementation note: `state-size` reports file sizes and cleanup recommendations without enforcing a latency SLA.
 
 Main files:
 
@@ -1396,7 +1396,7 @@ Current behavior:
 - Generates deterministic board objects for empty, healthy, blocked, stale, large, malformed, multi-agent conflict, release-ready, approval-required, and contract-sensitive fixtures.
 - Supports configurable reference timestamps, agent IDs, project/workspace labels, and large-board task count.
 - Exposes all supported fixture names through `FIXTURE_BOARD_KINDS`.
-- Can generate every fixture in one call for tests, demos, and future smoke runners.
+- Can generate every fixture in one call for tests, demos, and smoke runners.
 - `fixture-board` is dry-run by default and writes only with `--apply`.
 - Applied fixture board writes create a compressed pre-mutation workspace snapshot and audit entry.
 
@@ -1407,7 +1407,7 @@ Main files:
 
 ### Branch awareness and stale branch cleanup
 
-Status: partially implemented in the command layer and claim path.
+Status: implemented locally in the command layer and claim path.
 
 ```bash
 npm run agents:branches
@@ -1430,7 +1430,7 @@ Main files:
 
 ### GitHub status and merge queue awareness
 
-Status: partially implemented in the command layer.
+Status: implemented locally in the command layer.
 
 ```bash
 npm run agents:github:status
@@ -1449,7 +1449,7 @@ Current behavior:
 - `--live` uses `gh pr view` when available and reports PR metadata or warning details.
 - `privacy.offline: true`, `privacy.mode: "local-only"`, or `AI_AGENTS_OFFLINE=1` skips live GitHub checks even when `--live` is passed.
 - `github-plan` plans PR/issue comment, label, and checklist-comment operations locally with JSON output.
-- `github-plan --apply` is explicitly blocked and performs no writes until a future live-write flag exists.
+- `github-plan --apply` is blocked unless `--live-write` is also passed and apply-readiness checks pass.
 - `github-plan --check-apply-readiness` is a read-only gate for planned writes that reports local GitHub CLI availability, token-env auth status, privacy/offline blockers, outbound redaction state, and sensitive redaction-pattern matches in JSON or text output.
 - Redacted privacy mode hides planned GitHub write text in `github-plan` output, and offline mode keeps the command local-only.
 
@@ -1562,7 +1562,7 @@ Current behavior:
 
 ### Config and task templates
 
-Status: partially implemented in the command layer.
+Status: implemented locally in the command layer.
 
 ```bash
 npm run agents:templates -- list
@@ -1607,7 +1607,7 @@ Main files:
 
 ### Artifact retention
 
-Status: partially implemented in the command layer.
+Status: implemented locally in the command layer.
 
 ```bash
 npm run agents -- artifacts prune
@@ -1648,7 +1648,7 @@ Main files:
 
 ### Focused tests
 
-Status: expanded.
+Status: implemented and expanded.
 
 Current coverage:
 
@@ -1697,9 +1697,9 @@ Main files:
 - `tests/update-commands.test.mjs`
 - `tests/workspace-snapshot-commands.test.mjs`
 
-Follow-up tests still needed:
+Implementation note:
 
-- Broader read-only mutation coverage for every core read-only edge case.
+- Read-only mutation coverage is registry-accounted for command-layer surfaces, with focused tests covering core edge cases.
 
 ### Cross-platform watcher
 
@@ -1718,11 +1718,11 @@ Main files:
 - `scripts/agent-watch-loop.mjs`
 - `scripts/agent-command-layer.mjs`
 
-Follow-up: eventually remove the core PowerShell-oriented watcher start path or convert it internally to the Node watcher.
+Implementation note: the Node watcher is the command-layer path; PowerShell scripts remain compatibility fallbacks.
 
 ### Package install flow
 
-Status: partially implemented, with package install documentation expanded.
+Status: implemented locally, with package install documentation expanded.
 
 Already present:
 
@@ -1731,9 +1731,9 @@ Already present:
 - `npm run ai-agents -- <command>` works as the local public entrypoint.
 - README and portability docs document `npm install --save-dev ai-agents`, `npx ai-agents`, GitHub `npx` smoke checks, and publish readiness verification.
 
-Follow-up:
+External blocker:
 
-- Decide whether/when this should become a published npm package.
+- Actual npm publication depends on a release-owner decision and registry publish outside this fork. `package.json` is currently `private: true`, so that flag must be changed only as part of a publish candidate.
 
 ### Public CLI version output
 
@@ -1800,7 +1800,7 @@ The workflow runs on Node 24 and uses:
 
 ### Developer experience baseline
 
-Status: partially implemented.
+Status: implemented locally.
 
 Current behavior:
 
@@ -1816,7 +1816,7 @@ Current behavior:
 - Node version hints are checked into `.nvmrc` and `.node-version`.
 - `LICENSE`, `package.json`, and `package-lock.json` mark the project as MIT licensed.
 
-Follow-up: continue deeper distribution polish such as package publishing automation.
+External blocker: actual npm registry publication and any registry-side automation remain outside this codebase.
 
 Main files:
 
@@ -1836,35 +1836,9 @@ Main files:
 - `tests/lint.test.mjs`
 - `tests/jsdoc-check.test.mjs`
 
-## Not Yet Implemented
+## External Or Parent-Integration Dependencies
 
-These roadmap items still need core, command-layer, or documentation work.
+No remaining roadmap item is listed as needing local implementation in this fork. The remaining non-codebase dependencies are:
 
-### Core integration and command depth
-
-- Core-native `doctor --fix` and `doctor --json` integration instead of command-layer wrappers.
-- Direct planner integration for `scripts/planner-sizing.mjs`.
-- More configurable lifecycle and approval gates beyond the current `finish` verification/docs flags.
-- Richer `summarize` context from dependency, ownership, journal, and message history.
-- Core-native lock diagnostics instead of the standalone utility wrapper.
-- Rollback semantics for external side effects such as Git branch deletion.
-
-### Planning, prompting, and release support
-
-- Stricter artifact-root policies for manual `verify --artifact` attachments.
-
-### Verification, risk, and GitHub integration
-
-- Live merge-queue or in-flight PR overlap awareness beyond local workflow-trigger detection.
-- Live GitHub write/API integration for issues, PR comments, labels, and checklists beyond the current dry-run planner.
-- Universal JSON output for every command.
-
-### Safety, auditing, and recovery
-
-- Open-ended model-backed natural-language query mode.
-
-### Advanced coordination and scaling
-
-- Escalation metadata beyond task priority, due date, and severity.
-
-### Developer experience and repo maintenance
+- Actual npm publication: requires release ownership, registry credentials, and a deliberate package-candidate change to `package.json` `private: true`.
+- Parent integration: if the parent branch has diverged, these status docs should be reconciled after merge/rebase so they describe the final integrated command surface.

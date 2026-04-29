@@ -40,8 +40,12 @@ function inspectWorkflows(root) {
   });
 }
 
-function runGhPrView(root) {
-  const result = spawnSync(process.platform === 'win32' ? 'gh.exe' : 'gh', [
+function getGhCommand(env = process.env) {
+  return env?.AI_AGENTS_GH_COMMAND || (process.platform === 'win32' ? 'gh.exe' : 'gh');
+}
+
+function runGhPrView(root, env = process.env) {
+  const result = spawnSync(getGhCommand(env), [
     'pr',
     'view',
     '--json',
@@ -51,6 +55,7 @@ function runGhPrView(root) {
     encoding: 'utf8',
     timeout: 15000,
     stdio: ['ignore', 'pipe', 'pipe'],
+    env,
   });
 
   if (result.error) return { available: false, error: result.error.message, pr: null };
@@ -115,12 +120,13 @@ function splitChecklist(values) {
   return values.flatMap((value) => String(value ?? '').split(/\s*\|\s*|,/)).map((entry) => entry.trim()).filter(Boolean);
 }
 
-function checkGhTool() {
-  const command = process.platform === 'win32' ? 'gh.exe' : 'gh';
+function checkGhTool(env = process.env) {
+  const command = getGhCommand(env);
   const result = spawnSync(command, ['--version'], {
     encoding: 'utf8',
     timeout: 5000,
     stdio: ['ignore', 'pipe', 'pipe'],
+    env,
   });
 
   if (result.error) {
@@ -247,14 +253,19 @@ function blocker(code, message) {
 }
 
 function buildApplyReadiness({ plan, argv, env }) {
-  const gh = checkGhTool();
+  const gh = checkGhTool(env);
   const tokenEnvPresent = hasGitHubToken(env);
   const sensitivePatternMatches = findSensitiveOutboundMatches(argv, plan.privacy);
   const plannedWritesRedacted = plan.privacy?.redacted === true && plan.operations.length > 0;
+  const applyRequested = hasFlag(argv, '--apply');
+  const liveWriteRequested = hasFlag(argv, '--live-write');
   const blockers = [];
   const warnings = [];
 
   for (const error of plan.errors) blockers.push(blocker('plan-invalid', error));
+  if (applyRequested && !liveWriteRequested) {
+    blockers.push(blocker('live-write-missing', 'Pass --live-write with --apply to explicitly opt in to GitHub writes.'));
+  }
   if (!plan.repository) blockers.push(blocker('repository-missing', 'No GitHub repository was resolved for the planned write.'));
   if (!plan.target?.url) blockers.push(blocker('target-missing', 'No GitHub PR or issue target was resolved for the planned write.'));
   if (!plan.operations.length) blockers.push(blocker('operations-missing', 'No outbound GitHub write operations were planned.'));
@@ -275,7 +286,7 @@ function buildApplyReadiness({ plan, argv, env }) {
     checked: hasFlag(argv, '--check-apply-readiness'),
     ready: blockers.length === 0,
     readOnly: true,
-    liveWrites: false,
+    liveWrites: applyRequested && liveWriteRequested,
     tool: { gh },
     auth: {
       tokenEnvPresent,
@@ -295,6 +306,63 @@ function buildApplyReadiness({ plan, argv, env }) {
   };
 }
 
+function ghApi(root, env, args, inputObject) {
+  const result = spawnSync(getGhCommand(env), ['api', ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    timeout: 30000,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    input: JSON.stringify(inputObject),
+    env,
+  });
+  return {
+    ok: !result.error && result.status === 0,
+    command: ['gh', 'api', ...args].join(' '),
+    status: result.status,
+    stdout: result.stdout?.trim() ?? '',
+    stderr: result.error?.message ?? result.stderr?.trim() ?? '',
+  };
+}
+
+function executeGitHubWriteOperations({ root, env, plan }) {
+  const owner = plan.repository?.owner;
+  const repo = plan.repository?.repo;
+  const number = plan.target?.number;
+  const results = [];
+
+  for (const operation of plan.operations) {
+    if (operation.type === 'comment' || operation.type === 'checklist-comment') {
+      results.push({
+        type: operation.type,
+        ...ghApi(root, env, [
+          `repos/${owner}/${repo}/issues/${number}/comments`,
+          '--method',
+          'POST',
+          '--input',
+          '-',
+        ], { body: operation.body }),
+      });
+    } else if (operation.type === 'label') {
+      results.push({
+        type: operation.type,
+        ...ghApi(root, env, [
+          `repos/${owner}/${repo}/issues/${number}/labels`,
+          '--method',
+          'POST',
+          '--input',
+          '-',
+        ], { labels: operation.labels }),
+      });
+    }
+  }
+
+  return {
+    attempted: true,
+    ok: results.every((result) => result.ok),
+    results,
+  };
+}
+
 export function buildGitHubWritePlan({ root, argv = [], config = {}, env = process.env }) {
   const privacy = getPrivacyOptions(config, env);
   const remoteUrl = execGit(['config', '--get', 'remote.origin.url'], { root });
@@ -305,7 +373,7 @@ export function buildGitHubWritePlan({ root, argv = [], config = {}, env = proce
   const warnings = [];
   const errors = [];
 
-  if (!target.targetType || !target.number) errors.push('Usage: github-plan <pr|issue> <number|url> [--comment <text>] [--label <label[,label...]>] [--checklist <item[|item...]>] [--json] [--apply]');
+  if (!target.targetType || !target.number) errors.push('Usage: github-plan <pr|issue> <number|url> [--comment <text>] [--label <label[,label...]>] [--checklist <item[|item...]>] [--json] [--apply --live-write]');
   if (!repository) warnings.push('remote.origin.url is not a GitHub remote; plan will not include a repository URL.');
   if (privacy.offline) warnings.push('Offline mode is enabled; no GitHub API or CLI writes will be attempted.');
 
@@ -313,8 +381,9 @@ export function buildGitHubWritePlan({ root, argv = [], config = {}, env = proce
   if (!operations.length && !errors.length) errors.push('No GitHub operations requested. Add --comment, --label, or --checklist.');
 
   const applyRequested = hasFlag(argv, '--apply');
+  const liveWriteRequested = hasFlag(argv, '--live-write');
   const readinessRequested = hasFlag(argv, '--check-apply-readiness');
-  if (applyRequested) warnings.push('Apply is blocked for GitHub write plans until a future live-write flag exists.');
+  if (applyRequested && !liveWriteRequested) warnings.push('Apply is blocked for GitHub write plans unless --live-write is also provided.');
 
   const resolvedTarget = {
     type: target.targetType,
@@ -325,12 +394,13 @@ export function buildGitHubWritePlan({ root, argv = [], config = {}, env = proce
   };
 
   const plan = {
-    ok: errors.length === 0 && !applyRequested,
-    dryRun: true,
+    ok: errors.length === 0 && (!applyRequested || liveWriteRequested),
+    dryRun: !(applyRequested && liveWriteRequested),
     applyRequested,
+    liveWriteRequested,
     readinessRequested,
-    blocked: applyRequested,
-    liveWrites: false,
+    blocked: applyRequested && !liveWriteRequested,
+    liveWrites: applyRequested && liveWriteRequested,
     privacy,
     repository,
     remoteUrl,
@@ -346,13 +416,16 @@ export function buildGitHubWritePlan({ root, argv = [], config = {}, env = proce
     errors,
   };
   plan.applyReadiness = buildApplyReadiness({ plan, argv, env });
-  if (readinessRequested && !plan.applyReadiness.ready) plan.ok = false;
+  if ((readinessRequested || applyRequested) && !plan.applyReadiness.ready) {
+    plan.ok = false;
+    if (applyRequested) plan.blocked = true;
+  }
   return plan;
 }
 
 function renderGitHubWritePlan(plan) {
   const lines = ['# GitHub Write Plan'];
-  lines.push(`Mode: dry-run${plan.applyRequested ? ' (apply blocked)' : ''}`);
+  lines.push(`Mode: ${plan.dryRun ? `dry-run${plan.applyRequested ? ' (apply blocked)' : ''}` : 'live-write'}`);
   lines.push(`Repository: ${plan.repository?.url ?? 'not detected'}`);
   lines.push(`Target: ${plan.target.url ?? 'not resolved'}`);
   if (plan.operations.length) {
@@ -367,7 +440,7 @@ function renderGitHubWritePlan(plan) {
   }
   for (const warning of plan.warnings) lines.push(`- warning: ${warning}`);
   for (const error of plan.errors) lines.push(`- error: ${error}`);
-  if (plan.applyReadiness?.checked) {
+  if (plan.applyReadiness?.checked || plan.applyRequested) {
     lines.push('Apply readiness:');
     lines.push(`- ready: ${plan.applyReadiness.ready ? 'yes' : 'no'}`);
     lines.push(`- auth: ${plan.applyReadiness.auth.status}`);
@@ -378,6 +451,13 @@ function renderGitHubWritePlan(plan) {
     }
     for (const entry of plan.applyReadiness.blockers) lines.push(`- blocker: ${entry.code}: ${entry.message}`);
     for (const entry of plan.applyReadiness.warnings) lines.push(`- readiness warning: ${entry}`);
+  }
+  if (plan.applyResult?.attempted) {
+    lines.push('Apply result:');
+    lines.push(`- ok: ${plan.applyResult.ok ? 'yes' : 'no'}`);
+    for (const result of plan.applyResult.results) {
+      lines.push(`- ${result.type}: ${result.ok ? 'ok' : `failed (${result.stderr || `status ${result.status}`})`}`);
+    }
   }
   return lines.join('\n');
 }
@@ -404,7 +484,7 @@ export function buildGitHubStatus({ root, argv = [], config = {}, env = process.
   if (ahead && ahead > 0) warnings.push(`Current branch has ${ahead} unpushed commit(s).`);
 
   const live = hasFlag(argv, '--live') && !privacy.offline
-    ? runGhPrView(root)
+    ? runGhPrView(root, env)
     : { available: null, skipped: hasFlag(argv, '--live') && privacy.offline, error: null, pr: null };
   if (live.skipped) warnings.push('Offline mode is enabled; skipped GitHub CLI live PR check.');
   if (live.error) warnings.push(`GitHub CLI live PR check failed: ${live.error}`);
@@ -441,6 +521,13 @@ export function runGitHubStatus(argv, context) {
 
 export function runGitHubWritePlan(argv, context) {
   const plan = buildGitHubWritePlan({ ...context, argv });
+  if (plan.applyRequested && plan.liveWriteRequested && plan.applyReadiness.ready) {
+    plan.applyResult = executeGitHubWriteOperations({ root: context.root, env: context.env ?? process.env, plan });
+    plan.ok = plan.applyResult.ok;
+    plan.blocked = false;
+    plan.dryRun = false;
+    plan.liveWrites = true;
+  }
   if (hasFlag(argv, '--json')) {
     console.log(JSON.stringify(plan, null, 2));
   } else {

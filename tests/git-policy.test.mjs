@@ -13,9 +13,41 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const cliPath = path.join(repoRoot, 'scripts', 'agent-coordination.mjs');
 const baseConfig = JSON.parse(fs.readFileSync(path.join(repoRoot, 'agent-coordination.config.json'), 'utf8'));
+const GIT_BIN = resolveGitBinary();
+const gitTest = GIT_BIN ? test : test.skip;
+
+function resolveGitBinary() {
+  if (process.env.GIT_BINARY && canRunGit(process.env.GIT_BINARY)) {
+    return process.env.GIT_BINARY;
+  }
+  if (canRunGit('git')) {
+    return 'git';
+  }
+  const candidates = process.platform === 'win32'
+    ? [
+        'C:\\Program Files\\Git\\cmd\\git.exe',
+        'C:\\Program Files\\Git\\bin\\git.exe',
+        'C:\\Program Files (x86)\\Git\\cmd\\git.exe',
+      ]
+    : ['/usr/bin/git', '/usr/local/bin/git', '/opt/homebrew/bin/git'];
+  return candidates.find((candidate) => fs.existsSync(candidate) && canRunGit(candidate)) ?? null;
+}
+
+function canRunGit(candidate) {
+  try {
+    return spawnSync(candidate, ['--version'], { encoding: 'utf8' }).status === 0;
+  } catch {
+    return false;
+  }
+}
+
+function pathWithGit() {
+  if (!GIT_BIN || GIT_BIN === 'git') return process.env.PATH;
+  return `${path.dirname(GIT_BIN)}${path.delimiter}${process.env.PATH ?? ''}`;
+}
 
 function git(root, args) {
-  return execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  return execFileSync(GIT_BIN, args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
 function makeGitWorkspace(gitConfig) {
@@ -54,13 +86,14 @@ function run(root, coordinationRoot, args) {
     encoding: 'utf8',
     env: {
       ...process.env,
+      PATH: pathWithGit(),
       AGENT_COORDINATION_ROOT: coordinationRoot,
       AGENT_COORDINATION_CONFIG: path.join(root, 'agent-coordination.config.json'),
     },
   });
 }
 
-test('doctor --json reports blocked main branch claim policy', () => {
+gitTest('doctor --json reports blocked main branch claim policy', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: false,
     allowDetachedHead: false,
@@ -74,7 +107,7 @@ test('doctor --json reports blocked main branch claim policy', () => {
   assert.ok(payload.git.errors.some((entry) => entry.includes('git.allowMainBranchClaims')));
 });
 
-test('doctor --json allows matching branch patterns', () => {
+gitTest('doctor --json allows matching branch patterns', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: false,
     allowDetachedHead: false,
@@ -133,7 +166,7 @@ test('git snapshot preserves leading porcelain status columns', () => {
   assert.deepEqual(snapshot.untracked, ['scripts/new-file.mjs']);
 });
 
-test('claim is blocked when branch does not match configured patterns', () => {
+gitTest('claim is blocked when branch does not match configured patterns', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: true,
     allowDetachedHead: false,
@@ -146,7 +179,7 @@ test('claim is blocked when branch does not match configured patterns', () => {
   assert.match(result.stderr, /git.allowedBranchPatterns/);
 });
 
-test('claim conflict prediction blocks local changes owned by another active task', () => {
+gitTest('claim conflict prediction blocks local changes owned by another active task', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: true,
     allowDetachedHead: false,
@@ -169,7 +202,7 @@ test('claim conflict prediction blocks local changes owned by another active tas
   assert.match(result.stderr, /src\/shared\.js/);
 });
 
-test('claim records current branch metadata on the task', () => {
+gitTest('claim records current branch metadata on the task', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: true,
     allowDetachedHead: false,
@@ -185,7 +218,7 @@ test('claim records current branch metadata on the task', () => {
   assert.equal(task.gitBranch, 'agent/task-branch');
 });
 
-test('branches reports active task ownership and stale cleanup candidates', () => {
+gitTest('branches reports active task ownership and stale cleanup candidates', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: true,
     allowDetachedHead: false,
@@ -211,7 +244,37 @@ test('branches reports active task ownership and stale cleanup candidates', () =
   assert.ok(!payload.cleanupCandidates.some((entry) => entry.name === 'feature/active'));
 });
 
-test('test-impact preserves leading porcelain status columns', () => {
+gitTest('branches --apply writes recovery plan before deletion and restore recreates refs', () => {
+  const { root, coordinationRoot } = makeGitWorkspace({
+    allowMainBranchClaims: true,
+    allowDetachedHead: false,
+    allowedBranchPatterns: [],
+  });
+  git(root, ['branch', 'feature/old']);
+  const originalSha = git(root, ['rev-parse', 'refs/heads/feature/old']);
+
+  const applyResult = run(root, coordinationRoot, ['branches', '--json', '--stale-days', '0', '--base', 'main', '--apply']);
+  assert.equal(applyResult.status, 0, applyResult.stderr);
+  const applyPayload = JSON.parse(applyResult.stdout);
+  assert.deepEqual(applyPayload.deleted, ['feature/old']);
+  assert.ok(applyPayload.recoveryPlanPath);
+  assert.notEqual(spawnSync(GIT_BIN, ['rev-parse', '--verify', '--quiet', 'refs/heads/feature/old'], { cwd: root }).status, 0);
+
+  const plan = JSON.parse(fs.readFileSync(applyPayload.recoveryPlanPath, 'utf8'));
+  assert.equal(plan.type, 'branch-delete-recovery');
+  assert.deepEqual(plan.deleted, ['feature/old']);
+  assert.equal(plan.branches[0].name, 'feature/old');
+  assert.equal(plan.branches[0].objectName, originalSha);
+  assert.match(plan.branches[0].restoreCommand.replaceAll('\\', '/'), /git update-ref refs\/heads\/feature\/old /);
+
+  const restoreResult = run(root, coordinationRoot, ['branches', 'restore', applyPayload.recoveryPlanPath, '--json']);
+  assert.equal(restoreResult.status, 0, restoreResult.stderr);
+  const restorePayload = JSON.parse(restoreResult.stdout);
+  assert.equal(restorePayload.restored[0].branch, 'feature/old');
+  assert.equal(git(root, ['rev-parse', 'refs/heads/feature/old']), originalSha);
+});
+
+gitTest('test-impact preserves leading porcelain status columns', () => {
   const { root, coordinationRoot } = makeGitWorkspace({
     allowMainBranchClaims: true,
     allowDetachedHead: false,

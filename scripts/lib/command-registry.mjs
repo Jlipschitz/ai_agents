@@ -6,6 +6,10 @@ const BASE_COORDINATOR_COMMANDS = new Set([
   'ai-agents',
 ]);
 
+const JSON_CAPABLE_COMMANDS = new Set([
+  'artifacts',
+]);
+
 function commandUsage(name) {
   return COMMANDS[name]?.[0] ?? '';
 }
@@ -25,7 +29,7 @@ export function commandRegistryEntries() {
       name,
       usage,
       summary: commandSummary(name),
-      json: usage.includes('--json'),
+      json: usage.includes('--json') || JSON_CAPABLE_COMMANDS.has(name),
       apply: usage.includes('--apply'),
       dryRun: usage.includes('--dry-run'),
       ...commandHelpMetadata(name),

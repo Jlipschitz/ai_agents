@@ -49,7 +49,7 @@ ai-agents summarize
 
 ## Package Install
 
-For package-based use, install the CLI and run it through `npx` or the local binary:
+For package-based use after a public npm release exists, install the CLI and run it through `npx` or the local binary:
 
 ```bash
 npm install --save-dev ai-agents
@@ -58,14 +58,15 @@ npx ai-agents doctor
 npx ai-agents status
 ```
 
-Before the package is published to npm, test the same entrypoint from GitHub:
+Until a public npm release exists, test the same entrypoint from this repository or a GitHub ref:
 
 ```bash
+npm run ai-agents -- --version
 npx github:OWNER/ai_agents --version
 npx github:OWNER/ai_agents doctor
 ```
 
-The package name is `ai-agents`, the executable is `ai-agents`, and `package.json` must keep `bin.ai-agents` pointed at `./bin/ai-agents.mjs`. Published versions should use normal semver and remove `private: true`.
+The package name is `ai-agents`, the executable is `ai-agents`, and `package.json` must keep `bin.ai-agents` pointed at `./bin/ai-agents.mjs`. Actual npm publication is an external release step; this fork currently keeps `private: true`, so remove that only as part of an approved publish candidate.
 
 ## Common Workflow
 
@@ -217,7 +218,7 @@ CI runs on Node 24, installs with `npm ci`, and uses npm caching keyed by `packa
 
 ## Publish Readiness
 
-Before publishing or testing a package candidate:
+Before publishing or testing a package candidate, run the local checks:
 
 ```bash
 npm ci
@@ -230,10 +231,9 @@ npm test
 npm run agents:publish:check
 npm run agents -- publish-check --strict
 npm pack --dry-run
-npm publish --dry-run
 ```
 
-Use `npm pack --dry-run` to review included files, then verify the packed or published CLI with `npx ai-agents --version` and `npx ai-agents doctor` in a clean repo.
+Use `npm pack --dry-run` to review included files, then verify the packed CLI from the generated tarball. `npm publish --dry-run` and the real publish are external release steps and require a package candidate that is no longer marked `private: true`.
 
 ## Documentation
 

@@ -1,9 +1,14 @@
-import { getPositionals, hasFlag } from './args-utils.mjs';
+import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
+
+import { getFlagValue, getPositionals, hasFlag } from './args-utils.mjs';
 import { printCommandError } from './error-formatting.mjs';
 import { ensureTaskMetadataDefaults, formatTaskDueAt, taskMetadataLabels, taskUrgencyScore } from './task-metadata.mjs';
 
 const ACTIVE_STATUSES = new Set(['active', 'blocked', 'review', 'waiting', 'handoff']);
 const TERMINAL_STATUSES = new Set(['done', 'released']);
+const MODEL_COMMAND_ENV = 'AI_AGENTS_ASK_MODEL_COMMAND';
+const ASK_VALUED_FLAGS = new Set(['--model-command']);
 
 function array(value) {
   return Array.isArray(value) ? value : [];
@@ -290,15 +295,166 @@ function supportedQuestions() {
   ];
 }
 
+function maybeReadConfig() {
+  const configPath = process.env.AGENT_COORDINATION_CONFIG;
+  if (!configPath) {
+    return {};
+  }
+  try {
+    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function configuredModelCommand(context = {}) {
+  const config = context.config ?? maybeReadConfig();
+  return String(
+    config.ask?.modelCommand
+      ?? config.ask?.openEnded?.modelCommand
+      ?? process.env[MODEL_COMMAND_ENV]
+      ?? '',
+  ).trim();
+}
+
+function parseCommandLine(command) {
+  const parts = [];
+  let current = '';
+  let quote = '';
+  const input = String(command);
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index];
+    const next = input[index + 1];
+    if (quote) {
+      if (char === '\\' && (next === quote || next === '\\')) {
+        current += next;
+        index += 1;
+        continue;
+      }
+      if (char === quote) quote = '';
+      else current += char;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (/\s/.test(char)) {
+      if (current) {
+        parts.push(current);
+        current = '';
+      }
+      continue;
+    }
+    current += char;
+  }
+  if (current) parts.push(current);
+  return parts;
+}
+
+function deterministicBoardContext(board, question) {
+  const agents = boardAgents(board)
+    .map((agent) => ({
+      id: String(agent?.id ?? ''),
+      status: String(agent?.status ?? 'unknown'),
+      taskId: agent?.taskId ?? null,
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const tasks = boardTasks(board)
+    .map((task) => ({
+      id: task.id,
+      title: task.title ?? '',
+      status: task.status ?? 'unknown',
+      ownerId: task.ownerId ?? null,
+      suggestedOwnerId: task.suggestedOwnerId ?? null,
+      summary: task.summary ?? '',
+      claimedPaths: [...task.claimedPaths].sort(),
+      dependencies: [...task.dependencies].sort(),
+      waitingOn: [...task.waitingOn].sort(),
+      relevantDocs: [...task.relevantDocs].sort(),
+      verification: [...task.verification].sort(),
+      priority: task.priority ?? 'normal',
+      severity: task.severity ?? 'none',
+      dueAt: task.dueAt ?? null,
+      createdAt: task.createdAt ?? null,
+      updatedAt: task.updatedAt ?? null,
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const counts = tasks.reduce((map, task) => {
+    map[task.status] = (map[task.status] ?? 0) + 1;
+    return map;
+  }, {});
+  return {
+    schemaVersion: 1,
+    question,
+    board: {
+      projectName: board?.projectName ?? '',
+      updatedAt: board?.updatedAt ?? null,
+      counts,
+      agents,
+      tasks,
+    },
+  };
+}
+
+function answerOpenEndedQuestion(board, question, command, context = {}) {
+  const commandParts = parseCommandLine(command);
+  if (!commandParts.length) {
+    return {
+      ok: false,
+      question,
+      intent: 'open-ended',
+      answer: `Open-ended ask requires a local provider command. Pass --model-command "<cmd>" or set ${MODEL_COMMAND_ENV}.`,
+      items: [],
+      suggestions: supportedQuestions(),
+    };
+  }
+  const payload = deterministicBoardContext(board, question);
+  const result = spawnSync(commandParts[0], commandParts.slice(1), {
+    cwd: context.root ?? process.cwd(),
+    encoding: 'utf8',
+    input: `${JSON.stringify(payload, null, 2)}\n`,
+    shell: false,
+    maxBuffer: 1024 * 1024 * 10,
+  });
+  const stderr = String(result.stderr ?? '').trim();
+  const stdout = String(result.stdout ?? '').trim();
+  if (result.error || (result.status ?? 0) !== 0) {
+    const detail = stderr || result.error?.message || `Provider exited with status ${result.status ?? 1}.`;
+    return {
+      ok: false,
+      question,
+      intent: 'open-ended',
+      answer: `Open-ended ask provider failed: ${detail}`,
+      items: [],
+      suggestions: supportedQuestions(),
+    };
+  }
+  return {
+    ok: true,
+    question,
+    intent: 'open-ended',
+    answer: stdout || 'Open-ended ask provider returned no answer.',
+    items: [],
+    suggestions: supportedQuestions(),
+    modelCommand: command,
+  };
+}
+
 export function runAskCommand(argv, context) {
   const json = hasFlag(argv, '--json');
-  const positionals = getPositionals(argv);
+  const openEnded = hasFlag(argv, '--open-ended') || hasFlag(argv, '--model-command');
+  const modelCommand = getFlagValue(argv, '--model-command', '') || configuredModelCommand(context);
+  const positionals = getPositionals(argv, ASK_VALUED_FLAGS);
   const question = positionals.join(' ').trim();
   if (!question) {
-    return printCommandError('Usage: ask "<question>" [--json]', { json });
+    return printCommandError('Usage: ask "<question>" [--json] [--open-ended] [--model-command "<cmd>"]', { json });
   }
 
-  const result = answerBoardQuestion(context.board, question);
+  const result = openEnded ? answerOpenEndedQuestion(context.board, question, modelCommand, context) : answerBoardQuestion(context.board, question);
+  if (!result.ok && result.intent === 'open-ended') {
+    return printCommandError(result.answer, { json });
+  }
   if (json) {
     console.log(JSON.stringify(result, null, 2));
   } else {
