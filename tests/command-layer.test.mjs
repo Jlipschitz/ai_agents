@@ -617,3 +617,34 @@ test('finish --require-doc-review blocks missing docs review before mutating boa
   assert.match(result.stderr, /docsReviewedAt/);
   assert.equal(fs.readFileSync(boardPath, 'utf8'), before);
 });
+
+test('review-docs can repair release docs gate after finish by last owner', () => {
+  const root = makeWorkspace();
+  writeBoard(root, {
+    projectName: 'Layer Test',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    tasks: [
+      {
+        id: 'task-one',
+        status: 'done',
+        ownerId: null,
+        lastOwnerId: 'agent-1',
+        title: 'Needs docs',
+        claimedPaths: ['src/a'],
+        relevantDocs: ['README.md'],
+        verification: ['unit'],
+        verificationLog: [{ check: 'unit', outcome: 'pass' }],
+      },
+    ],
+    agents: [{ id: 'agent-1', status: 'idle', taskId: null }],
+  });
+
+  const result = run(root, ['review-docs', 'agent-1', 'task-one', '--note', 'Reviewed after finish']);
+  assert.equal(result.status, 0, result.stderr);
+
+  const release = run(root, ['release-check', 'task-one', '--json']);
+  assert.equal(release.status, 0, release.stderr);
+  const board = JSON.parse(fs.readFileSync(path.join(coordinationRoot(root), 'board.json'), 'utf8'));
+  assert.equal(board.tasks[0].docsReviewedBy, 'agent-1');
+  assert.ok(board.tasks[0].docsReviewedAt);
+});

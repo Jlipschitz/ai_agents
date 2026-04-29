@@ -254,8 +254,10 @@ export function createTaskClaimCommands(context) {
       const task = ensureTask(board, taskId);
       const agent = getCommandAgent(board, agentId);
 
-      if (task.ownerId !== agentId) {
-        throw new Error(`${agentId} cannot review docs for "${taskId}" because it is currently owned by ${task.ownerId ?? 'nobody'}.`);
+      const canReviewDocs = task.ownerId === agentId || (!task.ownerId && terminalTaskStatuses.has(task.status) && task.lastOwnerId === agentId);
+      if (!canReviewDocs) {
+        const ownerLabel = task.ownerId ?? (task.lastOwnerId ? `nobody; last owned by ${task.lastOwnerId}` : 'nobody');
+        throw new Error(`${agentId} cannot review docs for "${taskId}" because it is currently owned by ${ownerLabel}.`);
       }
 
       const relevantDocs = docsOverride.length ? docsOverride : inferRelevantDocs(task.claimedPaths, task.summary, task.verification);
